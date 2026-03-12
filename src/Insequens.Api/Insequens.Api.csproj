@@ -28,8 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Infrastructure\Journal.Infrastructure.DataAccess\Journal.Infrastructure.DataAccess.csproj" />
-    <ProjectReference Include="..\Journal.Core\Journal.Core.csproj" />
+    <ProjectReference Include="..\Infrastructure\Insequens.Infrastructure.DataAccess\Insequens.Infrastructure.DataAccess.csproj" />
+    <ProjectReference Include="..\Insequens.Core\Insequens.Core.csproj" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties properties_4launchsettings_1json__JsonSchema="https://json.schemastore.org/language-configuration.json" /></VisualStudio></ProjectExtensions>

@@ -1,16 +1,16 @@
-﻿using Journal.Domain.Data;
+﻿using Insequens.Domain.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Journal.Domain.DataAccess;
-using Journal.Domain.ServiceContracts;
-using Journal.Core.Profiles;
-using Journal.Core.Services;
-using Journal.Api;
-using Journal.Infrastructure.DataAccess;
+using Insequens.Domain.DataAccess;
+using Insequens.Domain.ServiceContracts;
+using Insequens.Core.Profiles;
+using Insequens.Core.Services;
+using Insequens.Api;
+using Insequens.Infrastructure.DataAccess;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Journal.Infrastructure.Data.Models;
+using Insequens.Infrastructure.Data.Models;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,13 +37,13 @@ builder.Services.AddCors(options =>
                .AllowAnyHeader();
       });
 });
-var dataConnectionString = builder.Configuration["ConnectionStrings:JournalConnection"];
+var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
 
 builder.Services.AddScoped<IDataContext, DataContext>();
 builder.Services.AddAutoMapper(typeof(ToDoItemProfile));
 builder.Services.AddScoped<IToDoItemService, ToDoItemService>();
 
-builder.Services.AddDbContextPool<JournalContext>(options =>
+builder.Services.AddDbContextPool<InsequensContext>(options =>
     options.UseSqlServer(dataConnectionString,
             providerOptions => providerOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null)));
 
@@ -74,7 +74,7 @@ builder.Services.AddAuthorization();
 
 /**/
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<JournalContext>()
+    .AddEntityFrameworkStores<InsequensContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -82,7 +82,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     // e.g. options.Password.RequiredLength = 8;
 })
 .AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<JournalContext>()
+.AddEntityFrameworkStores<InsequensContext>()
 .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);

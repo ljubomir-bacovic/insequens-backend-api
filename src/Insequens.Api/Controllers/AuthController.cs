@@ -1,7 +1,7 @@
-﻿using Journal.Domain.Models.RefreshToken;
-using Journal.Domain.Models.Auth;
-using Journal.Domain.ServiceContracts;
-using Journal.Infrastructure.Data.Models;
+﻿using Insequens.Domain.Models.RefreshToken;
+using Insequens.Domain.Models.Auth;
+using Insequens.Domain.ServiceContracts;
+using Insequens.Infrastructure.Data.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +15,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 
 
-namespace Journal.Api.Controllers
+namespace Insequens.Api.Controllers
 {
     [Route(Constants.BaseUrl)]
     [ApiController]

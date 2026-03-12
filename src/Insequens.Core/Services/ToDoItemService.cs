@@ -1,14 +1,14 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Journal.Core.Exceptions;
-using Journal.Domain.DataAccess;
-using Journal.Domain.Entities;
-using Journal.Domain.Model.ToDoItem;
-using Journal.Domain.ServiceContracts;
-using Journal.Domain.Types;
+using Insequens.Core.Exceptions;
+using Insequens.Domain.DataAccess;
+using Insequens.Domain.Entities;
+using Insequens.Domain.Model.ToDoItem;
+using Insequens.Domain.ServiceContracts;
+using Insequens.Domain.Types;
 using Microsoft.EntityFrameworkCore;
 
-namespace Journal.Core.Services;
+namespace Insequens.Core.Services;
 
 public class ToDoItemService : IToDoItemService
 {

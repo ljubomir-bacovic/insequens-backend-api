@@ -1,17 +1,17 @@
-﻿using Journal.Domain.Entities;
-using Journal.Infrastructure.Data.Models;
+﻿using Insequens.Domain.Entities;
+using Insequens.Infrastructure.Data.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Journal.Domain.Data;
+namespace Insequens.Domain.Data;
 
-public class JournalContext : IdentityDbContext<ApplicationUser>
+public class InsequensContext : IdentityDbContext<ApplicationUser>
 {
     public required DbSet<ToDoItem> ToDoItems { get; set; }
 
 
-    public JournalContext(DbContextOptions<JournalContext> options) : base(options)
+    public InsequensContext(DbContextOptions<InsequensContext> options) : base(options)
     {
 
     }

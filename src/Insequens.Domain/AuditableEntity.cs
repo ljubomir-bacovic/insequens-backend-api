@@ -1,4 +1,4 @@
-﻿namespace Journal.Domain;
+﻿namespace Insequens.Domain;
 
 public abstract class AuditableEntity : BaseEntity<Guid>
 {

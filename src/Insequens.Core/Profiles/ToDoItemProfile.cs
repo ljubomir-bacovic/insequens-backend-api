@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
-using Journal.Domain.Entities;
-using Journal.Domain.Model.ToDoItem;
+using Insequens.Domain.Entities;
+using Insequens.Domain.Model.ToDoItem;
 
-namespace Journal.Core.Profiles;
+namespace Insequens.Core.Profiles;
 
 public class ToDoItemProfile : Profile
 {

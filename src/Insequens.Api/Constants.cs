@@ -1,4 +1,4 @@
-﻿namespace Journal.Api;
+﻿namespace Insequens.Api;
 
 public static class Constants
 {

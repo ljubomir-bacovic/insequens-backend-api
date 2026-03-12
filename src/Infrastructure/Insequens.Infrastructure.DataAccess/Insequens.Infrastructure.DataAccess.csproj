@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Journal.Domain\Journal.Domain.csproj" />
-    <ProjectReference Include="..\Journal.Infrastructure.Data\Journal.Infrastructure.Data.csproj" />
+    <ProjectReference Include="..\..\Insequens.Domain\Insequens.Domain.csproj" />
+    <ProjectReference Include="..\Insequens.Infrastructure.Data\Insequens.Infrastructure.Data.csproj" />
   </ItemGroup>
 
 </Project>

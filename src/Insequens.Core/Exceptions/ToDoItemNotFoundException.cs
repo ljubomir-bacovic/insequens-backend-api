@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace Journal.Core.Exceptions;
+namespace Insequens.Core.Exceptions;
 
 [Serializable]
 public class ToDoItemNotFoundException : Exception

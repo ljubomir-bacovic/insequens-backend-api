@@ -1,6 +1,6 @@
-﻿using Journal.Domain.Types;
+﻿using Insequens.Domain.Types;
 
-namespace Journal.Domain.Model.ToDoItem;
+namespace Insequens.Domain.Model.ToDoItem;
 
 public record ToDoItemGetListModel(Guid Id, string Name, string? Description, DateOnly DueDate, bool IsCompleted, 
     TaskPriority? Priority);

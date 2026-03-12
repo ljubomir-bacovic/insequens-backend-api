@@ -1,3 +1,3 @@
-﻿namespace Journal.Domain.Model.ToDoItem;
+﻿namespace Insequens.Domain.Model.ToDoItem;
 
 public record ToDoItemUpdateNameModel(Guid Id, string Name);

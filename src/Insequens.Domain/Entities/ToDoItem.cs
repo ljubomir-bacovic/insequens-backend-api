@@ -1,6 +1,6 @@
-﻿using Journal.Domain.Types;
+﻿using Insequens.Domain.Types;
 
-namespace Journal.Domain.Entities;
+namespace Insequens.Domain.Entities;
 
 public class ToDoItem : AuditableEntity
 {

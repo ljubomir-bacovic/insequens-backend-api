@@ -1,4 +1,4 @@
-﻿namespace Journal.Domain.Models.Auth;
+﻿namespace Insequens.Domain.Models.Auth;
 
 public class LoginRequestModel
 {

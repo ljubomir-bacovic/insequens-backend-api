@@ -1,8 +1,8 @@
-﻿using Journal.Domain.ServiceContracts;
+﻿using Insequens.Domain.ServiceContracts;
 using System.Net.Mail;
 using System.Net;
 
-namespace Journal.Api;
+namespace Insequens.Api;
 
 
 public class EmailSender : IEmailSender

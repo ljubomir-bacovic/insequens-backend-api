@@ -1,4 +1,4 @@
-﻿namespace Journal.Domain.DataAccess;
+﻿namespace Insequens.Domain.DataAccess;
 public interface IDataContext : IDisposable
 {
     void SaveChanges();

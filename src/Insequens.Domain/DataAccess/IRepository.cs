@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace Journal.Domain.DataAccess;
+namespace Insequens.Domain.DataAccess;
 
 public interface IRepository<T>
     where T : class, IEntity

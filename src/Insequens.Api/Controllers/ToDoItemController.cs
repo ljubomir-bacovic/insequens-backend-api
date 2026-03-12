@@ -1,13 +1,13 @@
-﻿using Journal.Domain.Model.ToDoItem;
-using Journal.Domain.ServiceContracts;
-using Journal.Domain.Types;
+﻿using Insequens.Domain.Model.ToDoItem;
+using Insequens.Domain.ServiceContracts;
+using Insequens.Domain.Types;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 
-namespace Journal.Api.Controllers
+namespace Insequens.Api.Controllers
 {
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route(Constants.BaseUrl)]

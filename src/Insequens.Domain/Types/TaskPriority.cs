@@ -1,4 +1,4 @@
-﻿namespace Journal.Domain.Types;
+﻿namespace Insequens.Domain.Types;
 
 public enum TaskPriority
 {

@@ -1,17 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Journal.Domain.Data;
+using Insequens.Domain.Data;
 using Microsoft.AspNetCore.Identity;
-using Journal.Infrastructure.Data.Models;
+using Insequens.Infrastructure.Data.Models;
 
-namespace Journal.Api.Controllers
+namespace Insequens.Api.Controllers
 {
     [ApiController]
     [Route("warmup")]
     public class WarmupController : ControllerBase
     {
-        private readonly JournalContext _context;
+        private readonly InsequensContext _context;
 
-        public WarmupController(JournalContext context)
+        public WarmupController(InsequensContext context)
         {
             _context = context;
         }

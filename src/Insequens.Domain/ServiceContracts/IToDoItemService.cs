@@ -1,7 +1,7 @@
-﻿using Journal.Domain.Model.ToDoItem;
-using Journal.Domain.Types;
+﻿using Insequens.Domain.Model.ToDoItem;
+using Insequens.Domain.Types;
 
-namespace Journal.Domain.ServiceContracts;
+namespace Insequens.Domain.ServiceContracts;
 
 public interface IToDoItemService
 {

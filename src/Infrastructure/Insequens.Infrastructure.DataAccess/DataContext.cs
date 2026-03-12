@@ -1,17 +1,17 @@
-﻿using Journal.Domain;
-using Journal.Domain.Data;
-using Journal.Domain.DataAccess;
+﻿using Insequens.Domain;
+using Insequens.Domain.Data;
+using Insequens.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Common;
 
-namespace Journal.Infrastructure.DataAccess;
+namespace Insequens.Infrastructure.DataAccess;
 
 public class DataContext : IDataContext
 {
-    private readonly JournalContext _context;
+    private readonly InsequensContext _context;
     private bool _disposed;
 
-    public DataContext(JournalContext context)
+    public DataContext(InsequensContext context)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
     }

@@ -1,4 +1,4 @@
-﻿namespace Journal.Domain.Models.RefreshToken;
+﻿namespace Insequens.Domain.Models.RefreshToken;
 
 public class RefreshTokenRequestModel
 {

@@ -1,6 +1,6 @@
-﻿using Journal.Domain.Types;
+﻿using Insequens.Domain.Types;
 
-namespace Journal.Domain.Model.ToDoItem;
+namespace Insequens.Domain.Model.ToDoItem;
 
 public record ToDoItemCreateModel(string Name, string? Description, int Priority,
     DateOnly? DueDate);

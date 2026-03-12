@@ -1,4 +1,4 @@
-﻿namespace Journal.Domain.ServiceContracts;
+﻿namespace Insequens.Domain.ServiceContracts;
 
 public interface IEmailSender
 {

@@ -1,9 +1,9 @@
-﻿using Journal.Domain;
-using Journal.Domain.DataAccess;
+﻿using Insequens.Domain;
+using Insequens.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Journal.Infrastructure.DataAccess;
+namespace Insequens.Infrastructure.DataAccess;
 
 public class Repository<T> : IRepository<T>
     where T : class, IEntity

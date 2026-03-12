@@ -1,9 +1,9 @@
-﻿using Journal.Core.Exceptions;
+﻿using Insequens.Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
-namespace Journal.Api;
+namespace Insequens.Api;
 
 public class ExceptionMiddleware
 {

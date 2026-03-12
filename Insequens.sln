@@ -3,19 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.12.35506.116
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Journal.Api", "src\Journal.Api\Journal.Api.csproj", "{838E48A9-7A00-4881-9B3C-5A7998023893}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Api", "src\Insequens.Api\Insequens.Api.csproj", "{838E48A9-7A00-4881-9B3C-5A7998023893}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{1AC93F3E-0F2F-4203-8728-7500A4568B4E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CEAA1C59-F4BB-4B7A-8632-2B0B7298A84E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Journal.Core", "src\Journal.Core\Journal.Core.csproj", "{8E316A9B-A60B-4880-A7E5-9D7399F3490B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Core", "src\Insequens.Core\Insequens.Core.csproj", "{8E316A9B-A60B-4880-A7E5-9D7399F3490B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Journal.Infrastructure.Data", "src\Infrastructure\Journal.Infrastructure.Data\Journal.Infrastructure.Data.csproj", "{F7199AEC-DE96-49E3-BF2D-A2D0F2896B76}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Infrastructure.Data", "src\Infrastructure\Insequens.Infrastructure.Data\Insequens.Infrastructure.Data.csproj", "{F7199AEC-DE96-49E3-BF2D-A2D0F2896B76}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Journal.Domain", "src\Journal.Domain\Journal.Domain.csproj", "{A72289E2-7B03-47FB-8BE4-CA6B4C881165}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Domain", "src\Insequens.Domain\Insequens.Domain.csproj", "{A72289E2-7B03-47FB-8BE4-CA6B4C881165}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Journal.Infrastructure.DataAccess", "src\Infrastructure\Journal.Infrastructure.DataAccess\Journal.Infrastructure.DataAccess.csproj", "{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Infrastructure.DataAccess", "src\Infrastructure\Insequens.Infrastructure.DataAccess\Insequens.Infrastructure.DataAccess.csproj", "{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
