@@ -13,6 +13,8 @@ using System.Text;
 using Insequens.Infrastructure.Data.Models;
 using Serilog;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,7 +99,10 @@ builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<JwtBearerSecurityDocumentTransformer>();
+});
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -129,7 +134,16 @@ app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("Insequens API")
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
+    
+    // Redirect root path to Scalar API documentation in development
+    app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+        .ExcludeFromDescription();
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
