@@ -208,9 +208,8 @@ public class JwtBearerSecurityDocumentTransformer : IOpenApiDocumentTransformer
         }
         catch (Exception ex)
         {
-            // Log the error for debugging
-            Console.WriteLine($"Error in JwtBearerSecurityDocumentTransformer: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Log the error using Serilog
+            Log.Error(ex, "Error in JwtBearerSecurityDocumentTransformer while adding Bearer security scheme to OpenAPI document");
             throw;
         }
 
