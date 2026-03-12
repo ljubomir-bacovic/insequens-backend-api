@@ -59,7 +59,7 @@
                 "hostnameConfigurations": [
                   {
                     "type": "Proxy",
-                    "hostName": "journalapi-ms.azure-api.net",
+                    "hostName": "insequensapi-ms.azure-api.net",
                     "encodedCertificate": null,
                     "keyVaultId": null,
                     "certificatePassword": null,
