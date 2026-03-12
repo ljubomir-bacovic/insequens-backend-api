@@ -162,36 +162,56 @@ public class JwtBearerSecurityDocumentTransformer : IOpenApiDocumentTransformer
 {
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
-        const string schemeKey = "Bearer";
-        
-        // Add security scheme to components
-        document.Components ??= new();
-        document.Components.SecuritySchemes[schemeKey] = new OpenApiSecurityScheme
+        try
         {
-            Type = SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            In = ParameterLocation.Header,
-            Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
-        };
-
-        // Create a security requirement with OpenApiSecuritySchemeReference
-        var securityRequirement = new OpenApiSecurityRequirement();
-        
-        // Create a reference to the security scheme
-        var schemeReference = new OpenApiSecuritySchemeReference(schemeKey, document);
-        
-        // Add the security requirement using the reference
-        securityRequirement.Add(schemeReference, new List<string>());
-
-        // Apply security requirement to all operations
-        foreach (var path in document.Paths.Values)
-        {
-            foreach (var operation in path.Operations.Values)
+            const string schemeKey = "Bearer";
+            
+            // Add security scheme to components
+            document.Components ??= new();
+            document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+            document.Components.SecuritySchemes[schemeKey] = new OpenApiSecurityScheme
             {
-                operation.Security ??= new List<OpenApiSecurityRequirement>();
-                operation.Security.Add(securityRequirement);
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                In = ParameterLocation.Header,
+                Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
+            };
+
+            // Create a security requirement with OpenApiSecuritySchemeReference
+            var securityRequirement = new OpenApiSecurityRequirement();
+            
+            // Create a reference to the security scheme
+            var schemeReference = new OpenApiSecuritySchemeReference(schemeKey, document);
+            
+            // Add the security requirement using the reference
+            securityRequirement.Add(schemeReference, new List<string>());
+
+            // Apply security requirement to all operations
+            if (document.Paths != null)
+            {
+                foreach (var path in document.Paths.Values)
+                {
+                    if (path?.Operations != null)
+                    {
+                        foreach (var operation in path.Operations.Values)
+                        {
+                            if (operation != null)
+                            {
+                                operation.Security ??= new List<OpenApiSecurityRequirement>();
+                                operation.Security.Add(securityRequirement);
+                            }
+                        }
+                    }
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            // Log the error for debugging
+            Console.WriteLine($"Error in JwtBearerSecurityDocumentTransformer: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
         }
 
         return Task.CompletedTask;
