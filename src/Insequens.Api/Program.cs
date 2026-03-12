@@ -13,6 +13,8 @@ using System.Text;
 using Insequens.Infrastructure.Data.Models;
 using Serilog;
 using Scalar.AspNetCore;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,7 +99,10 @@ builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<JwtBearerSecurityDocumentTransformer>();
+});
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -129,7 +134,16 @@ app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("Insequens API")
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+    });
+    
+    // Redirect root path to Scalar API documentation in development
+    app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+        .ExcludeFromDescription();
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
@@ -140,3 +154,46 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+/// <summary>
+/// Document transformer to add JWT Bearer authentication to OpenAPI specification
+/// </summary>
+public class JwtBearerSecurityDocumentTransformer : IOpenApiDocumentTransformer
+{
+    public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
+    {
+        const string schemeKey = "Bearer";
+        
+        // Add security scheme to components
+        document.Components ??= new();
+        document.Components.SecuritySchemes[schemeKey] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
+        };
+
+        // Create a security requirement with OpenApiSecuritySchemeReference
+        var securityRequirement = new OpenApiSecurityRequirement();
+        
+        // Create a reference to the security scheme
+        var schemeReference = new OpenApiSecuritySchemeReference(schemeKey, document);
+        
+        // Add the security requirement using the reference
+        securityRequirement.Add(schemeReference, new List<string>());
+
+        // Apply security requirement to all operations
+        foreach (var path in document.Paths.Values)
+        {
+            foreach (var operation in path.Operations.Values)
+            {
+                operation.Security ??= new List<OpenApiSecurityRequirement>();
+                operation.Security.Add(securityRequirement);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+}
