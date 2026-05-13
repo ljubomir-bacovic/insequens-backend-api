@@ -57,8 +57,10 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/priority")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
         {
             await _toDoItemService.UpdateToDoItemPriorityAsync(id, UserId, priority);
@@ -66,8 +68,10 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/name")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
         {
             await _toDoItemService.UpdateToDoItemNameAsync(id, UserId, name);
@@ -75,8 +79,10 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/description")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string description)
         {
             await _toDoItemService.UpdateToDoItemDescriptionAsync(id, UserId, description);
@@ -84,8 +90,10 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/duedate")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date)
         {
             await _toDoItemService.UpdateToDoItemDueDateAsync(id, UserId, date);
@@ -94,6 +102,7 @@ namespace Insequens.Api.Controllers
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> DeleteToDoItemAsync(Guid id)
         {
@@ -103,6 +112,7 @@ namespace Insequens.Api.Controllers
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> GetToDoItem(Guid id)
         {
@@ -111,7 +121,8 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/togglecomplete")]
-        [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> CompleteToDoItem(Guid id)
         {
