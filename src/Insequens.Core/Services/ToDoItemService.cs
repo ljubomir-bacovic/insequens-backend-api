@@ -45,63 +45,72 @@ public class ToDoItemService : IToDoItemService
             .ToListAsync();
     }
 
-    public async Task UpdateToDoItemAsync(ToDoItemUpdateModel toDoItemUpdate)
+    private async Task<ToDoItem> GetOwnedItemAsync(Guid id, Guid userId)
     {
-        var toDoItem = _toDoItemRepository.Find(toDoItemUpdate.Id) ?? throw new ToDoItemNotFoundException(toDoItemUpdate.Id);
+        var toDoItem = await _toDoItemRepository.FindAsync(id)
+            ?? throw new ToDoItemNotFoundException(id);
+        if (toDoItem.UserId != userId)
+            throw new ResourceForbiddenException(id);
+        return toDoItem;
+    }
+
+    public async Task UpdateToDoItemAsync(ToDoItemUpdateModel toDoItemUpdate, Guid userId)
+    {
+        var toDoItem = await GetOwnedItemAsync(toDoItemUpdate.Id, userId);
         _mapper.Map(toDoItemUpdate, toDoItem);
 
         _toDoItemRepository.AddOrUpdate(toDoItem);
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task DeleteToDoItemAsync(Guid id)
+    public async Task DeleteToDoItemAsync(Guid id, Guid userId)
     {
-        var toDoItem = _toDoItemRepository.Find(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         _toDoItemRepository.Remove(toDoItem);
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task<ToDoItemGetDetailsModel> GetToDoItem(Guid id)
+    public async Task<ToDoItemGetDetailsModel> GetToDoItem(Guid id, Guid userId)
     {
-        var toDoItem = await _toDoItemRepository.FindAsync(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         return _mapper.Map<ToDoItemGetDetailsModel>(toDoItem);
     }
 
-    public async Task ToggleToDoItemCompleteAsync(Guid id)
+    public async Task ToggleToDoItemCompleteAsync(Guid id, Guid userId)
     {
-        var toDoItem = await _toDoItemRepository.FindAsync(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         toDoItem.IsCompleted = !toDoItem.IsCompleted;
 
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task UpdateToDoItemPriorityAsync(Guid id, TaskPriority priority)
+    public async Task UpdateToDoItemPriorityAsync(Guid id, Guid userId, TaskPriority priority)
     {
-        var toDoItem = await _toDoItemRepository.FindAsync(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         toDoItem.Priority = priority;
 
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task UpdateToDoItemNameAsync(Guid id, string name)
+    public async Task UpdateToDoItemNameAsync(Guid id, Guid userId, string name)
     {
-        var toDoItem = await _toDoItemRepository.FindAsync(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         toDoItem.Name = name;
 
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task UpdateToDoItemDescriptionAsync(Guid id, string description)
+    public async Task UpdateToDoItemDescriptionAsync(Guid id, Guid userId, string description)
     {
-        var toDoItem = await _toDoItemRepository.FindAsync(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         toDoItem.Description = description;
 
         await _dataContext.SaveChangesAsync();
     }
 
-    public async Task UpdateToDoItemDueDateAsync(Guid id, DateOnly date)
+    public async Task UpdateToDoItemDueDateAsync(Guid id, Guid userId, DateOnly date)
     {
-        var toDoItem = await _toDoItemRepository.FindAsync(id) ?? throw new ToDoItemNotFoundException(id);
+        var toDoItem = await GetOwnedItemAsync(id, userId);
         toDoItem.DueDate = date;
 
         await _dataContext.SaveChangesAsync();
