@@ -37,6 +37,23 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
+        catch (ResourceForbiddenException ex)
+        {
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status403Forbidden,
+                Detail = string.Empty,
+                Instance = "",
+                Title = $"Access denied for resource {ex.Id}.",
+                Type = "Error"
+            };
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
         catch (ValidationException ex)
         {
             context.Response.ContentType = "application/problem+json";
