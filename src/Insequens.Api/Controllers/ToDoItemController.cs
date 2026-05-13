@@ -57,65 +57,76 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpPatch("{id:guid}/priority")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
         {
-            await _toDoItemService.UpdateToDoItemPriorityAsync(id, priority);
+            await _toDoItemService.UpdateToDoItemPriorityAsync(id, UserId, priority);
             return Results.NoContent();
         }
 
         [HttpPatch("{id:guid}/name")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
         {
-            await _toDoItemService.UpdateToDoItemNameAsync(id, name);
+            await _toDoItemService.UpdateToDoItemNameAsync(id, UserId, name);
             return Results.NoContent();
         }
 
         [HttpPatch("{id:guid}/description")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string description)
         {
-            await _toDoItemService.UpdateToDoItemDescriptionAsync(id, description);
+            await _toDoItemService.UpdateToDoItemDescriptionAsync(id, UserId, description);
             return Results.NoContent();
         }
 
         [HttpPatch("{id:guid}/duedate")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date)
         {
-            await _toDoItemService.UpdateToDoItemDueDateAsync(id, date);
+            await _toDoItemService.UpdateToDoItemDueDateAsync(id, UserId, date);
             return Results.NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> DeleteToDoItemAsync(Guid id)
         {
-            await _toDoItemService.DeleteToDoItemAsync(id);
+            await _toDoItemService.DeleteToDoItemAsync(id, UserId);
             return Results.NoContent();
         }
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> GetToDoItem(Guid id)
         {
-            var toDoItem = await _toDoItemService.GetToDoItem(id);
+            var toDoItem = await _toDoItemService.GetToDoItem(id, UserId);
             return Results.Ok(toDoItem);
         }
 
         [HttpPatch("{id:guid}/togglecomplete")]
-        [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> CompleteToDoItem(Guid id)
         {
-            await _toDoItemService.ToggleToDoItemCompleteAsync(id);
+            await _toDoItemService.ToggleToDoItemCompleteAsync(id, UserId);
             return Results.Ok();
         }
     }
