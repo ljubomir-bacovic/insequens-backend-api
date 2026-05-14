@@ -1,4 +1,5 @@
-﻿using Insequens.Core.Exceptions;
+using Insequens.Core.Exceptions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -7,11 +8,13 @@ namespace Insequens.Api;
 
 public class ExceptionMiddleware
 {
+    private readonly IWebHostEnvironment _env;
     private RequestDelegate Next { get; }
 
-    public ExceptionMiddleware(RequestDelegate next)
+    public ExceptionMiddleware(RequestDelegate next, IWebHostEnvironment env)
     {
         Next = next;
+        _env = env;
     }
 
     public async Task Invoke(HttpContext context)
@@ -37,7 +40,7 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
-        catch (ResourceForbiddenException ex)
+        catch (ResourceForbiddenException)
         {
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -47,7 +50,7 @@ public class ExceptionMiddleware
                 Status = StatusCodes.Status403Forbidden,
                 Detail = string.Empty,
                 Instance = "",
-                Title = $"Access denied for resource {ex.Id}.",
+                Title = "Access denied.",
                 Type = "Error"
             };
 
@@ -73,16 +76,19 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
-
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+            var detail = _env.IsDevelopment()
+                ? "Message: " + ex.Message + " Inner Exception: " + ex.InnerException
+                : "An unexpected error occurred. Please try again later.";
 
             var problemDetails = new ProblemDetails()
             {
                 Status = StatusCodes.Status500InternalServerError,
-                Detail = "Message: " + ex.Message + " Inner Exception: " + ex.InnerException,
+                Detail = detail,
                 Instance = "",
-                Title = "Internal Server Error - something went wrong.",
+                Title = "Internal Server Error",
                 Type = "Error"
             };
 
