@@ -49,7 +49,10 @@ public class ExceptionMiddlewareTests
         context.Response.ContentType.Should().Be("application/problem+json");
         json.RootElement.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status400BadRequest);
         json.RootElement.GetProperty("title").GetString().Should().Be("Validation failed.");
-        json.RootElement.GetProperty("detail").GetString().Should().Be("Name is required.; Name must be at least 3 characters.; Priority must be between 0 and 3.");
+        json.RootElement.GetProperty("detail").GetString()!.Split("; ").Should().BeEquivalentTo(
+            "Name is required.",
+            "Name must be at least 3 characters.",
+            "Priority must be between 0 and 3.");
         json.RootElement.GetProperty("type").GetString().Should().Be("ValidationError");
         json.RootElement.GetProperty("errors").GetProperty("Name").EnumerateArray().Select(item => item.GetString()).Should().Equal(
             "Name is required.",
@@ -79,7 +82,7 @@ public class ExceptionMiddlewareTests
     {
         var exception = new ValidationException(
             "Do not leak this exception message.",
-            [CreateModelLevelFailure("A general validation failure occurred.")]);
+            [new ValidationFailure(ModelLevelErrorKey, "A general validation failure occurred.")]);
         var context = await InvokeMiddlewareAsync(_ => throw exception);
         var responseBody = await ReadResponseBodyAsync(context);
         using var json = JsonDocument.Parse(responseBody);
@@ -122,13 +125,6 @@ public class ExceptionMiddlewareTests
         using var reader = new StreamReader(context.Response.Body, Encoding.UTF8, leaveOpen: true);
 
         return await reader.ReadToEndAsync();
-    }
-
-    private static ValidationFailure CreateModelLevelFailure(string errorMessage)
-    {
-#pragma warning disable CS8625
-        return new ValidationFailure(null, errorMessage);
-#pragma warning restore CS8625
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

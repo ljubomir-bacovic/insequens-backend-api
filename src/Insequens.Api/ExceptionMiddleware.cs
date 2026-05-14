@@ -7,6 +7,7 @@ namespace Insequens.Api;
 
 public class ExceptionMiddleware
 {
+    private const string ModelLevelErrorKey = "";
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<ExceptionMiddleware> _logger;
     private RequestDelegate Next { get; }
@@ -85,7 +86,7 @@ public class ExceptionMiddleware
         {
             var failures = ex.Errors.ToArray();
             var errors = failures
-                .GroupBy(failure => failure.PropertyName ?? string.Empty)
+                .GroupBy(failure => failure.PropertyName ?? ModelLevelErrorKey)
                 .ToDictionary(group => group.Key, group => group.Select(failure => failure.ErrorMessage).ToArray());
 
             _logger.LogWarning("Validation failed. Errors: {@ValidationErrors}", errors);
