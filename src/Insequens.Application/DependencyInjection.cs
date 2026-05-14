@@ -11,7 +11,7 @@ public static class DependencyInjection
         var assembly = typeof(DependencyInjection).Assembly;
 
         services.AddMediatR(configuration => configuration.RegisterServicesFromAssembly(assembly));
-        services.AddAutoMapper(_ => { }, assembly);
+        services.AddAutoMapper(configuration => { }, assembly);
         services.AddValidatorsFromAssembly(assembly);
 
         return services;
