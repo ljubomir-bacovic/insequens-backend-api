@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Insequens.Domain.Data;
-using Microsoft.AspNetCore.Identity;
-using Insequens.Infrastructure.Data.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Insequens.Api.Controllers
 {
@@ -17,14 +16,10 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult Get()
+        public async Task<IActionResult> Get(CancellationToken cancellationToken)
         {
-            // Light DB query to initialize EF Core, DB connection, etc.
-
-            var user = _context.Users.FirstOrDefault();
-            var passwordHasher = new PasswordHasher<ApplicationUser>();
-            var dummy = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, "fakepassword");
-            return Ok("Warmed up.");
+            var canConnect = await _context.Database.CanConnectAsync(cancellationToken);
+            return canConnect ? Ok("Healthy") : StatusCode(503, "Database unavailable");
         }
     }
 }
