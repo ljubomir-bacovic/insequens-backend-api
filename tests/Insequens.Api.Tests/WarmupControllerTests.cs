@@ -1,7 +1,9 @@
 using Insequens.Api.Controllers;
 using Insequens.Domain.Data;
+using Insequens.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Insequens.Api.Tests;
 
@@ -39,21 +41,24 @@ public class WarmupControllerTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        return new InsequensContext(options)
-        {
-            ToDoItems = null!
-        };
+        return new TestInsequensContext(options);
     }
 
     private static InsequensContext CreateUnavailableContext()
     {
         var options = new DbContextOptionsBuilder<InsequensContext>()
-            .UseSqlServer("Server=127.0.0.1,1;Database=WarmupControllerTests;User Id=sa;Password=Password123!;Connect Timeout=1;Encrypt=False;TrustServerCertificate=True")
+            .UseSqlServer("Server=127.0.0.1,1;Database=WarmupControllerTests;Connect Timeout=1;Encrypt=False;TrustServerCertificate=True")
             .Options;
 
-        return new InsequensContext(options)
+        return new TestInsequensContext(options);
+    }
+
+    private sealed class TestInsequensContext : InsequensContext
+    {
+        [SetsRequiredMembers]
+        public TestInsequensContext(DbContextOptions<InsequensContext> options) : base(options)
         {
-            ToDoItems = null!
-        };
+            ToDoItems = Set<ToDoItem>();
+        }
     }
 }
