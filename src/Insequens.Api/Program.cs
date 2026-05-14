@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.ServiceContracts;
-using Insequens.Core.Profiles;
 using Insequens.Core.Services;
 using Insequens.Api;
 using Insequens.Infrastructure.DataAccess;
@@ -72,7 +71,6 @@ builder.Services.AddCors(options =>
 var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
 
 builder.Services.AddScoped<IDataContext, DataContext>();
-builder.Services.AddAutoMapper(configuration => { }, typeof(ToDoItemProfile));
 builder.Services.AddScoped<IToDoItemService, ToDoItemService>();
 
 builder.Services.AddDbContextPool<InsequensContext>(options =>
