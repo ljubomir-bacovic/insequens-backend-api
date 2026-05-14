@@ -79,9 +79,10 @@ public class ExceptionMiddleware
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
-            var innerExceptionDetail = ex.InnerException is null
+            var innerExceptionMessage = ex.InnerException?.Message;
+            var innerExceptionDetail = string.IsNullOrEmpty(innerExceptionMessage)
                 ? string.Empty
-                : " Inner Exception: " + ex.InnerException.Message;
+                : " Inner Exception: " + innerExceptionMessage;
 
             var detail = _env.IsDevelopment()
                 ? "Message: " + ex.Message + innerExceptionDetail
