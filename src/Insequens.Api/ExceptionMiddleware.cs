@@ -79,8 +79,12 @@ public class ExceptionMiddleware
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
+            var innerExceptionDetail = ex.InnerException is null
+                ? string.Empty
+                : " Inner Exception: " + ex.InnerException;
+
             var detail = _env.IsDevelopment()
-                ? "Message: " + ex.Message + " Inner Exception: " + ex.InnerException
+                ? "Message: " + ex.Message + innerExceptionDetail
                 : "An unexpected error occurred. Please try again later.";
 
             var problemDetails = new ProblemDetails()
