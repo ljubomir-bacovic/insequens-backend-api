@@ -23,11 +23,11 @@ public class DependencyInjectionTests
 
         using var serviceProvider = services.BuildServiceProvider();
 
-        serviceProvider.GetRequiredService<IMediator>().Should().NotBeNull();
-        serviceProvider.GetRequiredService<ISender>().Should().NotBeNull();
-        serviceProvider.GetRequiredService<IPublisher>().Should().NotBeNull();
-        serviceProvider.GetRequiredService<IMapper>().Should().NotBeNull();
-        serviceProvider.GetRequiredService<IConfigurationProvider>().Should().NotBeNull();
+        serviceProvider.GetService<IMediator>().Should().NotBeNull();
+        serviceProvider.GetService<ISender>().Should().NotBeNull();
+        serviceProvider.GetService<IPublisher>().Should().NotBeNull();
+        serviceProvider.GetService<IMapper>().Should().NotBeNull();
+        serviceProvider.GetService<IConfigurationProvider>().Should().NotBeNull();
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class DependencyInjectionTests
         var request = new TestOwnedRequest(Guid.NewGuid(), Guid.NewGuid(), "example");
         var repository = Substitute.For<IRepository<ToDoItem>>();
         var dataContext = Substitute.For<IDataContext>();
-        var services = CreateApplicationServiceCollection(trace);
+        var services = CreateApplicationServiceCollection(trace, dataContext);
 
         repository.FindAsync(request.ItemId).Returns(_ =>
         {
@@ -69,7 +69,6 @@ public class DependencyInjectionTests
         dataContext.GetRepository<ToDoItem>().Returns(repository);
 
         services.AddApplication();
-        services.AddSingleton(dataContext);
         services.AddTransient<IRequestHandler<TestOwnedRequest, string>, TestOwnedRequestHandler>();
         services.AddTransient<IValidator<TestOwnedRequest>, TestOwnedRequestValidator>();
 
@@ -99,7 +98,9 @@ public class DependencyInjectionTests
         await repository.Received(1).FindAsync(request.ItemId);
     }
 
-    private static ServiceCollection CreateApplicationServiceCollection(ExecutionTrace? trace = null)
+    private static ServiceCollection CreateApplicationServiceCollection(
+        ExecutionTrace? trace = null,
+        IDataContext? dataContext = null)
     {
         var services = new ServiceCollection();
 
@@ -113,7 +114,7 @@ public class DependencyInjectionTests
             services.AddLogging();
         }
 
-        services.AddSingleton(Substitute.For<IDataContext>());
+        services.AddSingleton(dataContext ?? Substitute.For<IDataContext>());
 
         return services;
     }
