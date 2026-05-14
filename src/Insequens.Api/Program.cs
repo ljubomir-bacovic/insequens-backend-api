@@ -29,16 +29,34 @@ Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode.");
 
 // Add services to the container.
 
-var myPolicyName = "MyPolicyName"; 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>()?
+    .Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray() ?? [];
+
+var useDevelopmentCorsFallback = builder.Environment.IsDevelopment() && allowedOrigins.Length == 0;
+const string corsPolicyName = "InsequensPolicy";
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: myPolicyName,
-      configurePolicy: policy =>
-      {
-          policy.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader();
-      });
+    options.AddPolicy(corsPolicyName, policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials();
+        }
+        else if (useDevelopmentCorsFallback)
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        }
+    });
 });
 var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
 
@@ -119,7 +137,7 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-app.UseCors(myPolicyName);
+app.UseCors(corsPolicyName);
 
 //app.MapIdentityApi<ApplicationUser>();
 
