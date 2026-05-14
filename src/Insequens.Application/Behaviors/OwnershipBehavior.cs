@@ -10,14 +10,12 @@ public class OwnershipBehavior<TRequest, TResponse>(IDataContext dataContext)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IOwned
 {
-    private readonly IDataContext _dataContext = dataContext;
-
     public async Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        var repository = _dataContext.GetRepository<ToDoItem>();
+        var repository = dataContext.GetRepository<ToDoItem>();
         var item = await repository.FindAsync(request.ItemId)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
