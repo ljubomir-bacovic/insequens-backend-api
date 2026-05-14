@@ -12,6 +12,5 @@ public class ApplicationAssemblyTests
         var assembly = Assembly.Load("Insequens.Application");
 
         assembly.Should().BeSameAs(typeof(DependencyInjection).Assembly);
-        assembly.GetType(typeof(DependencyInjection).FullName!).Should().NotBeNull();
     }
 }
