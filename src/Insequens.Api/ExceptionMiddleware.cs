@@ -1,4 +1,4 @@
-﻿using Insequens.Core.Exceptions;
+using Insequens.Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -7,11 +7,15 @@ namespace Insequens.Api;
 
 public class ExceptionMiddleware
 {
+    private readonly IWebHostEnvironment _env;
+    private readonly ILogger<ExceptionMiddleware> _logger;
     private RequestDelegate Next { get; }
 
-    public ExceptionMiddleware(RequestDelegate next)
+    public ExceptionMiddleware(RequestDelegate next, IWebHostEnvironment env, ILogger<ExceptionMiddleware> logger)
     {
         Next = next;
+        _env = env;
+        _logger = logger;
     }
 
     public async Task Invoke(HttpContext context)
@@ -22,6 +26,8 @@ public class ExceptionMiddleware
         }
         catch (ToDoItemNotFoundException ex)
         {
+            _logger.LogWarning("To Do item not found. Id: {ItemId}", ex.Id);
+
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status404NotFound;
 
@@ -39,6 +45,8 @@ public class ExceptionMiddleware
         }
         catch (ResourceForbiddenException ex)
         {
+            _logger.LogWarning("Forbidden access attempt. ResourceId: {ResourceId}", ex.Id);
+
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
@@ -47,7 +55,7 @@ public class ExceptionMiddleware
                 Status = StatusCodes.Status403Forbidden,
                 Detail = string.Empty,
                 Instance = "",
-                Title = $"Access denied for resource {ex.Id}.",
+                Title = "Access denied.",
                 Type = "Error"
             };
 
@@ -56,6 +64,8 @@ public class ExceptionMiddleware
         }
         catch (ValidationException ex)
         {
+            _logger.LogWarning("Validation error. Details: {ValidationDetails}", ex.Value);
+
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
 
@@ -73,16 +83,26 @@ public class ExceptionMiddleware
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unhandled exception.");
 
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
 
+            var innerExceptionMessage = ex.InnerException?.Message;
+            var innerExceptionDetail = string.IsNullOrEmpty(innerExceptionMessage)
+                ? string.Empty
+                : " Inner Exception: " + innerExceptionMessage;
+
+            var detail = _env.IsDevelopment()
+                ? "Message: " + ex.Message + innerExceptionDetail
+                : "An unexpected error occurred. Please try again later.";
+
             var problemDetails = new ProblemDetails()
             {
                 Status = StatusCodes.Status500InternalServerError,
-                Detail = "Message: " + ex.Message + " Inner Exception: " + ex.InnerException,
+                Detail = detail,
                 Instance = "",
-                Title = "Internal Server Error - something went wrong.",
+                Title = "Internal Server Error",
                 Type = "Error"
             };
 
