@@ -24,6 +24,6 @@ public class OwnershipBehavior<TRequest, TResponse>(IDataContext dataContext)
             throw new ResourceForbiddenException(request.ItemId);
         }
 
-        return await next();
+        return await next(cancellationToken);
     }
 }
