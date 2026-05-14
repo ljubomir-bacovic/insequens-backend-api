@@ -1,4 +1,5 @@
-﻿using Insequens.Domain.Data;
+﻿using Insequens.Application;
+using Insequens.Domain.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Insequens.Domain.DataAccess;
@@ -132,6 +133,8 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<JwtBearerSecurityDocumentTransformer>();
 });
 
+builder.Services.AddApplication();
+
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File("Logs/app-log-.txt", rollingInterval: RollingInterval.Day)
@@ -182,3 +185,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;
