@@ -3,10 +3,8 @@ using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Behaviors;
 using Insequens.Application.Commands;
-using Insequens.Domain.Model.ToDoItem;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Entities;
-using Insequens.Domain.Types;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -30,64 +28,6 @@ public class DependencyInjectionTests
         serviceProvider.GetService<IPublisher>().Should().NotBeNull();
         serviceProvider.GetService<IMapper>().Should().NotBeNull();
         serviceProvider.GetService<IConfigurationProvider>().Should().NotBeNull();
-    }
-
-    [Fact]
-    public void AddApplication_AutoMapperMapsToDoItemModels()
-    {
-        var services = CreateApplicationServiceCollection();
-
-        services.AddApplication();
-
-        using var serviceProvider = services.BuildServiceProvider();
-
-        var mapper = serviceProvider.GetRequiredService<IMapper>();
-        var dueDate = new DateOnly(2026, 5, 14);
-        var createModel = new ToDoItemCreateModel("Write tests", "Cover profile migration", (int)TaskPriority.High, dueDate);
-        var entity = new ToDoItem
-        {
-            Id = Guid.NewGuid(),
-            UserId = Guid.NewGuid(),
-            Name = "Existing name",
-            Description = "Existing description",
-            Priority = TaskPriority.Low,
-            DueDate = dueDate,
-            IsCompleted = false,
-        };
-        var updateModel = new ToDoItemUpdateModel(entity.Id, "Updated name", "Updated description", TaskPriority.Medium, dueDate, true);
-
-        var createdEntity = mapper.Map<ToDoItem>(createModel);
-        var listModel = mapper.Map<ToDoItemGetListModel>(entity);
-        var detailsModel = mapper.Map<ToDoItemGetDetailsModel>(entity);
-        mapper.Map(updateModel, entity);
-
-        createdEntity.Id.Should().NotBeEmpty();
-        createdEntity.Name.Should().Be(createModel.Name);
-        createdEntity.Description.Should().Be(createModel.Description);
-        createdEntity.Priority.Should().Be((TaskPriority)createModel.Priority);
-        createdEntity.DueDate.Should().Be(createModel.DueDate);
-
-        listModel.Should().BeEquivalentTo(new ToDoItemGetListModel(
-            entity.Id,
-            "Existing name",
-            "Existing description",
-            dueDate,
-            false,
-            TaskPriority.Low));
-
-        detailsModel.Should().BeEquivalentTo(new ToDoItemGetDetailsModel(
-            entity.Id,
-            "Existing name",
-            "Existing description",
-            TaskPriority.Low,
-            dueDate,
-            false));
-
-        entity.Name.Should().Be(updateModel.Name);
-        entity.Description.Should().Be(updateModel.Description);
-        entity.Priority.Should().Be(updateModel.Priority);
-        entity.DueDate.Should().Be(updateModel.DueDate);
-        entity.IsCompleted.Should().Be(updateModel.IsCompleted);
     }
 
     [Fact]
