@@ -81,7 +81,7 @@ public class ExceptionMiddleware
 
             var innerExceptionDetail = ex.InnerException is null
                 ? string.Empty
-                : " Inner Exception: " + ex.InnerException;
+                : " Inner Exception: " + ex.InnerException.Message;
 
             var detail = _env.IsDevelopment()
                 ? "Message: " + ex.Message + innerExceptionDetail
