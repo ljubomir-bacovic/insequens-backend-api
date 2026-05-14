@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure\Insequens.Infrastructure.DataAccess\Insequens.Infrastructure.DataAccess.csproj" />
     <ProjectReference Include="..\Insequens.Core\Insequens.Core.csproj" />
+    <ProjectReference Include="..\Insequens.Application\Insequens.Application.csproj" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties properties_4launchsettings_1json__JsonSchema="https://json.schemastore.org/language-configuration.json" /></VisualStudio></ProjectExtensions>

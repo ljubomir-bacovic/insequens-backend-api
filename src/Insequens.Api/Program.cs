@@ -71,7 +71,7 @@ builder.Services.AddCors(options =>
 var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
 
 builder.Services.AddScoped<IDataContext, DataContext>();
-builder.Services.AddAutoMapper(typeof(ToDoItemProfile));
+builder.Services.AddAutoMapper(configuration => { }, typeof(ToDoItemProfile));
 builder.Services.AddScoped<IToDoItemService, ToDoItemService>();
 
 builder.Services.AddDbContextPool<InsequensContext>(options =>
