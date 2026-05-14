@@ -43,9 +43,10 @@ public class ValidationBehaviorTests
             return Task.FromResult(Unit.Value);
         };
 
-        var exception = await Assert.ThrowsAsync<ValidationException>(
-            () => behavior.Handle(request, next, CancellationToken.None));
-        var errorsByProperty = exception.Errors
+        var action = () => behavior.Handle(request, next, CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ValidationException>();
+        var errorsByProperty = exception.Which.Errors
             .GroupBy(error => error.PropertyName)
             .ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).ToArray());
 
