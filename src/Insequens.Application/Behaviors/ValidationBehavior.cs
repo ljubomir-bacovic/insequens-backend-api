@@ -7,16 +7,24 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
-    public async Task<TResponse> Handle(
+    public Task<TResponse> Handle(
         TRequest request,
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         if (!validators.Any())
         {
-            return await next(cancellationToken);
+            return next(cancellationToken);
         }
 
+        return HandleValidatedRequestAsync(request, next, cancellationToken);
+    }
+
+    private async Task<TResponse> HandleValidatedRequestAsync(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
         var failures = (await Task.WhenAll(validators.Select(validator =>
                 validator.ValidateAsync(new ValidationContext<TRequest>(request), cancellationToken))))
             .SelectMany(result => result.Errors)
