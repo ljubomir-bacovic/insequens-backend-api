@@ -39,6 +39,16 @@ var allowedOrigins = builder.Configuration
 var useDevelopmentCorsFallback = builder.Environment.IsDevelopment() && allowedOrigins.Length == 0;
 const string corsPolicyName = "InsequensPolicy";
 
+if (!builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside Development.");
+}
+
+if (useDevelopmentCorsFallback)
+{
+    Console.WriteLine("Cors:AllowedOrigins is empty in Development. Falling back to open CORS for local testing only.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(corsPolicyName, policy =>
