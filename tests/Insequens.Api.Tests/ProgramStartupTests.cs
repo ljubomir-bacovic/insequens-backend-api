@@ -99,7 +99,11 @@ public class ProgramStartupTests
     {
         public TestOwnedRequestValidator(ExecutionTrace trace)
         {
-            RuleFor(request => request.Name).Custom((_, _) => trace.Steps.Add("validation"));
+            RuleFor(request => request.Name).Must(name =>
+            {
+                trace.Steps.Add("validation");
+                return !string.IsNullOrWhiteSpace(name);
+            });
         }
     }
 
