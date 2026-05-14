@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Domain", "src\Ins
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Infrastructure.DataAccess", "src\Infrastructure\Insequens.Infrastructure.DataAccess\Insequens.Infrastructure.DataAccess.csproj", "{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Api.Tests", "tests\Insequens.Api.Tests\Insequens.Api.Tests.csproj", "{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -54,6 +58,12 @@ Global
 		{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9}.Staging|Any CPU.ActiveCfg = Staging|Any CPU
 		{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9}.Staging|Any CPU.Build.0 = Staging|Any CPU
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}.Staging|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A}.Staging|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,5 +75,6 @@ Global
 		{F7199AEC-DE96-49E3-BF2D-A2D0F2896B76} = {1AC93F3E-0F2F-4203-8728-7500A4568B4E}
 		{A72289E2-7B03-47FB-8BE4-CA6B4C881165} = {CEAA1C59-F4BB-4B7A-8632-2B0B7298A84E}
 		{C461E51F-3D4D-4EBB-BEA6-51E8E6E85DD9} = {1AC93F3E-0F2F-4203-8728-7500A4568B4E}
+		{A1BB582D-A8AC-4637-AA1A-5CD4C08E7B5A} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
