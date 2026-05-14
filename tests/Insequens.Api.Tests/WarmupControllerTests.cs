@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Insequens.Api.Controllers;
 using Insequens.Domain.Data;
 using Insequens.Domain.Entities;
@@ -16,10 +17,10 @@ public class WarmupControllerTests
         await context.Database.EnsureCreatedAsync();
         var controller = new WarmupController(context);
 
-        var result = await controller.Get();
+        var result = await controller.Get(CancellationToken.None);
 
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("Healthy", okResult.Value);
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().Be("Healthy");
     }
 
     [Fact]
@@ -28,11 +29,11 @@ public class WarmupControllerTests
         await using var context = CreateUnavailableContext();
         var controller = new WarmupController(context);
 
-        var result = await controller.Get();
+        var result = await controller.Get(CancellationToken.None);
 
-        var objectResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(503, objectResult.StatusCode);
-        Assert.Equal("Database unavailable", objectResult.Value);
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        objectResult.StatusCode.Should().Be(503);
+        objectResult.Value.Should().Be("Database unavailable");
     }
 
     private static InsequensContext CreateReachableContext()

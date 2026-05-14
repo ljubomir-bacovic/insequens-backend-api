@@ -16,9 +16,9 @@ namespace Insequens.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get(CancellationToken cancellationToken)
         {
-            var canConnect = await _context.Database.CanConnectAsync();
+            var canConnect = await _context.Database.CanConnectAsync(cancellationToken);
             return canConnect ? Ok("Healthy") : StatusCode(503, "Database unavailable");
         }
     }
