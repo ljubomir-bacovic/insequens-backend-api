@@ -81,6 +81,31 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
+        catch (FluentValidation.ValidationException ex)
+        {
+            var failures = ex.Errors.ToArray();
+            var errors = failures
+                .GroupBy(failure => failure.PropertyName ?? string.Empty)
+                .ToDictionary(group => group.Key, group => group.Select(failure => failure.ErrorMessage).ToArray());
+
+            _logger.LogWarning("Validation failed. Errors: {@ValidationErrors}", errors);
+
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Detail = string.Join("; ", failures.Select(failure => failure.ErrorMessage)),
+                Title = "Validation failed.",
+                Type = "ValidationError",
+            };
+
+            problemDetails.Extensions["errors"] = errors;
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception.");
