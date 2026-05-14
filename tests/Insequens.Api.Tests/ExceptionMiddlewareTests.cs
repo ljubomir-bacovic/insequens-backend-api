@@ -13,6 +13,8 @@ namespace Insequens.Api.Tests;
 
 public class ExceptionMiddlewareTests
 {
+    private const string ModelLevelErrorKey = "";
+
     [Fact]
     public async Task Invoke_WhenNoExceptionIsThrown_PassesThroughResponse()
     {
@@ -77,13 +79,13 @@ public class ExceptionMiddlewareTests
     {
         var exception = new ValidationException(
             "Do not leak this exception message.",
-            [new ValidationFailure(null!, "A general validation failure occurred.")]);
+            [CreateModelLevelFailure("A general validation failure occurred.")]);
         var context = await InvokeMiddlewareAsync(_ => throw exception);
         var responseBody = await ReadResponseBodyAsync(context);
         using var json = JsonDocument.Parse(responseBody);
 
         json.RootElement.GetProperty("detail").GetString().Should().Be("A general validation failure occurred.");
-        json.RootElement.GetProperty("errors").GetProperty(string.Empty).EnumerateArray().Select(item => item.GetString()).Should().Equal("A general validation failure occurred.");
+        json.RootElement.GetProperty("errors").GetProperty(ModelLevelErrorKey).EnumerateArray().Select(item => item.GetString()).Should().Equal("A general validation failure occurred.");
         responseBody.Should().NotContain("Do not leak this exception message.");
     }
 
@@ -120,6 +122,13 @@ public class ExceptionMiddlewareTests
         using var reader = new StreamReader(context.Response.Body, Encoding.UTF8, leaveOpen: true);
 
         return await reader.ReadToEndAsync();
+    }
+
+    private static ValidationFailure CreateModelLevelFailure(string errorMessage)
+    {
+#pragma warning disable CS8625
+        return new ValidationFailure(null, errorMessage);
+#pragma warning restore CS8625
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment
