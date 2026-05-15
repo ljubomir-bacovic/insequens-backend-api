@@ -94,7 +94,7 @@ public class ToDoItemControllerTests
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         const string description = "Updated task description";
-        var cancellationToken = new CancellationTokenSource().Token;
+        var cancellationToken = CancellationToken.None;
         var mediator = new TestMediator(Unit.Value);
         var controller = CreateController(userId, mediator);
 
