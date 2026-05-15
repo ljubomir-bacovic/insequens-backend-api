@@ -1,4 +1,6 @@
 using FluentAssertions;
+using FluentValidation;
+using FluentValidation.Results;
 using Insequens.Api.Controllers;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Models;
@@ -305,6 +307,23 @@ public class ToDoItemControllerTests
 
         result.Should().BeOfType<UnauthorizedResult>();
         await mediator.DidNotReceiveWithAnyArgs().Send(default(IRequest<PaginatedResult<ToDoItemGetListModel>>)!, default);
+    }
+
+    [Fact]
+    public async Task GetUserToDoItemsAsync_WhenMediatorThrowsValidationException_PropagatesException()
+    {
+        var validationException = new ValidationException([
+            new ValidationFailure("Page", "Page must be greater than 0."),
+            new ValidationFailure("PageSize", "PageSize must be between 1 and 100.")
+        ]);
+        var mediator = Substitute.For<IMediator>();
+        mediator.Send(Arg.Any<GetUserToDoItemsQuery>(), Arg.Any<CancellationToken>())
+            .Returns<Task<PaginatedResult<ToDoItemGetListModel>>>(_ => throw validationException);
+        var controller = CreateController(Guid.NewGuid(), mediator);
+
+        var act = () => controller.GetUserToDoItemsAsync(isCompleted: false, page: 0, pageSize: 101, CancellationToken.None);
+
+        (await act.Should().ThrowAsync<ValidationException>()).Which.Should().BeSameAs(validationException);
     }
 
     [Fact]
