@@ -17,6 +17,45 @@ namespace Insequens.Api.Tests.Queries;
 public class GetUserToDoItemsHandlerTests
 {
     [Fact]
+    public async Task Handle_WhenUserHasNoMatchingItems_ReturnsEmptyPage()
+    {
+        var userId = Guid.NewGuid();
+        await using var context = CreateContext();
+        using var dataContext = new DataContext(context);
+        var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
+
+        var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 1, 10), CancellationToken.None);
+
+        result.TotalCount.Should().Be(0);
+        result.Page.Should().Be(1);
+        result.PageSize.Should().Be(10);
+        result.TotalPages.Should().Be(0);
+        result.HasNext.Should().BeFalse();
+        result.HasPrevious.Should().BeFalse();
+        result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenResultsFitOnSinglePage_ReturnsAllMatchingItems()
+    {
+        var userId = Guid.NewGuid();
+        await using var context = CreateContext();
+        await SeedItemsAsync(context, userId);
+        using var dataContext = new DataContext(context);
+        var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
+
+        var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 1, 10), CancellationToken.None);
+
+        result.TotalCount.Should().Be(5);
+        result.Page.Should().Be(1);
+        result.PageSize.Should().Be(10);
+        result.TotalPages.Should().Be(1);
+        result.HasNext.Should().BeFalse();
+        result.HasPrevious.Should().BeFalse();
+        result.Items.Select(item => item.Name).Should().Equal("Task 1", "Task 2", "Task 3", "Task 4", "Task 5");
+    }
+
+    [Fact]
     public async Task Handle_ReturnsPaginatedItemsAndMetadata()
     {
         var userId = Guid.NewGuid();
@@ -53,6 +92,32 @@ public class GetUserToDoItemsHandlerTests
         result.HasPrevious.Should().BeFalse();
         result.Items.Should().ContainSingle();
         result.Items[0].Name.Should().Be("Completed task");
+    }
+
+    [Fact]
+    public async Task Handle_OrdersItemsByDueDateThenPriority()
+    {
+        var userId = Guid.NewGuid();
+        await using var context = CreateContext();
+
+        context.ToDoItems.AddRange(
+            new ToDoItem { Id = Guid.NewGuid(), UserId = userId, Name = "Medium priority", Priority = TaskPriority.Medium, DueDate = new DateOnly(2026, 2, 2), IsCompleted = false },
+            new ToDoItem { Id = Guid.NewGuid(), UserId = userId, Name = "Earlier due date", Priority = TaskPriority.Low, DueDate = new DateOnly(2026, 2, 1), IsCompleted = false },
+            new ToDoItem { Id = Guid.NewGuid(), UserId = userId, Name = "High priority", Priority = TaskPriority.High, DueDate = new DateOnly(2026, 2, 2), IsCompleted = false },
+            new ToDoItem { Id = Guid.NewGuid(), UserId = userId, Name = "Low priority", Priority = TaskPriority.Low, DueDate = new DateOnly(2026, 2, 2), IsCompleted = false });
+
+        await context.SaveChangesAsync();
+
+        using var dataContext = new DataContext(context);
+        var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
+
+        var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 1, 10), CancellationToken.None);
+
+        result.Items.Select(item => item.Name).Should().Equal(
+            "Earlier due date",
+            "High priority",
+            "Medium priority",
+            "Low priority");
     }
 
     [Fact]
