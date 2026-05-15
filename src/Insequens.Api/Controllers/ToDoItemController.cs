@@ -1,4 +1,5 @@
-﻿using Insequens.Application.Models;
+using Insequens.Application.Commands.ToDoItem;
+using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
 using Insequens.Domain.Model.ToDoItem;
 using Insequens.Domain.ServiceContracts;
@@ -40,7 +41,12 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         public async Task<IResult> AddToDoItemAsync(ToDoItemCreateModel toDoItemCreate)
         {
-            var item = await _toDoItemService.AddToDoItemAsync(toDoItemCreate, UserId);
+            var item = await _sender.Send(new CreateToDoItemCommand(
+                toDoItemCreate.Name,
+                toDoItemCreate.Description,
+                toDoItemCreate.Priority,
+                toDoItemCreate.DueDate,
+                UserId));
             var location = Url.Action(nameof(AddToDoItemAsync), new { id = item.Id }) ?? $"api/ToDoItem/{item.Id}";
             return Results.Created(location, item);
         }
