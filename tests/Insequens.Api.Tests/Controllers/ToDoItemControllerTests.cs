@@ -63,25 +63,27 @@ public class ToDoItemControllerTests
     }
 
     [Fact]
-    public async Task GetUserToDoItemsAsync_WhenCalled_ReturnsPaginatedResult()
+    public async Task GetUserToDoItemsAsync_WhenCalled_ReturnsPaginatedResultAndForwardsCancellationToken()
     {
         var userId = Guid.NewGuid();
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var expected = new PaginatedResult<ToDoItemGetListModel>(
             [new ToDoItemGetListModel(Guid.NewGuid(), "Task 1", "Description", new DateOnly(2026, 1, 1), false, TaskPriority.High)],
             1,
             1,
             20);
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Is<GetUserToDoItemsQuery>(q => q.UserId == userId && !q.IsCompleted && q.Page == 1 && q.PageSize == 20), Arg.Any<CancellationToken>())
+        mediator.Send(Arg.Is<GetUserToDoItemsQuery>(q => q.UserId == userId && !q.IsCompleted && q.Page == 1 && q.PageSize == 20), cancellationToken)
             .Returns(expected);
         var controller = CreateController(userId, mediator);
 
-        var actionResult = await controller.GetUserToDoItemsAsync(isCompleted: false, page: 1, pageSize: 20);
+        var actionResult = await controller.GetUserToDoItemsAsync(isCompleted: false, page: 1, pageSize: 20, cancellationToken);
 
         var okResult = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         okResult.Value.Should().BeSameAs(expected);
         await mediator.Received(1)
-            .Send(Arg.Is<GetUserToDoItemsQuery>(q => q.UserId == userId && !q.IsCompleted && q.Page == 1 && q.PageSize == 20), Arg.Any<CancellationToken>());
+            .Send(Arg.Is<GetUserToDoItemsQuery>(q => q.UserId == userId && !q.IsCompleted && q.Page == 1 && q.PageSize == 20), cancellationToken);
 
         var json = JsonSerializer.Serialize(okResult.Value, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         json.Should().Contain("\"items\"");
@@ -94,9 +96,11 @@ public class ToDoItemControllerTests
     }
 
     [Fact]
-    public async Task AddToDoItemAsync_WhenCalled_ReturnsCreatedAtActionAndSendsCreateCommand()
+    public async Task AddToDoItemAsync_WhenCalled_ReturnsCreatedAtActionAndSendsCreateCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var createdItem = new ToDoItemGetDetailsModel(Guid.NewGuid(), "Task 1", "Description", TaskPriority.High, new DateOnly(2026, 12, 31), false);
         var request = new ToDoItemCreateModel("Task 1", "Description", (int)TaskPriority.High, new DateOnly(2026, 12, 31));
         var mediator = Substitute.For<IMediator>();
@@ -107,11 +111,11 @@ public class ToDoItemControllerTests
                     command.Priority == request.Priority &&
                     command.DueDate == request.DueDate &&
                     command.UserId == userId),
-                Arg.Any<CancellationToken>())
+                cancellationToken)
             .Returns(createdItem);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.AddToDoItemAsync(request);
+        var result = await controller.AddToDoItemAsync(request, cancellationToken);
 
         var createdAtActionResult = result.Should().BeOfType<CreatedAtActionResult>().Subject;
         createdAtActionResult.ActionName.Should().Be(nameof(ToDoItemController.GetToDoItem));
@@ -125,51 +129,55 @@ public class ToDoItemControllerTests
                     command.Priority == request.Priority &&
                     command.DueDate == request.DueDate &&
                     command.UserId == userId),
-                Arg.Any<CancellationToken>());
+                cancellationToken);
     }
 
     [Fact]
-    public async Task UpdateToDoItemPriorityAsync_WhenCalled_SendsUpdatePriorityCommand()
+    public async Task UpdateToDoItemPriorityAsync_WhenCalled_SendsUpdatePriorityCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         var priority = TaskPriority.High;
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemPriorityCommand>(), Arg.Any<CancellationToken>()).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemPriorityCommand>(), cancellationToken).Returns(Unit.Value);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.UpdateToDoItemPriorityAsync(itemId, priority);
+        var result = await controller.UpdateToDoItemPriorityAsync(itemId, priority, cancellationToken);
 
         result.Should().BeOfType<NoContentResult>();
         await mediator.Received(1)
-            .Send(Arg.Is<UpdateToDoItemPriorityCommand>(command => command.ItemId == itemId && command.UserId == userId && command.Priority == priority), Arg.Any<CancellationToken>());
+            .Send(Arg.Is<UpdateToDoItemPriorityCommand>(command => command.ItemId == itemId && command.UserId == userId && command.Priority == priority), cancellationToken);
     }
 
     [Fact]
-    public async Task UpdateToDoItemNameAsync_WhenCalled_SendsUpdateNameCommand()
+    public async Task UpdateToDoItemNameAsync_WhenCalled_SendsUpdateNameCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         const string name = "Updated task name";
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemNameCommand>(), Arg.Any<CancellationToken>()).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemNameCommand>(), cancellationToken).Returns(Unit.Value);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.UpdateToDoItemNameAsync(itemId, name);
+        var result = await controller.UpdateToDoItemNameAsync(itemId, name, cancellationToken);
 
         result.Should().BeOfType<NoContentResult>();
         await mediator.Received(1)
-            .Send(Arg.Is<UpdateToDoItemNameCommand>(command => command.ItemId == itemId && command.UserId == userId && command.Name == name), Arg.Any<CancellationToken>());
+            .Send(Arg.Is<UpdateToDoItemNameCommand>(command => command.ItemId == itemId && command.UserId == userId && command.Name == name), cancellationToken);
     }
 
     [Fact]
-    public async Task UpdateToDoItemDescriptionAsync_WhenCalled_SendsUpdateDescriptionCommandAndCancellationToken()
+    public async Task UpdateToDoItemDescriptionAsync_WhenCalled_SendsUpdateDescriptionCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         const string description = "Updated task description";
-        using var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
         mediator.Send(Arg.Any<UpdateToDoItemDescriptionCommand>(), cancellationToken).Returns(Unit.Value);
         var controller = CreateController(userId, mediator);
@@ -182,36 +190,40 @@ public class ToDoItemControllerTests
     }
 
     [Fact]
-    public async Task UpdateToDoItemDueDateAsync_WhenCalled_SendsUpdateDueDateCommand()
+    public async Task UpdateToDoItemDueDateAsync_WhenCalled_SendsUpdateDueDateCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         var dueDate = new DateOnly(2026, 12, 31);
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemDueDateCommand>(), Arg.Any<CancellationToken>()).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemDueDateCommand>(), cancellationToken).Returns(Unit.Value);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.UpdateToDoItemDueDateAsync(itemId, dueDate);
+        var result = await controller.UpdateToDoItemDueDateAsync(itemId, dueDate, cancellationToken);
 
         result.Should().BeOfType<NoContentResult>();
         await mediator.Received(1)
-            .Send(Arg.Is<UpdateToDoItemDueDateCommand>(command => command.ItemId == itemId && command.UserId == userId && command.DueDate == dueDate), Arg.Any<CancellationToken>());
+            .Send(Arg.Is<UpdateToDoItemDueDateCommand>(command => command.ItemId == itemId && command.UserId == userId && command.DueDate == dueDate), cancellationToken);
     }
 
     [Fact]
-    public async Task DeleteToDoItemAsync_WhenCalled_SendsDeleteCommand()
+    public async Task DeleteToDoItemAsync_WhenCalled_SendsDeleteCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<DeleteToDoItemCommand>(), Arg.Any<CancellationToken>()).Returns(Unit.Value);
+        mediator.Send(Arg.Any<DeleteToDoItemCommand>(), cancellationToken).Returns(Unit.Value);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.DeleteToDoItemAsync(itemId);
+        var result = await controller.DeleteToDoItemAsync(itemId, cancellationToken);
 
         result.Should().BeOfType<NoContentResult>();
         await mediator.Received(1)
-            .Send(Arg.Is<DeleteToDoItemCommand>(command => command.ItemId == itemId && command.UserId == userId), Arg.Any<CancellationToken>());
+            .Send(Arg.Is<DeleteToDoItemCommand>(command => command.ItemId == itemId && command.UserId == userId), cancellationToken);
     }
 
     [Fact]
@@ -243,19 +255,21 @@ public class ToDoItemControllerTests
     }
 
     [Fact]
-    public async Task CompleteToDoItem_WhenCalled_SendsToggleCommand()
+    public async Task CompleteToDoItem_WhenCalled_SendsToggleCommandWithCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
+        using var cts = new CancellationTokenSource();
+        var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<ToggleToDoItemCompleteCommand>(), Arg.Any<CancellationToken>()).Returns(Unit.Value);
+        mediator.Send(Arg.Any<ToggleToDoItemCompleteCommand>(), cancellationToken).Returns(Unit.Value);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.CompleteToDoItem(itemId);
+        var result = await controller.CompleteToDoItem(itemId, cancellationToken);
 
         result.Should().BeOfType<OkResult>();
         await mediator.Received(1)
-            .Send(Arg.Is<ToggleToDoItemCompleteCommand>(command => command.ItemId == itemId && command.UserId == userId), Arg.Any<CancellationToken>());
+            .Send(Arg.Is<ToggleToDoItemCompleteCommand>(command => command.ItemId == itemId && command.UserId == userId), cancellationToken);
     }
 
     [Fact]

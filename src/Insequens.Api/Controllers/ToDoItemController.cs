@@ -27,22 +27,22 @@ public class ToDoItemController : ControllerBase
     [HttpGet]
     [ProducesResponseType<PaginatedResult<ToDoItemGetListModel>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
+        var result = await _mediator.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize), cancellationToken);
         return Ok(result);
     }
 
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    public async Task<IActionResult> AddToDoItemAsync([FromBody] ToDoItemCreateModel toDoItemCreate)
+    [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status201Created)]
+    public async Task<IActionResult> AddToDoItemAsync([FromBody] ToDoItemCreateModel toDoItemCreate, CancellationToken cancellationToken)
     {
         var item = await _mediator.Send(new CreateToDoItemCommand(
             toDoItemCreate.Name,
             toDoItemCreate.Description,
             toDoItemCreate.Priority,
             toDoItemCreate.DueDate,
-            UserId));
+            UserId), cancellationToken);
         return CreatedAtAction(nameof(GetToDoItem), new { id = item.Id }, item);
     }
 
@@ -51,9 +51,9 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
+    public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority));
+        await _mediator.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority), cancellationToken);
         return NoContent();
     }
 
@@ -62,9 +62,9 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
+    public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemNameCommand(id, UserId, name));
+        await _mediator.Send(new UpdateToDoItemNameCommand(id, UserId, name), cancellationToken);
         return NoContent();
     }
 
@@ -84,9 +84,9 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date)
+    public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemDueDateCommand(id, UserId, date));
+        await _mediator.Send(new UpdateToDoItemDueDateCommand(id, UserId, date), cancellationToken);
         return NoContent();
     }
 
@@ -94,9 +94,9 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteToDoItemAsync(Guid id)
+    public async Task<IActionResult> DeleteToDoItemAsync(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new DeleteToDoItemCommand(id, UserId));
+        await _mediator.Send(new DeleteToDoItemCommand(id, UserId), cancellationToken);
         return NoContent();
     }
 
@@ -114,9 +114,9 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CompleteToDoItem(Guid id)
+    public async Task<IActionResult> CompleteToDoItem(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new ToggleToDoItemCompleteCommand(id, UserId));
+        await _mediator.Send(new ToggleToDoItemCompleteCommand(id, UserId), cancellationToken);
         return Ok();
     }
 }
