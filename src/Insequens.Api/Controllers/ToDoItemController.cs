@@ -1,6 +1,9 @@
-﻿using Insequens.Domain.Model.ToDoItem;
+﻿using Insequens.Application.Models;
+using Insequens.Application.Queries.ToDoItem;
+using Insequens.Domain.Model.ToDoItem;
 using Insequens.Domain.ServiceContracts;
 using Insequens.Domain.Types;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,12 +17,14 @@ namespace Insequens.Api.Controllers
     [ApiController]
     public class ToDoItemController : ControllerBase
     {
+        private readonly ISender _sender;
         IToDoItemService _toDoItemService;
         Guid UserId => Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
-        public ToDoItemController(IToDoItemService toDoItemService)
+        public ToDoItemController(IToDoItemService toDoItemService, ISender sender)
         {
             _toDoItemService = toDoItemService;
+            _sender = sender;
         }
 
         /*
@@ -34,8 +39,8 @@ namespace Insequens.Api.Controllers
         */
 
         [HttpGet]
-        [ProducesResponseType<List<ToDoItemGetListModel>>(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<PaginatedResult<ToDoItemGetListModel>>(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             if (page < 1 || pageSize < 1)
@@ -43,8 +48,8 @@ namespace Insequens.Api.Controllers
                 return BadRequest("Page and pageSize must be greater than 0.");
             }
 
-            var toDoList = await _toDoItemService.GetUserToDoItemsAsync(UserId, isCompleted, page, pageSize);
-            return Ok(toDoList);
+            var result = await _sender.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
+            return Ok(result);
         }
 
         [HttpPost]
