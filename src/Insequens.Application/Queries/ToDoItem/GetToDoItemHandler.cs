@@ -1,7 +1,9 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Model.ToDoItem;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Queries.ToDoItem;
@@ -13,9 +15,11 @@ public class GetToDoItemHandler(IDataContext dataContext, IMapper mapper)
         GetToDoItemQuery request,
         CancellationToken cancellationToken)
     {
-        var item = (await dataContext.GetRepository<ToDoItemEntity>()
-            .FindAsync(request.ItemId))!;
-
-        return mapper.Map<ToDoItemGetDetailsModel>(item);
+        return await dataContext.GetRepository<ToDoItemEntity>()
+            .AsQueryable()
+            .Where(item => item.Id == request.ItemId)
+            .AsNoTracking()
+            .ProjectTo<ToDoItemGetDetailsModel>(mapper.ConfigurationProvider)
+            .FirstAsync(cancellationToken);
     }
 }
