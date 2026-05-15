@@ -9,6 +9,7 @@ using Insequens.Domain.Types;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using NSubstitute;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -135,15 +136,18 @@ public class ToDoItemControllerTests
             TaskPriority.High,
             new DateOnly(2026, 12, 31),
             false);
-        var mediator = new TestMediator(expected);
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Is<GetToDoItemQuery>(q => q.ItemId == itemId && q.UserId == userId), cancellationToken)
+            .Returns(expected);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.GetToDoItem(itemId, cancellationToken);
 
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         okResult.Value.Should().BeSameAs(expected);
-        mediator.LastRequest.Should().Be(new GetToDoItemQuery(itemId, userId));
-        mediator.LastCancellationToken.Should().Be(cancellationToken);
+        await mediator.Received(1)
+            .Send(Arg.Is<GetToDoItemQuery>(q => q.ItemId == itemId && q.UserId == userId), cancellationToken);
     }
 
     private static ToDoItemController CreateController(Guid userId, IMediator mediator)
