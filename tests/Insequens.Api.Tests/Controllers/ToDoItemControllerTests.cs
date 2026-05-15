@@ -88,6 +88,21 @@ public class ToDoItemControllerTests
         sender.LastRequest.Should().Be(new UpdateToDoItemNameCommand(itemId, userId, name));
     }
 
+    [Fact]
+    public async Task UpdateToDoItemDescriptionAsync_WhenCalled_SendsUpdateDescriptionCommand()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        const string description = "Updated task description";
+        var sender = new TestSender(Unit.Value);
+        var controller = CreateController(userId, sender);
+
+        var result = await controller.UpdateToDoItemDescriptionAsync(itemId, description);
+
+        result.Should().NotBeNull();
+        sender.LastRequest.Should().Be(new UpdateToDoItemDescriptionCommand(itemId, userId, description));
+    }
+
     private static ToDoItemController CreateController(Guid userId, ISender sender)
     {
         var controller = new ToDoItemController(new StubToDoItemService(), sender);
