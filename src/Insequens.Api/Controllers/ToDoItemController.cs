@@ -18,7 +18,7 @@ namespace Insequens.Api.Controllers
     public class ToDoItemController : ControllerBase
     {
         private readonly ISender _sender;
-        IToDoItemService _toDoItemService;
+        private readonly IToDoItemService _toDoItemService;
         Guid UserId => Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
         public ToDoItemController(IToDoItemService toDoItemService, ISender sender)
