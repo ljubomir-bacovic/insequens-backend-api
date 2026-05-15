@@ -1,4 +1,3 @@
-using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Commands.ToDoItem;
@@ -19,7 +18,7 @@ public class CreateToDoItemHandlerTests
         var userId = Guid.NewGuid();
         var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
-        var handler = new CreateToDoItemHandler(dataContext, CreateMapper());
+        var handler = new CreateToDoItemHandler(dataContext);
         var request = new CreateToDoItemCommand("Task", "Description", 2, new DateOnly(2026, 1, 1), userId);
         ToDoItemEntity? addedItem = null;
 
@@ -74,13 +73,5 @@ public class CreateToDoItemHandlerTests
             error.PropertyName == "Name" &&
             error.ErrorMessage == "Task name is required.");
         await dataContext.DidNotReceive().SaveChangesAsync();
-    }
-
-    private static IMapper CreateMapper()
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddApplication();
-        return services.BuildServiceProvider().GetRequiredService<IMapper>();
     }
 }
