@@ -27,12 +27,15 @@ public class ToggleToDoItemCompleteHandlerTests
         dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
         repository.FindAsync(request.ItemId).Returns(item);
 
-        var result = await handler.Handle(request, CancellationToken.None);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var result = await handler.Handle(request, cancellationToken);
 
         result.Should().Be(Unit.Value);
         item.IsCompleted.Should().Be(expectedValue);
         await repository.Received(1).FindAsync(request.ItemId);
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
@@ -57,7 +60,7 @@ public class ToggleToDoItemCompleteHandlerTests
 
         var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
         exception.Which.Id.Should().Be(itemId);
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -82,6 +85,6 @@ public class ToggleToDoItemCompleteHandlerTests
 
         var exception = await action.Should().ThrowAsync<ResourceForbiddenException>();
         exception.Which.Id.Should().Be(itemId);
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

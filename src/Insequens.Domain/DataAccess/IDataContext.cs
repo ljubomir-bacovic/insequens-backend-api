@@ -3,7 +3,7 @@ public interface IDataContext : IDisposable
 {
     void SaveChanges();
 
-    Task SaveChangesAsync();
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 
     IRepository<T> GetRepository<T>()
         where T : class, IEntity;

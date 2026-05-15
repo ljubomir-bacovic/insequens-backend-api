@@ -18,14 +18,14 @@ namespace Insequens.Api.Controllers
     [ApiController]
     public class ToDoItemController : ControllerBase
     {
-        private readonly ISender _sender;
+        private readonly IMediator _mediator;
         private readonly IToDoItemService _toDoItemService;
         Guid UserId => Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
-        public ToDoItemController(IToDoItemService toDoItemService, ISender sender)
+        public ToDoItemController(IToDoItemService toDoItemService, IMediator mediator)
         {
             _toDoItemService = toDoItemService;
-            _sender = sender;
+            _mediator = mediator;
         }
 
         [HttpGet]
@@ -33,22 +33,22 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var result = await _sender.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
+            var result = await _mediator.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
             return Ok(result);
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
-        public async Task<IResult> AddToDoItemAsync(ToDoItemCreateModel toDoItemCreate)
+        public async Task<IActionResult> AddToDoItemAsync(ToDoItemCreateModel toDoItemCreate)
         {
-            var item = await _sender.Send(new CreateToDoItemCommand(
+            var item = await _mediator.Send(new CreateToDoItemCommand(
                 toDoItemCreate.Name,
                 toDoItemCreate.Description,
                 toDoItemCreate.Priority,
                 toDoItemCreate.DueDate,
                 UserId));
             var location = Url.Action(nameof(AddToDoItemAsync), new { id = item.Id }) ?? $"api/ToDoItem/{item.Id}";
-            return Results.Created(location, item);
+            return Created(location, item);
         }
 
         [HttpPatch("{id:guid}/priority")]
@@ -56,10 +56,10 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
+        public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
         {
-            await _sender.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority));
-            return Results.NoContent();
+            await _mediator.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority));
+            return NoContent();
         }
 
         [HttpPatch("{id:guid}/name")]
@@ -67,10 +67,10 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
+        public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
         {
-            await _sender.Send(new UpdateToDoItemNameCommand(id, UserId, name));
-            return Results.NoContent();
+            await _mediator.Send(new UpdateToDoItemNameCommand(id, UserId, name));
+            return NoContent();
         }
 
         [HttpPatch("{id:guid}/description")]
@@ -78,10 +78,10 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string description)
+        public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description, CancellationToken cancellationToken)
         {
-            await _toDoItemService.UpdateToDoItemDescriptionAsync(id, UserId, description);
-            return Results.NoContent();
+            await _mediator.Send(new UpdateToDoItemDescriptionCommand(id, UserId, description), cancellationToken);
+            return NoContent();
         }
 
         [HttpPatch("{id:guid}/duedate")]
@@ -89,40 +89,40 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date)
+        public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date)
         {
             await _toDoItemService.UpdateToDoItemDueDateAsync(id, UserId, date);
-            return Results.NoContent();
+            return NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> DeleteToDoItemAsync(Guid id)
+        public async Task<IActionResult> DeleteToDoItemAsync(Guid id)
         {
             await _toDoItemService.DeleteToDoItemAsync(id, UserId);
-            return Results.NoContent();
+            return NoContent();
         }
 
         [HttpGet("{id:guid}")]
         [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> GetToDoItem(Guid id)
+        public async Task<IActionResult> GetToDoItem(Guid id)
         {
             var toDoItem = await _toDoItemService.GetToDoItem(id, UserId);
-            return Results.Ok(toDoItem);
+            return Ok(toDoItem);
         }
 
         [HttpPatch("{id:guid}/togglecomplete")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> CompleteToDoItem(Guid id)
+        public async Task<IActionResult> CompleteToDoItem(Guid id)
         {
-            await _sender.Send(new ToggleToDoItemCompleteCommand(id, UserId));
-            return Results.Ok();
+            await _mediator.Send(new ToggleToDoItemCompleteCommand(id, UserId));
+            return Ok();
         }
     }
 }

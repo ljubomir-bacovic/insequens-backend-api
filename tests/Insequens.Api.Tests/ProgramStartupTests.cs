@@ -128,7 +128,7 @@ public class ProgramStartupTests
         {
         }
 
-        public Task SaveChangesAsync() => Task.CompletedTask;
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class TestToDoItemRepository(TestOwnedRequest request, ExecutionTrace trace) : IRepository<ToDoItem>

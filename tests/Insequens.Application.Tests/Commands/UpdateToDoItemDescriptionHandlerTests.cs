@@ -1,5 +1,4 @@
 using FluentAssertions;
-using FluentValidation;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Exceptions;
 using Insequens.Domain.DataAccess;
@@ -10,93 +9,89 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Tests.Commands;
 
-public class UpdateToDoItemNameHandlerTests
+public class UpdateToDoItemDescriptionHandlerTests
 {
     [Fact]
-    public async Task Handle_WithOwnedItem_UpdatesNameAndSavesChanges()
+    public async Task Handle_WithOwnedItem_UpdatesDescriptionAndSavesChanges()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var request = new UpdateToDoItemNameCommand(itemId, userId, "Updated task name");
-        var item = new ToDoItemEntity { Id = itemId, UserId = userId, Name = "Original task name" };
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, "Updated task description");
+        var item = new ToDoItemEntity { Id = itemId, UserId = userId, Description = "Original task description" };
         var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
-        var handler = new UpdateToDoItemNameHandler(dataContext);
+        var handler = new UpdateToDoItemDescriptionHandler(dataContext);
 
         dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
         repository.FindAsync(request.ItemId).Returns(item);
 
-        using var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
-
-        var result = await handler.Handle(request, cancellationToken);
+        var result = await handler.Handle(request, CancellationToken.None);
 
         result.Should().Be(Unit.Value);
-        item.Name.Should().Be(request.Name);
+        item.Description.Should().Be(request.Description);
         await repository.Received(1).FindAsync(request.ItemId);
-        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Handle_WithMissingItem_ThrowsToDoItemNotFoundException()
+    public async Task Handle_WithNullDescription_ClearsDescriptionAndSavesChanges()
     {
-        var request = new UpdateToDoItemNameCommand(Guid.NewGuid(), Guid.NewGuid(), "Updated task name");
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, null);
+        var item = new ToDoItemEntity { Id = itemId, UserId = userId, Description = "Original task description" };
         var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
-        var handler = new UpdateToDoItemNameHandler(dataContext);
+        var handler = new UpdateToDoItemDescriptionHandler(dataContext);
 
         dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        repository.FindAsync(request.ItemId).Returns((ToDoItemEntity?)null);
+        repository.FindAsync(request.ItemId).Returns(item);
 
-        var action = () => handler.Handle(request, CancellationToken.None);
+        await handler.Handle(request, CancellationToken.None);
 
-        var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
-        exception.Which.Id.Should().Be(request.ItemId);
-        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        item.Description.Should().BeNull();
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Send_WithEmptyName_ThrowsValidationExceptionBeforeInvokingHandler()
+    public async Task Handle_WithEmptyDescription_UpdatesDescriptionAndSavesChanges()
     {
-        var request = new UpdateToDoItemNameCommand(Guid.NewGuid(), Guid.NewGuid(), string.Empty);
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, string.Empty);
+        var item = new ToDoItemEntity { Id = itemId, UserId = userId, Description = "Original task description" };
+        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
+        var handler = new UpdateToDoItemDescriptionHandler(dataContext);
 
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
+        repository.FindAsync(request.ItemId).Returns(item);
 
-        var action = () => mediator.Send(request);
+        await handler.Handle(request, CancellationToken.None);
 
-        var exception = await action.Should().ThrowAsync<ValidationException>();
-        exception.Which.Errors.Should().ContainSingle(error =>
-            error.PropertyName == "Name" &&
-            error.ErrorMessage == "Task name is required.");
-        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        item.Description.Should().BeEmpty();
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Send_WithNameLongerThan200Characters_ThrowsValidationExceptionBeforeInvokingHandler()
+    public async Task Handle_WithLongDescription_UpdatesDescriptionAndSavesChanges()
     {
-        var request = new UpdateToDoItemNameCommand(Guid.NewGuid(), Guid.NewGuid(), new string('a', 201));
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var description = new string('a', 10_000);
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, description);
+        var item = new ToDoItemEntity { Id = itemId, UserId = userId, Description = "Original task description" };
+        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
+        var handler = new UpdateToDoItemDescriptionHandler(dataContext);
 
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
+        repository.FindAsync(request.ItemId).Returns(item);
 
-        var action = () => mediator.Send(request);
+        await handler.Handle(request, CancellationToken.None);
 
-        var exception = await action.Should().ThrowAsync<ValidationException>();
-        exception.Which.Errors.Should().ContainSingle(error =>
-            error.PropertyName == "Name" &&
-            error.ErrorMessage == "Task name must not exceed 200 characters.");
-        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        item.Description.Should().Be(description);
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -104,7 +99,7 @@ public class UpdateToDoItemNameHandlerTests
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var request = new UpdateToDoItemNameCommand(itemId, userId, "Updated task name");
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, "Updated task description");
         var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
         var services = new ServiceCollection();
@@ -129,7 +124,7 @@ public class UpdateToDoItemNameHandlerTests
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var request = new UpdateToDoItemNameCommand(itemId, userId, "Updated task name");
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, "Updated task description");
         var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
         var services = new ServiceCollection();

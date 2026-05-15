@@ -25,12 +25,15 @@ public class DeleteToDoItemHandlerTests
         dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
         repository.FindAsync(request.ItemId).Returns(item);
 
-        var result = await handler.Handle(request, CancellationToken.None);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var result = await handler.Handle(request, cancellationToken);
 
         result.Should().Be(Unit.Value);
         await repository.Received(1).FindAsync(request.ItemId);
         repository.Received(1).Remove(item);
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
@@ -56,7 +59,7 @@ public class DeleteToDoItemHandlerTests
         var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
         exception.Which.Id.Should().Be(itemId);
         repository.DidNotReceive().Remove(Arg.Any<ToDoItemEntity>());
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -82,6 +85,6 @@ public class DeleteToDoItemHandlerTests
         var exception = await action.Should().ThrowAsync<ResourceForbiddenException>();
         exception.Which.Id.Should().Be(itemId);
         repository.DidNotReceive().Remove(Arg.Any<ToDoItemEntity>());
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

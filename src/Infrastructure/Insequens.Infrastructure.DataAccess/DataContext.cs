@@ -37,12 +37,12 @@ public class DataContext : IDataContext
         }
     }
 
-    public async Task SaveChangesAsync()
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
             SetAuditableProperties();
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
         catch (DbException exception)
         {
