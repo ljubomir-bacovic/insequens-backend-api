@@ -58,7 +58,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
         {
-            await _toDoItemService.UpdateToDoItemPriorityAsync(id, UserId, priority);
+            await _sender.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority));
             return Results.NoContent();
         }
 

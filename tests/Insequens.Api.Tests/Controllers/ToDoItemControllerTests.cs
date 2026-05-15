@@ -58,6 +58,21 @@ public class ToDoItemControllerTests
         sender.LastRequest.Should().Be(new ToggleToDoItemCompleteCommand(itemId, userId));
     }
 
+    [Fact]
+    public async Task UpdateToDoItemPriorityAsync_WhenCalled_SendsUpdatePriorityCommand()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var priority = TaskPriority.High;
+        var sender = new TestSender(Unit.Value);
+        var controller = CreateController(userId, sender);
+
+        var result = await controller.UpdateToDoItemPriorityAsync(itemId, priority);
+
+        result.Should().NotBeNull();
+        sender.LastRequest.Should().Be(new UpdateToDoItemPriorityCommand(itemId, userId, priority));
+    }
+
     private static ToDoItemController CreateController(Guid userId, ISender sender)
     {
         var controller = new ToDoItemController(new StubToDoItemService(), sender);
