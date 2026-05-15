@@ -29,7 +29,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Infrastructure\Insequens.Infrastructure.DataAccess\Insequens.Infrastructure.DataAccess.csproj" />
-    <ProjectReference Include="..\Insequens.Core\Insequens.Core.csproj" />
     <ProjectReference Include="..\Insequens.Application\Insequens.Application.csproj" />
   </ItemGroup>
 
