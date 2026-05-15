@@ -78,10 +78,10 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string description)
+        public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description)
         {
             await _sender.Send(new UpdateToDoItemDescriptionCommand(id, UserId, description));
-            return Results.NoContent();
+            return NoContent();
         }
 
         [HttpPatch("{id:guid}/duedate")]

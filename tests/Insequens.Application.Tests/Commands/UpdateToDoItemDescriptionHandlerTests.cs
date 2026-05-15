@@ -38,7 +38,7 @@ public class UpdateToDoItemDescriptionHandlerTests
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, null!);
+        var request = new UpdateToDoItemDescriptionCommand(itemId, userId, null);
         var item = new ToDoItemEntity { Id = itemId, UserId = userId, Description = "Original task description" };
         var repository = Substitute.For<IRepository<ToDoItemEntity>>();
         var dataContext = Substitute.For<IDataContext>();
