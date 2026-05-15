@@ -35,6 +35,24 @@ public class UpdateToDoItemNameHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WithMissingItem_ThrowsToDoItemNotFoundException()
+    {
+        var request = new UpdateToDoItemNameCommand(Guid.NewGuid(), Guid.NewGuid(), "Updated task name");
+        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
+        var dataContext = Substitute.For<IDataContext>();
+        var handler = new UpdateToDoItemNameHandler(dataContext);
+
+        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
+        repository.FindAsync(request.ItemId).Returns((ToDoItemEntity?)null);
+
+        var action = () => handler.Handle(request, CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
+        exception.Which.Id.Should().Be(request.ItemId);
+        await dataContext.DidNotReceive().SaveChangesAsync();
+    }
+
+    [Fact]
     public async Task Send_WithEmptyName_ThrowsValidationExceptionBeforeInvokingHandler()
     {
         var request = new UpdateToDoItemNameCommand(Guid.NewGuid(), Guid.NewGuid(), string.Empty);
