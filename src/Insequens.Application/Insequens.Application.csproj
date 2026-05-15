@@ -16,7 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Insequens.Core\Insequens.Core.csproj" />
     <ProjectReference Include="..\Insequens.Domain\Insequens.Domain.csproj" />
   </ItemGroup>
 

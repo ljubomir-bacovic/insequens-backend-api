@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Insequens.Application.Behaviors;
 using Insequens.Application.Commands;
-using Insequens.Core.Exceptions;
+using Insequens.Application.Exceptions;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Entities;
 using MediatR;

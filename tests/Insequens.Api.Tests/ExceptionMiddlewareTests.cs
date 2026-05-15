@@ -3,6 +3,7 @@ using System.Text.Json;
 using FluentAssertions;
 using FluentValidation;
 using FluentValidation.Results;
+using Insequens.Application.Exceptions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
@@ -29,6 +30,40 @@ public class ExceptionMiddlewareTests
 
         context.Response.StatusCode.Should().Be(StatusCodes.Status204NoContent);
         (await ReadResponseBodyAsync(context)).Should().Be("ok");
+    }
+
+    [Fact]
+    public async Task Invoke_WhenToDoItemNotFoundExceptionIsThrown_Returns404ProblemDetails()
+    {
+        var itemId = Guid.NewGuid();
+        var exception = new ToDoItemNotFoundException(itemId);
+        var context = await InvokeMiddlewareAsync(_ => throw exception);
+        var responseBody = await ReadResponseBodyAsync(context);
+        using var json = JsonDocument.Parse(responseBody);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status404NotFound);
+        context.Response.ContentType.Should().Be("application/problem+json");
+        json.RootElement.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status404NotFound);
+        json.RootElement.GetProperty("title").GetString().Should().Be($"To Do item for id {itemId} not found.");
+        json.RootElement.GetProperty("type").GetString().Should().Be("Error");
+        responseBody.Should().NotContain("StackTrace");
+    }
+
+    [Fact]
+    public async Task Invoke_WhenResourceForbiddenExceptionIsThrown_Returns403ProblemDetails()
+    {
+        var itemId = Guid.NewGuid();
+        var exception = new ResourceForbiddenException(itemId);
+        var context = await InvokeMiddlewareAsync(_ => throw exception);
+        var responseBody = await ReadResponseBodyAsync(context);
+        using var json = JsonDocument.Parse(responseBody);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+        context.Response.ContentType.Should().Be("application/problem+json");
+        json.RootElement.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status403Forbidden);
+        json.RootElement.GetProperty("title").GetString().Should().Be("Access denied.");
+        json.RootElement.GetProperty("type").GetString().Should().Be("Error");
+        responseBody.Should().NotContain("StackTrace");
     }
 
     [Fact]

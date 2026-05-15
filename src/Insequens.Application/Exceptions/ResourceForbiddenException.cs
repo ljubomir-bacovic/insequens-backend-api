@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace Insequens.Core.Exceptions;
+namespace Insequens.Application.Exceptions;
 
 [Serializable]
 public class ResourceForbiddenException : Exception
