@@ -267,9 +267,23 @@ public class ToDoItemControllerTests
 
         var result = await controller.CompleteToDoItem(itemId, cancellationToken);
 
-        result.Should().BeOfType<OkResult>();
+        result.Should().BeOfType<NoContentResult>();
         await mediator.Received(1)
             .Send(Arg.Is<ToggleToDoItemCompleteCommand>(command => command.ItemId == itemId && command.UserId == userId), cancellationToken);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("not-a-guid")]
+    public async Task GetUserToDoItemsAsync_WhenUserIdClaimIsMissingOrInvalid_ReturnsUnauthorized(string? userIdClaim)
+    {
+        var mediator = Substitute.For<IMediator>();
+        var controller = CreateController(userIdClaim, mediator);
+
+        var result = await controller.GetUserToDoItemsAsync(cancellationToken: CancellationToken.None);
+
+        result.Should().BeOfType<UnauthorizedResult>();
+        await mediator.DidNotReceiveWithAnyArgs().Send(default(IRequest<PaginatedResult<ToDoItemGetListModel>>)!, default);
     }
 
     [Fact]
@@ -298,16 +312,20 @@ public class ToDoItemControllerTests
             { nameof(ToDoItemController.CompleteToDoItem), typeof(HttpPatchAttribute), "{id:guid}/togglecomplete" },
         };
 
-    private static ToDoItemController CreateController(Guid userId, IMediator mediator)
+    private static ToDoItemController CreateController(Guid userId, IMediator mediator) =>
+        CreateController(userId.ToString(), mediator);
+
+    private static ToDoItemController CreateController(string? userIdClaim, IMediator mediator)
     {
         var controller = new ToDoItemController(mediator);
+        var claims = userIdClaim is null
+            ? Array.Empty<Claim>()
+            : [new Claim(ClaimTypes.NameIdentifier, userIdClaim)];
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
             {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
-                    [new Claim(ClaimTypes.NameIdentifier, userId.ToString())],
-                    "TestAuthType")),
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuthType")),
             },
         };
 

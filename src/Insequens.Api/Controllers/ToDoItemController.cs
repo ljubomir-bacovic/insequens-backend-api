@@ -17,7 +17,6 @@ namespace Insequens.Api.Controllers;
 public class ToDoItemController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private Guid UserId => Guid.Parse(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
     public ToDoItemController(IMediator mediator)
     {
@@ -29,7 +28,12 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        var result = await _mediator.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var result = await _mediator.Send(new GetUserToDoItemsQuery(userId, isCompleted, page, pageSize), cancellationToken);
         return Ok(result);
     }
 
@@ -37,12 +41,17 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status201Created)]
     public async Task<IActionResult> AddToDoItemAsync([FromBody] ToDoItemCreateModel toDoItemCreate, CancellationToken cancellationToken)
     {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
         var item = await _mediator.Send(new CreateToDoItemCommand(
             toDoItemCreate.Name,
             toDoItemCreate.Description,
             toDoItemCreate.Priority,
             toDoItemCreate.DueDate,
-            UserId), cancellationToken);
+            userId), cancellationToken);
         return CreatedAtAction(nameof(GetToDoItem), new { id = item.Id }, item);
     }
 
@@ -53,7 +62,12 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _mediator.Send(new UpdateToDoItemPriorityCommand(id, userId, priority), cancellationToken);
         return NoContent();
     }
 
@@ -64,7 +78,12 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemNameCommand(id, UserId, name), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _mediator.Send(new UpdateToDoItemNameCommand(id, userId, name), cancellationToken);
         return NoContent();
     }
 
@@ -75,7 +94,12 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemDescriptionCommand(id, UserId, description), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _mediator.Send(new UpdateToDoItemDescriptionCommand(id, userId, description), cancellationToken);
         return NoContent();
     }
 
@@ -86,7 +110,12 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new UpdateToDoItemDueDateCommand(id, UserId, date), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _mediator.Send(new UpdateToDoItemDueDateCommand(id, userId, date), cancellationToken);
         return NoContent();
     }
 
@@ -96,7 +125,12 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteToDoItemAsync(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new DeleteToDoItemCommand(id, UserId), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _mediator.Send(new DeleteToDoItemCommand(id, userId), cancellationToken);
         return NoContent();
     }
 
@@ -106,17 +140,33 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetToDoItem(Guid id, CancellationToken cancellationToken)
     {
-        var toDoItem = await _mediator.Send(new GetToDoItemQuery(id, UserId), cancellationToken);
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var toDoItem = await _mediator.Send(new GetToDoItemQuery(id, userId), cancellationToken);
         return Ok(toDoItem);
     }
 
     [HttpPatch("{id:guid}/togglecomplete")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CompleteToDoItem(Guid id, CancellationToken cancellationToken)
     {
-        await _mediator.Send(new ToggleToDoItemCompleteCommand(id, UserId), cancellationToken);
-        return Ok();
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _mediator.Send(new ToggleToDoItemCompleteCommand(id, userId), cancellationToken);
+        return NoContent();
+    }
+
+    private bool TryGetUserId(out Guid userId)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Guid.TryParse(userIdClaim, out userId);
     }
 }
