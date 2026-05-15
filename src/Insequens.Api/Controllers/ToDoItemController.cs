@@ -121,7 +121,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> CompleteToDoItem(Guid id)
         {
-            await _toDoItemService.ToggleToDoItemCompleteAsync(id, UserId);
+            await _sender.Send(new ToggleToDoItemCompleteCommand(id, UserId));
             return Results.Ok();
         }
     }
