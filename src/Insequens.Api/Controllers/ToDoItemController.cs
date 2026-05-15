@@ -43,11 +43,6 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            if (page < 1 || pageSize < 1)
-            {
-                return BadRequest("Page and pageSize must be greater than 0.");
-            }
-
             var result = await _sender.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
             return Ok(result);
         }

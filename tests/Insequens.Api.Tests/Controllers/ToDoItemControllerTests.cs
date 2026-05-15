@@ -43,21 +43,6 @@ public class ToDoItemControllerTests
         json.Should().Contain("\"hasPrevious\":false");
     }
 
-    [Theory]
-    [InlineData(0, 20)]
-    [InlineData(1, 0)]
-    public async Task GetUserToDoItemsAsync_WhenPaginationIsInvalid_ReturnsBadRequest(int page, int pageSize)
-    {
-        var sender = new TestSender(new PaginatedResult<ToDoItemGetListModel>([], 0, 1, 20));
-        var controller = CreateController(Guid.NewGuid(), sender);
-
-        var actionResult = await controller.GetUserToDoItemsAsync(isCompleted: false, page: page, pageSize: pageSize);
-
-        var badRequestResult = actionResult.Should().BeOfType<BadRequestObjectResult>().Subject;
-        badRequestResult.Value.Should().Be("Page and pageSize must be greater than 0.");
-        sender.LastRequest.Should().BeNull();
-    }
-
     private static ToDoItemController CreateController(Guid userId, ISender sender)
     {
         var controller = new ToDoItemController(new StubToDoItemService(), sender);
