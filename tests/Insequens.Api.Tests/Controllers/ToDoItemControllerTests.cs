@@ -121,6 +121,28 @@ public class ToDoItemControllerTests
         mediator.LastRequest.Should().Be(new UpdateToDoItemDueDateCommand(itemId, userId, dueDate));
     }
 
+    [Fact]
+    public async Task GetToDoItem_WhenCalled_SendsQuery()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var expected = new ToDoItemGetDetailsModel(
+            itemId,
+            "Task 1",
+            "Description",
+            TaskPriority.High,
+            new DateOnly(2026, 12, 31),
+            false);
+        var mediator = new TestMediator(expected);
+        var controller = CreateController(userId, mediator);
+
+        var result = await controller.GetToDoItem(itemId);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeSameAs(expected);
+        mediator.LastRequest.Should().Be(new GetToDoItemQuery(itemId, userId));
+    }
+
     private static ToDoItemController CreateController(Guid userId, IMediator mediator)
     {
         var controller = new ToDoItemController(new StubToDoItemService(), mediator);

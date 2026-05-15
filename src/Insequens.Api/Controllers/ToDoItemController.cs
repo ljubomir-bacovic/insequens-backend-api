@@ -111,7 +111,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetToDoItem(Guid id)
         {
-            var toDoItem = await _toDoItemService.GetToDoItem(id, UserId);
+            var toDoItem = await _mediator.Send(new GetToDoItemQuery(id, UserId));
             return Ok(toDoItem);
         }
 
