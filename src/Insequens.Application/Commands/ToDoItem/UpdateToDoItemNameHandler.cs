@@ -16,7 +16,7 @@ public class UpdateToDoItemNameHandler(IDataContext dataContext)
         var item = await repository.FindAsync(request.ItemId)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
         item.Name = request.Name;
-        await dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }

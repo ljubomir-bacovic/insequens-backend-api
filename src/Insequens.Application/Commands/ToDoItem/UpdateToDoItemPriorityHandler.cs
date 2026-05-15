@@ -14,7 +14,7 @@ public class UpdateToDoItemPriorityHandler(IDataContext dataContext)
         var repository = dataContext.GetRepository<ToDoItemEntity>();
         var item = (await repository.FindAsync(request.ItemId))!;
         item.Priority = request.Priority;
-        await dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }

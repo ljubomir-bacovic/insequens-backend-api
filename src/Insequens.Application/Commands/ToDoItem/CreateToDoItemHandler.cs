@@ -25,7 +25,7 @@ public class CreateToDoItemHandler(IDataContext dataContext)
         };
 
         dataContext.GetRepository<ToDoItemEntity>().AddOrUpdate(item);
-        await dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync(cancellationToken);
 
         return new ToDoItemGetDetailsModel(
             item.Id,

@@ -14,7 +14,7 @@ public class ToggleToDoItemCompleteHandler(IDataContext dataContext)
         var repository = dataContext.GetRepository<ToDoItemEntity>();
         var item = (await repository.FindAsync(request.ItemId))!;
         item.IsCompleted = !item.IsCompleted;
-        await dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }

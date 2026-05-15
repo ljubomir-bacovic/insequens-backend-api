@@ -30,12 +30,15 @@ public class UpdateToDoItemPriorityHandlerTests
         dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
         repository.FindAsync(request.ItemId).Returns(item);
 
-        var result = await handler.Handle(request, CancellationToken.None);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var result = await handler.Handle(request, cancellationToken);
 
         result.Should().Be(Unit.Value);
         item.Priority.Should().Be(priority);
         await repository.Received(1).FindAsync(request.ItemId);
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
@@ -57,7 +60,7 @@ public class UpdateToDoItemPriorityHandlerTests
         exception.Which.Errors.Should().ContainSingle(error =>
             error.PropertyName == "Priority" &&
             error.ErrorMessage == "Priority must be one of: 1 (high), 2 (medium), or 3 (low).");
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -82,7 +85,7 @@ public class UpdateToDoItemPriorityHandlerTests
 
         var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
         exception.Which.Id.Should().Be(itemId);
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -107,6 +110,6 @@ public class UpdateToDoItemPriorityHandlerTests
 
         var exception = await action.Should().ThrowAsync<ResourceForbiddenException>();
         exception.Which.Id.Should().Be(itemId);
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

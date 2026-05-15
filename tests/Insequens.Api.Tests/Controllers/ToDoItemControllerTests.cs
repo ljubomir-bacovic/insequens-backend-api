@@ -54,7 +54,7 @@ public class ToDoItemControllerTests
 
         var result = await controller.CompleteToDoItem(itemId);
 
-        result.Should().NotBeNull();
+        result.Should().BeOfType<OkResult>();
         sender.LastRequest.Should().Be(new ToggleToDoItemCompleteCommand(itemId, userId));
     }
 
@@ -69,7 +69,7 @@ public class ToDoItemControllerTests
 
         var result = await controller.UpdateToDoItemPriorityAsync(itemId, priority);
 
-        result.Should().NotBeNull();
+        result.Should().BeOfType<NoContentResult>();
         sender.LastRequest.Should().Be(new UpdateToDoItemPriorityCommand(itemId, userId, priority));
     }
 
@@ -84,7 +84,7 @@ public class ToDoItemControllerTests
 
         var result = await controller.UpdateToDoItemNameAsync(itemId, name);
 
-        result.Should().NotBeNull();
+        result.Should().BeOfType<NoContentResult>();
         sender.LastRequest.Should().Be(new UpdateToDoItemNameCommand(itemId, userId, name));
     }
 
@@ -99,7 +99,7 @@ public class ToDoItemControllerTests
 
         var result = await controller.UpdateToDoItemDescriptionAsync(itemId, description);
 
-        result.Should().NotBeNull();
+        result.Should().BeOfType<NoContentResult>();
         sender.LastRequest.Should().Be(new UpdateToDoItemDescriptionCommand(itemId, userId, description));
     }
 

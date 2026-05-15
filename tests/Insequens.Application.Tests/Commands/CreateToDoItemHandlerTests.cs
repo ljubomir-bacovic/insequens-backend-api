@@ -27,7 +27,10 @@ public class CreateToDoItemHandlerTests
             .When(x => x.AddOrUpdate(Arg.Any<ToDoItemEntity>(), Arg.Any<bool?>()))
             .Do(callInfo => addedItem = callInfo.Arg<ToDoItemEntity>());
 
-        var result = await handler.Handle(request, CancellationToken.None);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+
+        var result = await handler.Handle(request, cancellationToken);
 
         addedItem.Should().NotBeNull();
         addedItem!.Id.Should().NotBe(Guid.Empty);
@@ -52,7 +55,7 @@ public class CreateToDoItemHandlerTests
             item.DueDate == request.DueDate &&
             item.Priority == (Domain.Types.TaskPriority?)request.Priority &&
             !item.IsCompleted));
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
@@ -72,6 +75,6 @@ public class CreateToDoItemHandlerTests
         exception.Which.Errors.Should().ContainSingle(error =>
             error.PropertyName == "Name" &&
             error.ErrorMessage == "Task name is required.");
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }
