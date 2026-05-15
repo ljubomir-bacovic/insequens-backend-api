@@ -1,0 +1,189 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  changed_files_summary: true
+  review_status: true
+  poem: false
+
+  instructions: |
+    This is a .NET 10 Web API using CQRS with MediatR, Clean Architecture, Entity Framework Core, 
+    FluentValidation, and a generic repository pattern. Review every PR against the full coding 
+    guidelines in AGENTS.md at the repo root. Pay special attention to:
+
+    CRITICAL checks (block the PR if violated):
+    - Every command/query that accesses a specific resource by ID MUST implement IOwned. Missing IOwned is a security vulnerability.
+    - DateTime.Now is forbidden. Only DateTime.UtcNow is allowed.
+    - The Domain project must have ZERO project references. If Domain imports Application, Api, or Infrastructure, flag immediately.
+    - No secrets (connection strings, JWT keys, passwords) in committed configuration files.
+    - CORS must never use AllowAnyOrigin() in production configuration.
+
+    HIGH checks:
+    - Controllers must only inject IMediator. No services, repositories, or DbContext.
+    - Controllers must not contain business logic (no if-statements checking business rules).
+    - All list endpoints must return PaginatedResult<T>, never bare List<T>.
+    - All dependencies must be injected via interfaces, not concrete classes.
+    - No empty catch blocks. Always log or rethrow.
+    - Command handlers must construct entities explicitly. Do not use AutoMapper for writes.
+
+    MEDIUM checks:
+    - Every command/query accepting user input should have a FluentValidation validator.
+    - Query handlers should use AsNoTracking() and ProjectTo<TDto>() for reads.
+    - CancellationToken should be passed to all async EF Core methods.
+    - Structured logging: use named parameters, not string interpolation.
+    - No commented-out code. No TODO comments that should be issues.
+
+    Do NOT comment on:
+    - Formatting or whitespace (handled by .editorconfig and IDE).
+    - Import ordering.
+    - Variable naming unless actively misleading.
+
+  path_filters:
+    - "!**/bin/**"
+    - "!**/obj/**"
+    - "!**/Migrations/**"
+    - "!**/*.lock"
+    - "!**/*.Designer.cs"
+
+  path_instructions:
+    - path: "src/Insequens.Api/Controllers/**"
+      instructions: |
+        Controllers must be thin HTTP adapters. They should:
+        1. Inject only IMediator via constructor.
+        2. Extract UserId from JWT claims.
+        3. Call _mediator.Send() with a command or query.
+        4. Return the appropriate IActionResult (not IResult).
+        
+        Flag if: controller contains business logic, injects services/repositories, 
+        performs data transformation, does manual validation, or returns IResult.
+        
+        Every action must pass UserId from JWT claims into the command/query.
+        POST create → 201 Created. PATCH → 204 NoContent. DELETE → 204 NoContent.
+
+    - path: "src/Insequens.Application/Commands/**"
+      instructions: |
+        Commands must be immutable record types implementing IRequest<T>.
+        Named {Verb}{Entity}Command (e.g., CreateToDoItemCommand).
+        
+        CRITICAL: Commands that modify an existing user-owned resource MUST implement IOwned
+        (provides Guid ItemId + Guid UserId). Missing IOwned is a security vulnerability.
+        
+        Commands that CREATE new resources include UserId but do NOT implement IOwned.
+        
+        Handlers must construct entities explicitly — do NOT use AutoMapper for writes.
+        Handlers should call SaveChangesAsync() once at the end.
+        For IOwned requests, the handler can use null-forgiving operator on FindAsync 
+        since OwnershipBehavior already validated existence and ownership.
+
+    - path: "src/Insequens.Application/Queries/**"
+      instructions: |
+        Queries must be immutable record types implementing IRequest<T>.
+        Named Get{What}Query (e.g., GetUserToDoItemsQuery).
+        
+        Queries reading a specific resource by ID MUST implement IOwned.
+        List queries filter by UserId in the handler and do NOT implement IOwned.
+        
+        List queries MUST return PaginatedResult<T> — never bare List<T>.
+        
+        Query handlers should use AsNoTracking() and ProjectTo<TDto>() for efficient SQL.
+        Always pass CancellationToken to async EF Core methods.
+        Pagination: execute CountAsync for total count, then Skip/Take for the page.
+
+    - path: "src/Insequens.Application/Validators/**"
+      instructions: |
+        Validators use FluentValidation AbstractValidator<T>.
+        Named {CommandOrQuery}Validator.
+        Auto-discovered — no manual DI registration needed.
+        
+        Validate shape and range only. Business rules belong in handlers.
+        Pagination: Page > 0, PageSize between 1 and 100.
+        String fields: check NotEmpty and MaximumLength.
+        Include clear .WithMessage() text for every rule.
+
+    - path: "src/Insequens.Application/Behaviors/**"
+      instructions: |
+        Pipeline behaviors implement IPipelineBehavior<TRequest, TResponse>.
+        Execution order: Logging → Validation → Ownership → Handler.
+        
+        OwnershipBehavior only runs for requests implementing IOwned.
+        ValidationBehavior only runs for requests with registered validators.
+        LoggingBehavior runs for all requests.
+        
+        Changes to behaviors affect ALL operations. Review with extreme care.
+
+    - path: "src/Insequens.Domain/**"
+      instructions: |
+        The Domain project MUST have zero project references. It references NOTHING.
+        This is the innermost layer of Clean Architecture.
+        
+        Entities inherit from AuditableEntity (Id: Guid, CreatedOn, UpdatedOn).
+        No data annotations on entities — use Fluent API in DbContext.
+        Every entity holding user data must have Guid UserId.
+        
+        DTOs are immutable records. They are the API contract.
+        Interfaces (IRepository<T>, IDataContext, IEmailSender) live here.
+        
+        Flag if: any using statement references Application, Api, or Infrastructure namespaces.
+
+    - path: "src/Infrastructure/**"
+      instructions: |
+        Infrastructure implements Domain interfaces.
+        References only Domain — never Application or Api.
+        
+        Repository: never add query-specific methods. Use AsQueryable() + LINQ in handlers.
+        Repository: never call SaveChanges. That's DataContext's responsibility.
+        DataContext: audit timestamps must use DateTime.UtcNow, never DateTime.Now.
+        DbContext: all entity config via Fluent API in OnModelCreating.
+
+    - path: "src/Insequens.Api/ExceptionMiddleware.cs"
+      instructions: |
+        Exception-to-HTTP mapping. Every application exception gets its own catch block.
+        
+        CRITICAL: The generic Exception catch must NEVER expose ex.Message or ex.InnerException
+        in non-Development environments. Only return generic message in production.
+        
+        Error responses must use RFC 7807 ProblemDetails format.
+        If a new exception type is introduced, this file must be updated.
+
+    - path: "src/Insequens.Api/Program.cs"
+      instructions: |
+        DI composition root. This is the only place that knows about concrete implementations.
+        
+        Check for:
+        - Only one Identity registration (AddIdentity, not also AddIdentityCore).
+        - CORS uses WithOrigins(configuredOrigins), never AllowAnyOrigin in production.
+        - builder.Services.AddApplication() is called for MediatR/validators/behaviors.
+        - No commented-out code blocks.
+        - No secrets in configuration values.
+
+    - path: "tests/**"
+      instructions: |
+        xUnit + FluentAssertions + NSubstitute for unit tests.
+        WebApplicationFactory + InMemory DB for integration tests.
+        
+        Test naming: MethodName_StateUnderTest_ExpectedBehavior.
+        
+        Every handler needs tests: happy path + error paths.
+        Every validator needs tests: valid input passes, each invalid field fails.
+        OwnershipBehavior tests: owned passes, non-existent throws 404, other user throws 403.
+        Integration tests: full HTTP cycle including auth, ownership enforcement, validation errors.
+
+    - path: "**/*.json"
+      instructions: |
+        Configuration files must not contain real secrets.
+        Connection strings, JWT keys, SMTP passwords must be empty or use placeholders.
+        Sensitive values should be loaded from User Secrets or environment variables.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "**/AGENTS.md"
+      - "**/CODING_STANDARDS.md"
+      - "**/docs/architecture.md"
