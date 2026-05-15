@@ -122,10 +122,12 @@ public class ToDoItemControllerTests
     }
 
     [Fact]
-    public async Task GetToDoItem_WhenCalled_SendsQuery()
+    public async Task GetToDoItem_WhenCalled_SendsQueryAndCancellationToken()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
         var expected = new ToDoItemGetDetailsModel(
             itemId,
             "Task 1",
@@ -136,11 +138,12 @@ public class ToDoItemControllerTests
         var mediator = new TestMediator(expected);
         var controller = CreateController(userId, mediator);
 
-        var result = await controller.GetToDoItem(itemId);
+        var result = await controller.GetToDoItem(itemId, cancellationToken);
 
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         okResult.Value.Should().BeSameAs(expected);
         mediator.LastRequest.Should().Be(new GetToDoItemQuery(itemId, userId));
+        mediator.LastCancellationToken.Should().Be(cancellationToken);
     }
 
     private static ToDoItemController CreateController(Guid userId, IMediator mediator)

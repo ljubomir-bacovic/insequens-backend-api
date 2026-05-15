@@ -109,9 +109,9 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetToDoItem(Guid id)
+        public async Task<IActionResult> GetToDoItem(Guid id, CancellationToken cancellationToken)
         {
-            var toDoItem = await _mediator.Send(new GetToDoItemQuery(id, UserId));
+            var toDoItem = await _mediator.Send(new GetToDoItemQuery(id, UserId), cancellationToken);
             return Ok(toDoItem);
         }
 
