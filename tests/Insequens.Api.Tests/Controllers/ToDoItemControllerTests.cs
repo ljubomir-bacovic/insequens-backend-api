@@ -95,6 +95,27 @@ public class ToDoItemControllerTests
         json.Should().Contain("\"hasPrevious\":false");
     }
 
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 0)]
+    [InlineData(-1, 101)]
+    public async Task GetUserToDoItemsAsync_WithInvalidPagination_StillForwardsQueryToMediator(int page, int pageSize)
+    {
+        var userId = Guid.NewGuid();
+        var expected = new PaginatedResult<ToDoItemGetListModel>([], 0, page, pageSize);
+        var mediator = Substitute.For<IMediator>();
+        mediator.Send(Arg.Is<GetUserToDoItemsQuery>(q => q.UserId == userId && !q.IsCompleted && q.Page == page && q.PageSize == pageSize), Arg.Any<CancellationToken>())
+            .Returns(expected);
+        var controller = CreateController(userId, mediator);
+
+        var actionResult = await controller.GetUserToDoItemsAsync(isCompleted: false, page: page, pageSize: pageSize, CancellationToken.None);
+
+        var okResult = actionResult.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeSameAs(expected);
+        await mediator.Received(1)
+            .Send(Arg.Is<GetUserToDoItemsQuery>(q => q.UserId == userId && !q.IsCompleted && q.Page == page && q.PageSize == pageSize), CancellationToken.None);
+    }
+
     [Fact]
     public async Task AddToDoItemAsync_WhenCalled_ReturnsCreatedAtActionAndSendsCreateCommandWithCancellationToken()
     {
