@@ -30,7 +30,7 @@ public class UpdateToDoItemDescriptionHandlerTests
         result.Should().Be(Unit.Value);
         item.Description.Should().Be(request.Description);
         await repository.Received(1).FindAsync(request.ItemId);
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class UpdateToDoItemDescriptionHandlerTests
         await handler.Handle(request, CancellationToken.None);
 
         item.Description.Should().BeNull();
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class UpdateToDoItemDescriptionHandlerTests
         await handler.Handle(request, CancellationToken.None);
 
         item.Description.Should().BeEmpty();
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public class UpdateToDoItemDescriptionHandlerTests
         await handler.Handle(request, CancellationToken.None);
 
         item.Description.Should().Be(description);
-        await dataContext.Received(1).SaveChangesAsync();
+        await dataContext.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class UpdateToDoItemDescriptionHandlerTests
 
         var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
         exception.Which.Id.Should().Be(itemId);
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -141,6 +141,6 @@ public class UpdateToDoItemDescriptionHandlerTests
 
         var exception = await action.Should().ThrowAsync<ResourceForbiddenException>();
         exception.Which.Id.Should().Be(itemId);
-        await dataContext.DidNotReceive().SaveChangesAsync();
+        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }
