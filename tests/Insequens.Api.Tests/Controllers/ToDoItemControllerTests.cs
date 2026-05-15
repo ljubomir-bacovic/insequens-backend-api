@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Insequens.Api.Controllers;
+using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
 using Insequens.Domain.Model.ToDoItem;
@@ -41,6 +42,20 @@ public class ToDoItemControllerTests
         json.Should().Contain("\"totalPages\":1");
         json.Should().Contain("\"hasNext\":false");
         json.Should().Contain("\"hasPrevious\":false");
+    }
+
+    [Fact]
+    public async Task CompleteToDoItem_WhenCalled_SendsToggleCommand()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var sender = new TestSender(Unit.Value);
+        var controller = CreateController(userId, sender);
+
+        var result = await controller.CompleteToDoItem(itemId);
+
+        result.Should().NotBeNull();
+        sender.LastRequest.Should().Be(new ToggleToDoItemCompleteCommand(itemId, userId));
     }
 
     private static ToDoItemController CreateController(Guid userId, ISender sender)
