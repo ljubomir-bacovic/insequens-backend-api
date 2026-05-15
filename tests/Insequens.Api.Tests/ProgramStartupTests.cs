@@ -7,7 +7,6 @@ using Insequens.Application.Commands;
 using Insequens.Domain;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Entities;
-using Insequens.Domain.ServiceContracts;
 using MediatR;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -19,13 +18,12 @@ namespace Insequens.Api.Tests;
 public class ProgramStartupTests
 {
     [Fact]
-    public void Startup_RegistersLegacyAndApplicationServices()
+    public void Startup_RegistersApplicationServices()
     {
         using var factory = new InsequensApiFactory();
         using var scope = factory.Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        serviceProvider.GetRequiredService<IToDoItemService>().Should().NotBeNull();
         serviceProvider.GetRequiredService<IMediator>().Should().NotBeNull();
         serviceProvider.GetRequiredService<ISender>().Should().NotBeNull();
         serviceProvider.GetRequiredService<IPublisher>().Should().NotBeNull();
@@ -34,7 +32,7 @@ public class ProgramStartupTests
     }
 
     [Fact]
-    public async Task Startup_RegistersApplicationPipelineBehaviorsWithoutBreakingLegacyServices()
+    public async Task Startup_RegistersApplicationPipelineBehaviors()
     {
         var trace = new ExecutionTrace();
         var request = new TestOwnedRequest(Guid.NewGuid(), Guid.NewGuid(), "example");
@@ -67,7 +65,6 @@ public class ProgramStartupTests
 
         response.Should().Be("handled:example");
         trace.Steps.Should().Equal("validation", "ownership", "handler");
-        serviceProvider.GetRequiredService<IToDoItemService>().Should().NotBeNull();
     }
 
     private sealed class InsequensApiFactory : WebApplicationFactory<Program>
