@@ -1,6 +1,6 @@
-﻿using AutoMapper;
+using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Insequens.Core.Exceptions;
+using Insequens.Application.Exceptions;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Entities;
 using Insequens.Domain.Model.ToDoItem;

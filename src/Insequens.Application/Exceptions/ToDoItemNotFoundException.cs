@@ -1,6 +1,6 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
 
-namespace Insequens.Core.Exceptions;
+namespace Insequens.Application.Exceptions;
 
 [Serializable]
 public class ToDoItemNotFoundException : Exception
@@ -24,6 +24,7 @@ public class ToDoItemNotFoundException : Exception
     {
     }
 
+    [Obsolete("Binary serialization is obsolete and should not be used.")]
     protected ToDoItemNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
     {
     }
