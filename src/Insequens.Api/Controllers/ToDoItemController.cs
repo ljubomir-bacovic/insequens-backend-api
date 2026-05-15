@@ -27,17 +27,6 @@ namespace Insequens.Api.Controllers
             _sender = sender;
         }
 
-        /*
-        [HttpGet]
-        [ProducesResponseType<List<ToDoItemGetListModel>>(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IResult> GetUserToDoList()
-        {
-            var toDoList = await _toDoItemService.GetUserToDoItemsAsync(UserId);
-            return Results.Ok(toDoList);
-        }
-        */
-
         [HttpGet]
         [ProducesResponseType<PaginatedResult<ToDoItemGetListModel>>(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
