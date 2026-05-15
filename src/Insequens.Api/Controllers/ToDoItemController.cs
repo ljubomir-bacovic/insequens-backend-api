@@ -69,7 +69,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
         {
-            await _toDoItemService.UpdateToDoItemNameAsync(id, UserId, name);
+            await _sender.Send(new UpdateToDoItemNameCommand(id, UserId, name));
             return Results.NoContent();
         }
 
