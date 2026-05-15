@@ -13,6 +13,6 @@ public class CreateToDoItemValidator : AbstractValidator<CreateToDoItemCommand>
 
         RuleFor(x => x.Priority)
             .InclusiveBetween(0, 3)
-            .WithMessage("Priority must be between 0 (none) and 3 (low).");
+            .WithMessage("Priority must be one of: 0 (none), 1 (high), 2 (medium), or 3 (low).");
     }
 }

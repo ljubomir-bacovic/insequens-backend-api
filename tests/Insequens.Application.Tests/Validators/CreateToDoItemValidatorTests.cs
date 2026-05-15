@@ -42,6 +42,6 @@ public class CreateToDoItemValidatorTests
         var result = _validator.Validate(new CreateToDoItemCommand("Task", "Description", priority, new DateOnly(2026, 1, 1), Guid.NewGuid()));
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().ContainSingle(error => error.PropertyName == "Priority" && error.ErrorMessage == "Priority must be between 0 (none) and 3 (low).");
+        result.Errors.Should().ContainSingle(error => error.PropertyName == "Priority" && error.ErrorMessage == "Priority must be one of: 0 (none), 1 (high), 2 (medium), or 3 (low).");
     }
 }
