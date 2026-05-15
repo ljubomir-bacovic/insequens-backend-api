@@ -91,7 +91,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date)
         {
-            await _toDoItemService.UpdateToDoItemDueDateAsync(id, UserId, date);
+            await _mediator.Send(new UpdateToDoItemDueDateCommand(id, UserId, date));
             return NoContent();
         }
 

@@ -106,6 +106,21 @@ public class ToDoItemControllerTests
         mediator.LastCancellationToken.Should().Be(cancellationToken);
     }
 
+    [Fact]
+    public async Task UpdateToDoItemDueDateAsync_WhenCalled_SendsUpdateDueDateCommand()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var dueDate = new DateOnly(2026, 12, 31);
+        var mediator = new TestMediator(Unit.Value);
+        var controller = CreateController(userId, mediator);
+
+        var result = await controller.UpdateToDoItemDueDateAsync(itemId, dueDate);
+
+        result.Should().BeOfType<NoContentResult>();
+        mediator.LastRequest.Should().Be(new UpdateToDoItemDueDateCommand(itemId, userId, dueDate));
+    }
+
     private static ToDoItemController CreateController(Guid userId, IMediator mediator)
     {
         var controller = new ToDoItemController(new StubToDoItemService(), mediator);
