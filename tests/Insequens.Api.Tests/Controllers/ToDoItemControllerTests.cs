@@ -9,6 +9,7 @@ using Insequens.Domain.Types;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using NSubstitute;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -119,6 +120,34 @@ public class ToDoItemControllerTests
 
         result.Should().BeOfType<NoContentResult>();
         mediator.LastRequest.Should().Be(new UpdateToDoItemDueDateCommand(itemId, userId, dueDate));
+    }
+
+    [Fact]
+    public async Task GetToDoItem_WhenCalled_SendsQueryAndCancellationToken()
+    {
+        var userId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var cancellationToken = cancellationTokenSource.Token;
+        var expected = new ToDoItemGetDetailsModel(
+            itemId,
+            "Task 1",
+            "Description",
+            TaskPriority.High,
+            new DateOnly(2026, 12, 31),
+            false);
+        var mediator = Substitute.For<IMediator>();
+        mediator
+            .Send(Arg.Is<GetToDoItemQuery>(q => q.ItemId == itemId && q.UserId == userId), cancellationToken)
+            .Returns(expected);
+        var controller = CreateController(userId, mediator);
+
+        var result = await controller.GetToDoItem(itemId, cancellationToken);
+
+        var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+        okResult.Value.Should().BeSameAs(expected);
+        await mediator.Received(1)
+            .Send(Arg.Is<GetToDoItemQuery>(q => q.ItemId == itemId && q.UserId == userId), cancellationToken);
     }
 
     private static ToDoItemController CreateController(Guid userId, IMediator mediator)
