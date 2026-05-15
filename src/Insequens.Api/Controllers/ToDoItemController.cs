@@ -18,14 +18,14 @@ namespace Insequens.Api.Controllers
     [ApiController]
     public class ToDoItemController : ControllerBase
     {
-        private readonly ISender _sender;
+        private readonly IMediator _mediator;
         private readonly IToDoItemService _toDoItemService;
         Guid UserId => Guid.Parse(User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier).Value);
 
-        public ToDoItemController(IToDoItemService toDoItemService, ISender sender)
+        public ToDoItemController(IToDoItemService toDoItemService, IMediator mediator)
         {
             _toDoItemService = toDoItemService;
-            _sender = sender;
+            _mediator = mediator;
         }
 
         [HttpGet]
@@ -33,7 +33,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetUserToDoItemsAsync([FromQuery] bool isCompleted = false, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var result = await _sender.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
+            var result = await _mediator.Send(new GetUserToDoItemsQuery(UserId, isCompleted, page, pageSize));
             return Ok(result);
         }
 
@@ -41,7 +41,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         public async Task<IActionResult> AddToDoItemAsync(ToDoItemCreateModel toDoItemCreate)
         {
-            var item = await _sender.Send(new CreateToDoItemCommand(
+            var item = await _mediator.Send(new CreateToDoItemCommand(
                 toDoItemCreate.Name,
                 toDoItemCreate.Description,
                 toDoItemCreate.Priority,
@@ -58,7 +58,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority)
         {
-            await _sender.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority));
+            await _mediator.Send(new UpdateToDoItemPriorityCommand(id, UserId, priority));
             return NoContent();
         }
 
@@ -69,7 +69,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name)
         {
-            await _sender.Send(new UpdateToDoItemNameCommand(id, UserId, name));
+            await _mediator.Send(new UpdateToDoItemNameCommand(id, UserId, name));
             return NoContent();
         }
 
@@ -78,9 +78,9 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description)
+        public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description, CancellationToken cancellationToken)
         {
-            await _sender.Send(new UpdateToDoItemDescriptionCommand(id, UserId, description));
+            await _mediator.Send(new UpdateToDoItemDescriptionCommand(id, UserId, description), cancellationToken);
             return NoContent();
         }
 
@@ -121,7 +121,7 @@ namespace Insequens.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CompleteToDoItem(Guid id)
         {
-            await _sender.Send(new ToggleToDoItemCompleteCommand(id, UserId));
+            await _mediator.Send(new ToggleToDoItemCompleteCommand(id, UserId));
             return Ok();
         }
     }

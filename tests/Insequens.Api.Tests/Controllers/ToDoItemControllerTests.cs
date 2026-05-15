@@ -25,14 +25,14 @@ public class ToDoItemControllerTests
             1,
             1,
             20);
-        var sender = new TestSender(expected);
-        var controller = CreateController(userId, sender);
+        var mediator = new TestMediator(expected);
+        var controller = CreateController(userId, mediator);
 
         var actionResult = await controller.GetUserToDoItemsAsync(isCompleted: false, page: 1, pageSize: 20);
 
         var okResult = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         okResult.Value.Should().BeSameAs(expected);
-        sender.LastRequest.Should().Be(new GetUserToDoItemsQuery(userId, false, 1, 20));
+        mediator.LastRequest.Should().Be(new GetUserToDoItemsQuery(userId, false, 1, 20));
 
         var json = JsonSerializer.Serialize(okResult.Value, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         json.Should().Contain("\"items\"");
@@ -49,13 +49,13 @@ public class ToDoItemControllerTests
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var sender = new TestSender(Unit.Value);
-        var controller = CreateController(userId, sender);
+        var mediator = new TestMediator(Unit.Value);
+        var controller = CreateController(userId, mediator);
 
         var result = await controller.CompleteToDoItem(itemId);
 
         result.Should().BeOfType<OkResult>();
-        sender.LastRequest.Should().Be(new ToggleToDoItemCompleteCommand(itemId, userId));
+        mediator.LastRequest.Should().Be(new ToggleToDoItemCompleteCommand(itemId, userId));
     }
 
     [Fact]
@@ -64,13 +64,13 @@ public class ToDoItemControllerTests
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         var priority = TaskPriority.High;
-        var sender = new TestSender(Unit.Value);
-        var controller = CreateController(userId, sender);
+        var mediator = new TestMediator(Unit.Value);
+        var controller = CreateController(userId, mediator);
 
         var result = await controller.UpdateToDoItemPriorityAsync(itemId, priority);
 
         result.Should().BeOfType<NoContentResult>();
-        sender.LastRequest.Should().Be(new UpdateToDoItemPriorityCommand(itemId, userId, priority));
+        mediator.LastRequest.Should().Be(new UpdateToDoItemPriorityCommand(itemId, userId, priority));
     }
 
     [Fact]
@@ -79,13 +79,13 @@ public class ToDoItemControllerTests
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         const string name = "Updated task name";
-        var sender = new TestSender(Unit.Value);
-        var controller = CreateController(userId, sender);
+        var mediator = new TestMediator(Unit.Value);
+        var controller = CreateController(userId, mediator);
 
         var result = await controller.UpdateToDoItemNameAsync(itemId, name);
 
         result.Should().BeOfType<NoContentResult>();
-        sender.LastRequest.Should().Be(new UpdateToDoItemNameCommand(itemId, userId, name));
+        mediator.LastRequest.Should().Be(new UpdateToDoItemNameCommand(itemId, userId, name));
     }
 
     [Fact]
@@ -94,18 +94,20 @@ public class ToDoItemControllerTests
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
         const string description = "Updated task description";
-        var sender = new TestSender(Unit.Value);
-        var controller = CreateController(userId, sender);
+        var cancellationToken = new CancellationTokenSource().Token;
+        var mediator = new TestMediator(Unit.Value);
+        var controller = CreateController(userId, mediator);
 
-        var result = await controller.UpdateToDoItemDescriptionAsync(itemId, description);
+        var result = await controller.UpdateToDoItemDescriptionAsync(itemId, description, cancellationToken);
 
         result.Should().BeOfType<NoContentResult>();
-        sender.LastRequest.Should().Be(new UpdateToDoItemDescriptionCommand(itemId, userId, description));
+        mediator.LastRequest.Should().Be(new UpdateToDoItemDescriptionCommand(itemId, userId, description));
+        mediator.LastCancellationToken.Should().Be(cancellationToken);
     }
 
-    private static ToDoItemController CreateController(Guid userId, ISender sender)
+    private static ToDoItemController CreateController(Guid userId, IMediator mediator)
     {
-        var controller = new ToDoItemController(new StubToDoItemService(), sender);
+        var controller = new ToDoItemController(new StubToDoItemService(), mediator);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -119,19 +121,22 @@ public class ToDoItemControllerTests
         return controller;
     }
 
-    private sealed class TestSender(object response) : ISender
+    private sealed class TestMediator(object response) : IMediator
     {
         public object? LastRequest { get; private set; }
+        public CancellationToken LastCancellationToken { get; private set; }
 
         public Task<object?> Send(object request, CancellationToken cancellationToken = default)
         {
             LastRequest = request;
+            LastCancellationToken = cancellationToken;
             return Task.FromResult<object?>(response);
         }
 
         public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
             LastRequest = request;
+            LastCancellationToken = cancellationToken;
             return Task.FromResult((TResponse)response);
         }
 
@@ -139,7 +144,19 @@ public class ToDoItemControllerTests
             where TRequest : IRequest
         {
             LastRequest = request;
+            LastCancellationToken = cancellationToken;
             return Task.CompletedTask;
+        }
+
+        public Task Publish(object notification, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+            where TNotification : INotification
+        {
+            throw new NotSupportedException();
         }
 
         public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
