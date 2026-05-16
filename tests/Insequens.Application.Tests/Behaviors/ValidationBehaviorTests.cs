@@ -1,6 +1,10 @@
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Behaviors;
+using Insequens.Application.Models;
+using Insequens.Application.Queries.ToDoItem;
+using Insequens.Application.Validators.ToDoItem;
+using Insequens.Domain.Model.ToDoItem;
 using MediatR;
 
 namespace Insequens.Application.Tests.Behaviors;
@@ -75,6 +79,26 @@ public class ValidationBehaviorTests
 
         result.Should().Be(Unit.Value);
         nextCalled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_WithInvalidGetUserToDoItemsQuery_ThrowsValidationExceptionAndDoesNotCallNext()
+    {
+        var request = new GetUserToDoItemsQuery(Guid.NewGuid(), false, 0, 101);
+        var behavior = new ValidationBehavior<GetUserToDoItemsQuery, PaginatedResult<ToDoItemGetListModel>>([new GetUserToDoItemsValidator()]);
+        var nextCalled = false;
+        RequestHandlerDelegate<PaginatedResult<ToDoItemGetListModel>> next = cancellationToken =>
+        {
+            nextCalled = true;
+            return Task.FromResult(new PaginatedResult<ToDoItemGetListModel>([], 0, 1, 20));
+        };
+
+        var action = () => behavior.Handle(request, next, CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ValidationException>();
+        exception.Which.Errors.Should().Contain(error => error.PropertyName == nameof(GetUserToDoItemsQuery.Page) && error.ErrorMessage == "Page must be greater than 0.");
+        exception.Which.Errors.Should().Contain(error => error.PropertyName == nameof(GetUserToDoItemsQuery.PageSize) && error.ErrorMessage == "PageSize must be between 1 and 100.");
+        nextCalled.Should().BeFalse();
     }
 
     private sealed record TestRequest(string Name, int Quantity) : IRequest<Unit>;
