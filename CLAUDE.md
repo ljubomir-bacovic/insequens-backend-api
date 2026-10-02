@@ -84,6 +84,10 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 - Never weaken a guardrail to get green: no skipped tests, no suppressed warnings without a justification comment.
 - Breaking API changes go into v2 routes (INS-036). v1 behaviour is frozen except for bugs and security fixes.
 
+## Working the backlog
+
+Take open issues oldest first, one at a time. For each: code it, open a PR, and request a CodeRabbit review (comment `@coderabbitai review`) if one is not posted automatically. Address every review comment and CI check, then merge the PR when everything is green. Only then start the next issue.
+
 ## Before you push
 
 ```
@@ -97,6 +101,6 @@ State plainly in the PR what you ran and what you could not run (for example, th
 ## Where things are documented
 
 - `docs/insequens-v2-enterprise-architecture-assessment.md` — assessment, target architecture, decisions (Section 7.3), full backlog with acceptance criteria.
-- `docs/insequens-v1-architecture-and-guidelines.md` — detailed v1 conventions. Where it describes a target state (MailKit, UTC, single Identity registration), check the code; INS-100 reconciles it.
+- `docs/insequens-v1-architecture-and-guidelines.md` — detailed v1 conventions. Where it describes a target state (MailKit, UTC), check the code; INS-100 reconciles it.
 - `AGENTS.md` — review checklist used by CodeRabbit and other agents. Same rules as above in checklist form.
 - `README.md` — setup and endpoint list.
