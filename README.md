@@ -31,8 +31,9 @@ Insequens.sln
 │   ├── Insequens.Application.Tests      → Handler + validator + behavior unit tests
 │   └── Insequens.Api.Tests              → Integration tests (WebApplicationFactory)
 └── docs/
-    ├── architecture.md                  → Full architecture & coding guidelines reference
-    └── modernisation-plan.md            → v1 implementation roadmap
+    ├── insequens-v1-architecture-and-guidelines.md          → Full architecture & coding guidelines reference
+    ├── insequens-v1-modernisation-plan.md                   → v1 implementation roadmap
+    └── insequens-v2-enterprise-architecture-assessment.md   → v2 assessment and transformation backlog
 ```
 
 ## Architecture
@@ -45,7 +46,7 @@ The system follows Clean Architecture with CQRS. Every operation is a discrete c
 
 Controllers are thin HTTP adapters that inject only `IMediator`, extract the user ID from JWT claims, and return `IActionResult`.
 
-See [docs/architecture.md](docs/architecture.md) for the full reference.
+See [docs/insequens-v1-architecture-and-guidelines.md](docs/insequens-v1-architecture-and-guidelines.md) for the full reference.
 
 ## Getting Started
 
@@ -143,8 +144,9 @@ All endpoints are under `/v1/` and require JWT authentication unless noted.
 For contributor guidelines, coding standards, and architectural rules, see:
 
 - [AGENTS.md](AGENTS.md) — Coding guidelines for AI agents and reviewers
-- [docs/architecture.md](docs/architecture.md) — Full architecture, SOLID principles, and conventions
-- [docs/modernisation-plan.md](docs/modernisation-plan.md) — v1 implementation roadmap
+- [docs/insequens-v1-architecture-and-guidelines.md](docs/insequens-v1-architecture-and-guidelines.md) — Full architecture, SOLID principles, and conventions
+- [docs/insequens-v1-modernisation-plan.md](docs/insequens-v1-modernisation-plan.md) — v1 implementation roadmap
+- [docs/insequens-v2-enterprise-architecture-assessment.md](docs/insequens-v2-enterprise-architecture-assessment.md) — Enterprise architecture assessment and v2 transformation backlog
 
 ## License
 

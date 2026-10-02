@@ -1,128 +1,102 @@
 # CLAUDE.md
 
-This file provides context for Claude Code when working on the Insequens backend.
+Project context for Claude Code working on the Insequens backend. Keep this file short and true. If a statement here contradicts the code, the code is the fact and this file has a bug: fix the file in the same PR.
 
-## What Is This Project
+## What this is
 
-Insequens is a .NET 10 task management Web API using CQRS with MediatR and Clean Architecture. It has a React web frontend and an Expo mobile client that consume this API.
+A .NET 10 task-management Web API using CQRS with MediatR 12 and Clean Architecture. A React web app and an Expo mobile app consume it. The product is proprietary.
 
-## Build & Run
+The v1 modernisation (Phases 1–4) is complete. The v2 transformation is tracked as GitHub issues `[INS-001]` … `[INS-102]`, generated from `docs/insequens-v2-enterprise-architecture-assessment.md`. Read that document's Section 7 (target architecture) before any structural change.
+
+## Commands
 
 ```
-dotnet build
-dotnet run --project src/Insequens.Api
+dotnet build                                   # whole solution
+dotnet test                                    # all tests (xUnit); no Docker needed yet
+dotnet test tests/Insequens.Application.Tests  # fast unit tests only
+dotnet run --project src/Insequens.Api         # API on http://localhost:5008, Scalar UI at /scalar/v1 in Development
+dotnet ef migrations add <Name> --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
+dotnet ef database update     --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
+```
+
+Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars, `ConnectionStrings:InsequensConnection`, `Email:Password`). Deployed environments use environment variables with `__` nesting (`Jwt__Key`).
+
+## Layout and dependency rule
+
+```
+src/Insequens.Api                              Controllers, ExceptionMiddleware, Program.cs (DI root), EmailSender
+src/Insequens.Application                      Commands/, Queries/, Validators/, Behaviors/, Profiles/, Exceptions/, Models/PaginatedResult
+src/Insequens.Domain                           Entities/, Types/ (enums), Models/ (DTO records), DataAccess/ (IRepository, IDataContext), ServiceContracts/
+src/Infrastructure/Insequens.Infrastructure.Data        InsequensContext (IdentityDbContext), ApplicationUser, Migrations/
+src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps)
+tests/Insequens.Application.Tests              Handler, validator, behavior unit tests (NSubstitute)
+tests/Insequens.Api.Tests                      WebApplicationFactory tests, middleware tests
+docs/                                          architecture guidelines, v1 plan, v2 assessment
+```
+
+Domain references nothing. Application references only Domain (plus the EF Core package, by accepted exception). Infrastructure references only Domain. Api references Application and Infrastructure. Never add a reference in the other direction; if an inner layer needs an outer type, define an interface in Domain or Application.
+
+Known wart: `InsequensContext` declares `namespace Insequens.Domain.Data` although it lives in Infrastructure. Do not copy that pattern; it is removed by INS-020.
+
+## How a request flows
+
+Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and calls `IMediator.Send`. Three pipeline behaviors run in this order on every request:
+
+1. `LoggingBehavior` — request name and elapsed time.
+2. `ValidationBehavior` — FluentValidation, if a validator is registered for the request type.
+3. `OwnershipBehavior` — for requests implementing `IOwned` (`UserId`, `ItemId`): loads the `ToDoItem`, throws `ToDoItemNotFoundException` (404) or `ResourceForbiddenException` (403).
+
+`ExceptionMiddleware` maps exceptions to RFC 7807 ProblemDetails. FluentValidation errors become 400 with grouped `errors`.
+
+`AuthController` does **not** go through MediatR yet and has no tests. Do not add logic to it; INS-010 moves it into commands. If you must touch it, add an integration test for the behaviour you change.
+
+## Adding a feature (today's conventions)
+
+1. Command (changes state) or query (reads state)? Create the record in `Application/Commands/{Entity}/` or `Application/Queries/{Entity}/`. Records for requests and DTOs; classes for entities, handlers, validators.
+2. Accesses an existing resource by ID → implement `IOwned`. Creates a resource → include `UserId`, no `IOwned`. `UserId` always comes from the JWT, never from the body.
+3. Handler in the same folder, named `{Verb}{Entity}Handler`. Command handlers construct entities explicitly, use tracked entities, call `SaveChangesAsync(cancellationToken)` once at the end. Query handlers use `AsQueryable()` + LINQ, `AsNoTracking()`, `ProjectTo<TDto>()`, and pass the cancellation token to every EF call.
+4. User input → validator in `Application/Validators/{Entity}/` named `{Request}Validator`. Shape and range only; business rules live in handlers.
+5. New response shape → record in `Domain/Models/{Entity}/`. New read mapping → `Application/Profiles/ToDoItemProfile`. Never use AutoMapper for writes.
+6. Controller action: inject only `IMediator`, return `IActionResult`. POST → `CreatedAtAction` 201. PATCH/DELETE → 204. GET → 200. Lists return `PaginatedResult<T>`, never a bare list. Add `[ProducesResponseType]` for every status.
+7. New exception type → new catch block in `ExceptionMiddleware`.
+8. Tests: handler happy path + each error path; validator valid + each invalid field; one HTTP-level test per new endpoint. Name tests `Method_State_Expected`.
+
+## Hard rules
+
+- `DateTime.UtcNow` only. (`DataContext.SetAuditableProperties` still uses `DateTime.Now`; INS-002 fixes it. Do not add more.)
+- No commented-out code, no empty or no-op catch blocks, no `TODO` that should be an issue.
+- No `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`.
+- No `System.Net.Mail` (the existing `EmailSender` violates this; INS-004 replaces it with MailKit). No `Newtonsoft.Json`.
+- No concrete-class injection; depend on interfaces. Controllers inject only `IMediator`.
+- No query methods on the repository; no `SaveChanges` inside the repository.
+- No secrets, hostnames or IP addresses in committed configuration.
+- File-scoped namespaces; one public type per file; `_camelCase` private fields.
+- Structured logging with named placeholders; never log passwords, tokens or full email addresses.
+- Entities: inherit `AuditableEntity`, `Guid` keys, `Guid UserId` on user data, Fluent API configuration only.
+
+## Working an `[INS-xxx]` issue
+
+- Branch `feat/INS-010-short-slug` (or `chore/`, `fix/`, `test/`, `docs/`). PR title `[INS-010] <issue title>`. Body ends with `Closes #<n>`.
+- The issue's acceptance criteria are the definition of done. Meet every one, by a test where testable. If a criterion cannot be met, say which and why in the PR instead of silently narrowing the scope.
+- Check the issue's **Depends on** list first. If a dependency is open and the work truly needs it, stop and say so rather than re-implementing it.
+- Record design decisions as an ADR in `docs/adr/` (INS-101 creates the folder; until then, a short "Decision" section in the PR body).
+- Migrations are generated with `dotnet ef migrations add`, never hand-written. Call out any `DropColumn` or type change in the PR.
+- Never weaken a guardrail to get green: no skipped tests, no suppressed warnings without a justification comment.
+- Breaking API changes go into v2 routes (INS-036). v1 behaviour is frozen except for bugs and security fixes.
+
+## Before you push
+
+```
+dotnet build -warnaserror      # warnings are treated as errors once INS-060 lands; keep it clean now
 dotnet test
+git diff --stat                # confirm only the files the issue needs changed
 ```
 
-EF Core migrations:
-```
-dotnet ef database update --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
-```
+State plainly in the PR what you ran and what you could not run (for example, the .NET SDK or Docker being unavailable in the session). Do not report "tests pass" from reading code.
 
-Add a new migration:
-```
-dotnet ef migrations add MigrationName --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
-```
+## Where things are documented
 
-API docs available at /scalar/v1 in Development mode.
-
-## Project Structure
-
-- src/Insequens.Api — Controllers (thin HTTP adapters), middleware, Program.cs (DI root)
-- src/Insequens.Application — Commands, queries, handlers, validators, pipeline behaviors, AutoMapper profiles
-- src/Insequens.Domain — Entities, enums, DTOs (records), repository/infrastructure interfaces
-- src/Infrastructure/Insequens.Infrastructure.Data — EF Core DbContext, Identity, migrations
-- src/Infrastructure/Insequens.Infrastructure.DataAccess — Repository<T>, DataContext (Unit of Work)
-- tests/Insequens.Application.Tests — Unit tests for handlers, validators, behaviors
-- tests/Insequens.Api.Tests — Integration tests with WebApplicationFactory
-
-## Dependency Rule
-
-Domain references nothing. Application references only Domain. Infrastructure references only Domain. Api references Application and Infrastructure. Never violate this. If you need a type from an outer layer in an inner layer, create an interface in Domain.
-
-## How CQRS Works Here
-
-Every operation is a command (write) or query (read) sent via IMediator.Send(). Three pipeline behaviors intercept every request in order:
-
-1. LoggingBehavior — logs request name + elapsed time
-2. ValidationBehavior — runs FluentValidation if validators exist for the request type
-3. OwnershipBehavior — checks resource ownership for requests implementing IOwned
-
-The IOwned interface has UserId and ItemId. Any command/query accessing a specific resource by ID must implement IOwned. This is the authorization mechanism. If you're creating a new command that modifies an existing resource, add IOwned. If you're creating a new resource, do not add IOwned.
-
-## When Adding a New Feature
-
-1. Decide: command (changes state) or query (reads state)?
-2. Create the request record in Application/Commands/{Entity}/ or Application/Queries/{Entity}/
-3. If it accesses an existing resource by ID, implement IOwned
-4. Create the handler in the same folder
-5. If it accepts user input, create a validator in Application/Validators/{Entity}/
-6. If it needs a new response shape, create a record in Domain/Models/{Entity}/
-7. If it needs a new AutoMapper mapping, add it to the profile in Application/Profiles/
-8. Add a controller action that calls _mediator.Send()
-9. Write unit tests for the handler and validator
-10. Write an integration test for the endpoint
-
-## Naming Conventions
-
-- Commands: {Verb}{Entity}Command — CreateToDoItemCommand, DeleteToDoItemCommand
-- Queries: Get{What}Query — GetToDoItemQuery, GetUserToDoItemsQuery
-- Handlers: {Verb}{Entity}Handler — CreateToDoItemHandler
-- Validators: {CommandOrQuery}Validator — CreateToDoItemValidator
-- DTOs: {Entity}{Purpose}Model — ToDoItemGetDetailsModel
-- Exceptions: {Entity}{Condition}Exception — ToDoItemNotFoundException
-- Tests: MethodName_StateUnderTest_ExpectedBehavior
-
-## Controller Rules
-
-Controllers inject only IMediator. They extract UserId from JWT claims, call _mediator.Send(), and return IActionResult. No business logic, no validation, no data transformation, no repository calls. POST returns CreatedAtAction (201). PATCH and DELETE return NoContent (204). GET returns Ok (200).
-
-## Entity Rules
-
-Entities inherit AuditableEntity which gives them Guid Id, CreatedOn, UpdatedOn. All entity holding user data must have Guid UserId. No data annotations — use Fluent API in OnModelCreating. Entities are classes, not records.
-
-## Data Access Rules
-
-Query handlers: use AsNoTracking(), ProjectTo<TDto>(), pass CancellationToken. Command handlers: use tracked entities, call SaveChangesAsync() once at the end. DataContext sets audit timestamps automatically with DateTime.UtcNow. Never add query methods to the repository — use AsQueryable() with LINQ. Never call SaveChanges from the repository.
-
-## List Endpoints
-
-Every list endpoint returns PaginatedResult<T> with Items, TotalCount, Page, PageSize, TotalPages, HasNext, HasPrevious. Never return a bare List<T>.
-
-## Error Handling
-
-Handlers throw typed exceptions. ExceptionMiddleware maps them to HTTP responses using ProblemDetails. ToDoItemNotFoundException maps to 404. ResourceForbiddenException maps to 403. FluentValidation.ValidationException maps to 400 with grouped errors. Generic Exception maps to 500 with details suppressed outside Development.
-
-If you add a new exception type, update ExceptionMiddleware with a new catch block.
-
-## Hard Rules — Never Violate These
-
-- DateTime.UtcNow only, never DateTime.Now
-- No commented-out code
-- No empty catch blocks
-- No AutoMapper for writes/commands — construct entities explicitly
-- No concrete class injection — always use interfaces
-- No System.Net.Mail — use MailKit
-- No Newtonsoft.Json — use System.Text.Json
-- No .Result or .Wait() or .GetAwaiter().GetResult()
-- No secrets in committed config files
-- File-scoped namespaces
-- One public type per file
-- Records for commands, queries, DTOs
-- Classes for entities, handlers, validators
-- Structured logging with named parameters, not string interpolation
-- All controller actions return IActionResult, not IResult
-
-## Testing
-
-- xUnit + FluentAssertions + NSubstitute for unit tests
-- WebApplicationFactory + InMemory DB for integration tests
-- Mock IDataContext and IRepository<T> with NSubstitute in unit tests
-- Use real AutoMapper configuration in query handler tests
-- Every handler needs tests: happy path + error paths
-- Every validator needs tests: valid passes, each invalid field fails
-- Test naming: MethodName_StateUnderTest_ExpectedBehavior
-
-## Config & Secrets
-
-Sensitive values (connection strings, JWT key, SMTP password) go in User Secrets for local dev and environment variables for deployment. appsettings.json contains only non-sensitive defaults. Environment variables use double-underscore for nesting: Jwt__Key, ConnectionStrings__InsequensConnection.
+- `docs/insequens-v2-enterprise-architecture-assessment.md` — assessment, target architecture, decisions (Section 7.3), full backlog with acceptance criteria.
+- `docs/insequens-v1-architecture-and-guidelines.md` — detailed v1 conventions. Where it describes a target state (MailKit, UTC, single Identity registration), check the code; INS-100 reconciles it.
+- `AGENTS.md` — review checklist used by CodeRabbit and other agents. Same rules as above in checklist form.
+- `README.md` — setup and endpoint list.
