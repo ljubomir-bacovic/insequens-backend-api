@@ -1117,7 +1117,7 @@ INS-025 + INS-034 + INS-036 + INS-041 ──► INS-090 ──► INS-091, INS-0
 These rules apply to every issue above when executed by Claude Code or another agent.
 
 1. **One issue, one PR, one branch.** Branch name `feat/INS-010-auth-mediatr` or `chore/INS-003-dead-code`. PR title `[INS-010] Move authentication into MediatR commands`. Reference the issue with `Closes #<n>`.
-2. **Read before writing.** Read `docs/architecture.md` (after INS-100) and the ADRs touched by the issue. Where this document and `CLAUDE.md` disagree, this document wins until INS-100 reconciles them; say so in the PR.
+2. **Read before writing.** Read `CLAUDE.md`, `docs/insequens-v1-architecture-and-guidelines.md` and the ADRs touched by the issue. The code is the fact: where any document contradicts the code, fix the document in the same PR. Where this document and `CLAUDE.md` disagree on a convention, `CLAUDE.md` governs day-to-day work and this document governs target architecture and backlog scope; note the conflict in the PR so INS-100 can reconcile it.
 3. **Acceptance criteria are the definition of done.** Every criterion must be demonstrably met, by a test where the criterion is testable. Do not mark an issue done with partial criteria; split the issue instead and say what remains.
 4. **Tests accompany code in the same PR.** Handler + validator unit tests, HTTP integration tests for endpoints, architecture tests when a rule changes.
 5. **Migrations are generated, never hand-written,** and are reviewed for data-loss operations (`DropColumn`, type changes). Data migrations include a rollback note in the PR.
