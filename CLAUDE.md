@@ -31,6 +31,7 @@ src/Infrastructure/Insequens.Infrastructure.Data        InsequensContext (Identi
 src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps)
 tests/Insequens.Application.Tests              Handler, validator, behavior unit tests (NSubstitute)
 tests/Insequens.Api.Tests                      WebApplicationFactory tests, middleware tests
+tests/Insequens.Infrastructure.Tests           DataContext tests (EF InMemory, FakeTimeProvider), source guard tests
 docs/                                          architecture guidelines, v1 plan, v2 assessment
 ```
 
@@ -63,7 +64,7 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 
 ## Hard rules
 
-- `DateTime.UtcNow` only. (`DataContext.SetAuditableProperties` still uses `DateTime.Now`; INS-002 fixes it. Do not add more.)
+- UTC only: inject `TimeProvider` where time matters for testing (as `DataContext` does), otherwise `DateTime.UtcNow`. Never `DateTime.Now`; `SourceGuardTests` fails the test run if it appears in `src/`.
 - No commented-out code, no empty or no-op catch blocks, no `TODO` that should be an issue.
 - No `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`.
 - No `System.Net.Mail` (the existing `EmailSender` violates this; INS-004 replaces it with MailKit). No `Newtonsoft.Json`.

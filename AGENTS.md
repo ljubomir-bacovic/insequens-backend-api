@@ -115,7 +115,7 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 **Writes (command handlers):**
 - Use tracked entities (no `AsNoTracking`).
 - Call `SaveChangesAsync()` once per handler, at the end.
-- `DataContext.SetAuditableProperties()` sets `CreatedOn`/`UpdatedOn` automatically with `DateTime.UtcNow`. Do not set audit timestamps manually.
+- `DataContext.SetAuditableProperties()` sets `CreatedOn`/`UpdatedOn` automatically from the injected `TimeProvider` (UTC). Do not set audit timestamps manually.
 
 **Repository:**
 - Never add query-specific methods to the repository. Use `AsQueryable()` + LINQ.
