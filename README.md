@@ -145,6 +145,7 @@ For contributor guidelines, coding standards, and architectural rules, see:
 - [AGENTS.md](AGENTS.md) — Coding guidelines for AI agents and reviewers
 - [docs/architecture.md](docs/architecture.md) — Full architecture, SOLID principles, and conventions
 - [docs/modernisation-plan.md](docs/modernisation-plan.md) — v1 implementation roadmap
+- [docs/insequens-v2-enterprise-architecture-assessment.md](docs/insequens-v2-enterprise-architecture-assessment.md) — Enterprise architecture assessment and v2 transformation backlog
 
 ## License
 
