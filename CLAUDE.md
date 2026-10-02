@@ -31,7 +31,7 @@ src/Insequens.Domain                           Entities/, Types/ (enums), Models
 src/Infrastructure/Insequens.Infrastructure.Data        InsequensContext (IdentityDbContext), ApplicationUser, Migrations/
 src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps), Email/ (MailKitEmailSender, EmailOptions)
 tests/Insequens.Application.Tests              Handler, validator, behavior unit tests (NSubstitute)
-tests/Insequens.Infrastructure.Tests           DataContext and email sender unit tests (EF InMemory, FakeTimeProvider)
+tests/Insequens.Infrastructure.Tests           DataContext and email sender unit tests (EF InMemory, FakeTimeProvider), source guard tests
 tests/Insequens.Api.Tests                      WebApplicationFactory tests, middleware tests
 docs/                                          architecture guidelines, v1 plan, v2 assessment
 ```
@@ -65,7 +65,7 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 
 ## Hard rules
 
-- UTC only, never `DateTime.Now`. Code that stamps or compares times takes `TimeProvider` (registered as `TimeProvider.System`) so tests can use `FakeTimeProvider`.
+- UTC only, never `DateTime.Now`. Code that stamps or compares times takes `TimeProvider` (registered as `TimeProvider.System`) so tests can use `FakeTimeProvider`. `SourceGuardTests` fails the test run if `DateTime.Now` appears in `src/`.
 - No commented-out code, no empty or no-op catch blocks, no `TODO` that should be an issue.
 - No `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`.
 - No `System.Net.Mail`; email goes through `IEmailSender`, implemented with MailKit. No `Newtonsoft.Json`.

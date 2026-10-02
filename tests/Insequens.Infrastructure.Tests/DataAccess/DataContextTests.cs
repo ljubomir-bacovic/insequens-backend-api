@@ -62,6 +62,16 @@ public class DataContextTests
         item.UpdatedOn.Should().Be(StartTime.UtcDateTime);
     }
 
+    [Fact]
+    public void Constructor_WhenTimeProviderIsNull_ThrowsArgumentNullException()
+    {
+        using var context = CreateContext();
+
+        var action = () => new DataContext(context, null!);
+
+        action.Should().Throw<ArgumentNullException>().WithParameterName("timeProvider");
+    }
+
     private static TestInsequensContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<InsequensContext>()
