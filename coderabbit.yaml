@@ -156,7 +156,7 @@ reviews:
         DI composition root. This is the only place that knows about concrete implementations.
         
         Check for:
-        - Only one Identity registration (AddIdentity, not also AddIdentityCore).
+        - Only one Identity registration: AddIdentityCore<ApplicationUser> (JWT-only API, no cookie schemes). Never AddIdentity.
         - CORS uses WithOrigins(configuredOrigins), never AllowAnyOrigin in production.
         - builder.Services.AddApplication() is called for MediatR/validators/behaviors.
         - No commented-out code blocks.

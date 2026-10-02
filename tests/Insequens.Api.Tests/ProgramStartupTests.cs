@@ -7,11 +7,16 @@ using Insequens.Application.Commands;
 using Insequens.Domain;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Entities;
+using Insequens.Infrastructure.Data.Models;
 using MediatR;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Insequens.Api.Tests;
 
@@ -29,6 +34,54 @@ public class ProgramStartupTests
         serviceProvider.GetRequiredService<IPublisher>().Should().NotBeNull();
         serviceProvider.GetRequiredService<IMapper>().Should().NotBeNull();
         serviceProvider.GetRequiredService<IConfigurationProvider>().Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Startup_DefaultAuthenticationSchemes_AreBearer()
+    {
+        using var factory = new InsequensApiFactory();
+        var schemeProvider = factory.Services.GetRequiredService<IAuthenticationSchemeProvider>();
+
+        var authenticateScheme = await schemeProvider.GetDefaultAuthenticateSchemeAsync();
+        var challengeScheme = await schemeProvider.GetDefaultChallengeSchemeAsync();
+
+        authenticateScheme!.Name.Should().Be(JwtBearerDefaults.AuthenticationScheme);
+        challengeScheme!.Name.Should().Be(JwtBearerDefaults.AuthenticationScheme);
+    }
+
+    [Fact]
+    public async Task Startup_IdentityRegistration_DoesNotRegisterCookieSchemes()
+    {
+        using var factory = new InsequensApiFactory();
+        var schemeProvider = factory.Services.GetRequiredService<IAuthenticationSchemeProvider>();
+
+        var schemes = await schemeProvider.GetAllSchemesAsync();
+
+        schemes.Select(scheme => scheme.Name).Should().Equal(JwtBearerDefaults.AuthenticationScheme);
+    }
+
+    [Fact]
+    public void Startup_IdentityOptions_RequireConfirmedEmailAndUniqueEmail()
+    {
+        using var factory = new InsequensApiFactory();
+
+        var options = factory.Services.GetRequiredService<IOptions<IdentityOptions>>().Value;
+
+        options.SignIn.RequireConfirmedEmail.Should().BeTrue();
+        options.User.RequireUniqueEmail.Should().BeTrue();
+        options.Password.RequiredLength.Should().Be(8);
+    }
+
+    [Fact]
+    public void Startup_RegistersIdentityServices()
+    {
+        using var factory = new InsequensApiFactory();
+        using var scope = factory.Services.CreateScope();
+        var serviceProvider = scope.ServiceProvider;
+
+        serviceProvider.GetRequiredService<UserManager<ApplicationUser>>().Should().NotBeNull();
+        serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>().Should().NotBeNull();
+        serviceProvider.GetRequiredService<RoleManager<IdentityRole>>().Should().NotBeNull();
     }
 
     [Fact]
