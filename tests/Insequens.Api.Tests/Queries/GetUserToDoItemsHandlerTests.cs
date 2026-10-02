@@ -21,7 +21,7 @@ public class GetUserToDoItemsHandlerTests
     {
         var userId = Guid.NewGuid();
         await using var context = CreateContext();
-        using var dataContext = new DataContext(context);
+        using var dataContext = new DataContext(context, TimeProvider.System);
         var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
 
         var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 1, 10), CancellationToken.None);
@@ -41,7 +41,7 @@ public class GetUserToDoItemsHandlerTests
         var userId = Guid.NewGuid();
         await using var context = CreateContext();
         await SeedItemsAsync(context, userId);
-        using var dataContext = new DataContext(context);
+        using var dataContext = new DataContext(context, TimeProvider.System);
         var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
 
         var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 1, 10), CancellationToken.None);
@@ -61,7 +61,7 @@ public class GetUserToDoItemsHandlerTests
         var userId = Guid.NewGuid();
         await using var context = CreateContext();
         await SeedItemsAsync(context, userId);
-        using var dataContext = new DataContext(context);
+        using var dataContext = new DataContext(context, TimeProvider.System);
         var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
 
         var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 2, 2), CancellationToken.None);
@@ -81,7 +81,7 @@ public class GetUserToDoItemsHandlerTests
         var userId = Guid.NewGuid();
         await using var context = CreateContext();
         await SeedItemsAsync(context, userId);
-        using var dataContext = new DataContext(context);
+        using var dataContext = new DataContext(context, TimeProvider.System);
         var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
 
         var result = await handler.Handle(new GetUserToDoItemsQuery(userId, true, 1, 10), CancellationToken.None);
@@ -108,7 +108,7 @@ public class GetUserToDoItemsHandlerTests
 
         await context.SaveChangesAsync();
 
-        using var dataContext = new DataContext(context);
+        using var dataContext = new DataContext(context, TimeProvider.System);
         var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
 
         var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 1, 10), CancellationToken.None);
@@ -126,7 +126,7 @@ public class GetUserToDoItemsHandlerTests
         var userId = Guid.NewGuid();
         await using var context = CreateContext();
         await SeedItemsAsync(context, userId);
-        using var dataContext = new DataContext(context);
+        using var dataContext = new DataContext(context, TimeProvider.System);
         var handler = new GetUserToDoItemsHandler(dataContext, CreateMapper());
 
         var result = await handler.Handle(new GetUserToDoItemsQuery(userId, false, 4, 2), CancellationToken.None);

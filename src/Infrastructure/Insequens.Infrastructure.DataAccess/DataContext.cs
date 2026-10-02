@@ -9,11 +9,13 @@ namespace Insequens.Infrastructure.DataAccess;
 public class DataContext : IDataContext
 {
     private readonly InsequensContext _context;
+    private readonly TimeProvider _timeProvider;
     private bool _disposed;
 
-    public DataContext(InsequensContext context)
+    public DataContext(InsequensContext context, TimeProvider timeProvider)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public void Dispose()
@@ -75,9 +77,10 @@ public class DataContext : IDataContext
                 e.State == EntityState.Added
                 || e.State == EntityState.Modified));
 
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
         foreach (var entityEntry in entries)
         {
-            var now = DateTime.Now;
             if (entityEntry.State == EntityState.Added)
             {
                 ((AuditableEntity)entityEntry.Entity).CreatedOn = now;

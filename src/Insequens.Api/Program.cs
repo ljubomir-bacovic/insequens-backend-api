@@ -69,6 +69,7 @@ builder.Services.AddCors(options =>
 });
 var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
 
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IDataContext, DataContext>();
 
 builder.Services.AddDbContextPool<InsequensContext>(options =>
