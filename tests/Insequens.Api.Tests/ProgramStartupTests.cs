@@ -7,7 +7,9 @@ using Insequens.Application.Commands;
 using Insequens.Domain;
 using Insequens.Domain.DataAccess;
 using Insequens.Domain.Entities;
+using Insequens.Domain.ServiceContracts;
 using Insequens.Infrastructure.Data.Models;
+using Insequens.Infrastructure.DataAccess.Email;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,6 +17,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -33,7 +37,7 @@ public class ProgramStartupTests
         serviceProvider.GetRequiredService<ISender>().Should().NotBeNull();
         serviceProvider.GetRequiredService<IPublisher>().Should().NotBeNull();
         serviceProvider.GetRequiredService<IMapper>().Should().NotBeNull();
-        serviceProvider.GetRequiredService<IConfigurationProvider>().Should().NotBeNull();
+        serviceProvider.GetRequiredService<AutoMapper.IConfigurationProvider>().Should().NotBeNull();
     }
 
     [Fact]
@@ -82,6 +86,50 @@ public class ProgramStartupTests
         serviceProvider.GetRequiredService<UserManager<ApplicationUser>>().Should().NotBeNull();
         serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>().Should().NotBeNull();
         serviceProvider.GetRequiredService<RoleManager<IdentityRole>>().Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Startup_Configuration_LoadsEachAppSettingsFileOnce()
+    {
+        using var factory = new InsequensApiFactory();
+        var configuration = (IConfigurationRoot)factory.Services.GetRequiredService<IConfiguration>();
+
+        var appSettingsPaths = configuration.Providers
+            .OfType<JsonConfigurationProvider>()
+            .Select(provider => provider.Source.Path)
+            .Where(path => path?.StartsWith("appsettings", StringComparison.Ordinal) == true)
+            .ToArray();
+
+        appSettingsPaths.Should().Equal("appsettings.json", "appsettings.Development.json");
+    }
+
+    [Fact]
+    public void Startup_RegistersMailKitEmailSender()
+    {
+        using var factory = new InsequensApiFactory();
+        using var scope = factory.Services.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<IEmailSender>().Should().BeOfType<MailKitEmailSender>();
+    }
+
+    [Theory]
+    [InlineData("Email:SmtpServer", "")]
+    [InlineData("Email:Port", "0")]
+    [InlineData("Email:From", "")]
+    public void Startup_InvalidEmailOptions_FailsOnStart(string key, string value)
+    {
+        using var factory = new InsequensApiFactory()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+                {
+                    configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?> { [key] = value });
+                });
+            });
+
+        var action = () => factory.Services;
+
+        action.Should().Throw<OptionsValidationException>();
     }
 
     [Fact]
@@ -205,7 +253,5 @@ public class ProgramStartupTests
         public void Remove(ToDoItem entity) => throw new NotSupportedException();
 
         public void Remove(IEnumerable<ToDoItem> entities) => throw new NotSupportedException();
-
-        public void Clone(ToDoItem oldEntity, ref ToDoItem newEntity) => throw new NotSupportedException();
     }
 }

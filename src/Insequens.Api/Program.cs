@@ -3,9 +3,9 @@ using Insequens.Domain.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Insequens.Domain.DataAccess;
-using Insequens.Domain.ServiceContracts;
 using Insequens.Api;
 using Insequens.Infrastructure.DataAccess;
+using Insequens.Infrastructure.DataAccess.Email;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -16,13 +16,6 @@ using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Load environment-specific configurations
-builder.Configuration
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
-    .AddEnvironmentVariables();
 
 Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode.");
 
@@ -69,6 +62,7 @@ builder.Services.AddCors(options =>
 });
 var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
 
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IDataContext, DataContext>();
 
 builder.Services.AddDbContextPool<InsequensContext>(options =>
@@ -110,15 +104,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 .AddDefaultTokenProviders()
 .AddSignInManager();
 
-builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
-
-builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddEmailSender(builder.Configuration);
 
 builder.Services.AddControllers();
-builder.Services.AddHttpClient();
-//builder.Services.AddHostedService<WarmKeeper>();
-
-builder.Services.AddEndpointsApiExplorer();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
@@ -144,16 +132,6 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseCors(corsPolicyName);
-
-//app.MapIdentityApi<ApplicationUser>();
-
-/*
-
-app.MapPost("/logout", async (SignInManager<IdentityUser> signInManager) =>
-{
-    await signInManager.SignOutAsync().ConfigureAwait(false);
-});
-*/
 
 if (app.Environment.IsDevelopment())
 {

@@ -70,16 +70,6 @@ public class Repository<T> : IRepository<T>
         foreach (var entity in entities) Remove(entity);
     }
 
-    public void Clone(T oldEntity, ref T newEntity)
-    {
-        if (oldEntity == null) throw new ArgumentNullException(nameof(oldEntity));
-
-        if (_context.Entry(newEntity).State == EntityState.Detached) _dataSet.Add(newEntity);
-
-        var values = _context.Entry(oldEntity).CurrentValues.Clone();
-        _context.Entry(newEntity).CurrentValues.SetValues(values);
-    }
-
     public void AddOrUpdate(T entity, bool? isNew = null)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));

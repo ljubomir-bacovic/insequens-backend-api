@@ -13,5 +13,4 @@ public interface IRepository<T>
 
     void Remove(T entity);
     void Remove(IEnumerable<T> entities);
-    void Clone(T oldEntity, ref T newEntity);
 }

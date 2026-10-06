@@ -15,21 +15,23 @@ dotnet build                                   # whole solution
 dotnet test                                    # all tests (xUnit); no Docker needed yet
 dotnet test tests/Insequens.Application.Tests  # fast unit tests only
 dotnet run --project src/Insequens.Api         # API on http://localhost:5008, Scalar UI at /scalar/v1 in Development
+dotnet tool restore                            # once per clone: dotnet-ef pinned in .config/dotnet-tools.json
 dotnet ef migrations add <Name> --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
 dotnet ef database update     --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
 ```
 
-Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars, `ConnectionStrings:InsequensConnection`, `Email:Password`). Deployed environments use environment variables with `__` nesting (`Jwt__Key`).
+Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars; anything else that differs on your machine). Committed `appsettings*.json` hold only shape, safe defaults and localhost values; deployed environments use environment variables with `__` nesting (`Jwt__Key`). `docs/configuration.md` is the full matrix.
 
 ## Layout and dependency rule
 
 ```
-src/Insequens.Api                              Controllers, ExceptionMiddleware, Program.cs (DI root), EmailSender
+src/Insequens.Api                              Controllers, ExceptionMiddleware, Program.cs (DI root)
 src/Insequens.Application                      Commands/, Queries/, Validators/, Behaviors/, Profiles/, Exceptions/, Models/PaginatedResult
 src/Insequens.Domain                           Entities/, Types/ (enums), Models/ (DTO records), DataAccess/ (IRepository, IDataContext), ServiceContracts/
 src/Infrastructure/Insequens.Infrastructure.Data        InsequensContext (IdentityDbContext), ApplicationUser, Migrations/
-src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps)
+src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps), Email/ (MailKitEmailSender, EmailOptions)
 tests/Insequens.Application.Tests              Handler, validator, behavior unit tests (NSubstitute)
+tests/Insequens.Infrastructure.Tests           DataContext and email sender unit tests (EF InMemory, FakeTimeProvider)
 tests/Insequens.Api.Tests                      WebApplicationFactory tests, middleware tests
 docs/                                          architecture guidelines, v1 plan, v2 assessment
 ```
@@ -63,13 +65,13 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 
 ## Hard rules
 
-- `DateTime.UtcNow` only. (`DataContext.SetAuditableProperties` still uses `DateTime.Now`; INS-002 fixes it. Do not add more.)
+- UTC only, never `DateTime.Now`. Code that stamps or compares times takes `TimeProvider` (registered as `TimeProvider.System`) so tests can use `FakeTimeProvider`.
 - No commented-out code, no empty or no-op catch blocks, no `TODO` that should be an issue.
 - No `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`.
-- No `System.Net.Mail` (the existing `EmailSender` violates this; INS-004 replaces it with MailKit). No `Newtonsoft.Json`.
+- No `System.Net.Mail`; email goes through `IEmailSender`, implemented with MailKit. No `Newtonsoft.Json`.
 - No concrete-class injection; depend on interfaces. Controllers inject only `IMediator`.
 - No query methods on the repository; no `SaveChanges` inside the repository.
-- No secrets, hostnames or IP addresses in committed configuration.
+- No secrets, IP addresses, usernames or hostnames other than `localhost` in committed configuration. Development defaults may point at `localhost`; everything else comes from User Secrets or environment variables.
 - File-scoped namespaces; one public type per file; `_camelCase` private fields.
 - Structured logging with named placeholders; never log passwords, tokens or full email addresses.
 - Entities: inherit `AuditableEntity`, `Guid` keys, `Guid UserId` on user data, Fluent API configuration only.
@@ -101,6 +103,7 @@ State plainly in the PR what you ran and what you could not run (for example, th
 ## Where things are documented
 
 - `docs/insequens-v2-enterprise-architecture-assessment.md` — assessment, target architecture, decisions (Section 7.3), full backlog with acceptance criteria.
+- `docs/configuration.md` — every setting, its environment variable, validation and per-environment values.
 - `docs/insequens-v1-architecture-and-guidelines.md` — detailed v1 conventions. Where it describes a target state (MailKit, UTC), check the code; INS-100 reconciles it.
 - `AGENTS.md` — review checklist used by CodeRabbit and other agents. Same rules as above in checklist form.
 - `README.md` — setup and endpoint list.

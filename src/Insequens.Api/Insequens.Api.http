@@ -1,6 +1,101 @@
 @Insequens.Api_HostAddress = http://localhost:5008
+@email = user@example.com
+@password = Valid-Passw0rd
+@token = paste-the-access-token-from-login
+@refreshToken = paste-the-refresh-token-from-login
+@itemId = 00000000-0000-0000-0000-000000000000
 
-GET {{Insequens.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register
+POST {{Insequens.Api_HostAddress}}/v1/Auth/register
+Content-Type: application/json
 
-###
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Log in
+POST {{Insequens.Api_HostAddress}}/v1/Auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Refresh the access token
+POST {{Insequens.Api_HostAddress}}/v1/Auth/refresh-token
+Content-Type: application/json
+
+{
+  "token": "{{token}}",
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Request a password reset email
+POST {{Insequens.Api_HostAddress}}/v1/Auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}"
+}
+
+### Log out
+POST {{Insequens.Api_HostAddress}}/v1/Auth/logout
+Authorization: Bearer {{token}}
+
+### List open tasks
+GET {{Insequens.Api_HostAddress}}/v1/ToDoItem?isCompleted=false&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Create a task
+POST {{Insequens.Api_HostAddress}}/v1/ToDoItem
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Write the report",
+  "description": "First draft",
+  "priority": 2,
+  "dueDate": "2026-12-31"
+}
+
+### Get a task
+GET {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}
+Authorization: Bearer {{token}}
+
+### Rename a task
+PATCH {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}/name
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+"Write the final report"
+
+### Change the description
+PATCH {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}/description
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+"Second draft"
+
+### Change the priority
+PATCH {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}/priority
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+3
+
+### Change the due date
+PATCH {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}/duedate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+"2027-01-15"
+
+### Toggle completion
+PATCH {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}/togglecomplete
+Authorization: Bearer {{token}}
+
+### Delete a task
+DELETE {{Insequens.Api_HostAddress}}/v1/ToDoItem/{{itemId}}
+Authorization: Bearer {{token}}
