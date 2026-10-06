@@ -115,7 +115,7 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 **Writes (command handlers):**
 - Use tracked entities (no `AsNoTracking`).
 - Call `SaveChangesAsync()` once per handler, at the end.
-- `DataContext.SetAuditableProperties()` sets `CreatedOn`/`UpdatedOn` automatically with `DateTime.UtcNow`. Do not set audit timestamps manually.
+- `DataContext.SetAuditableProperties()` sets `CreatedOn`/`UpdatedOn` automatically from the injected `TimeProvider` (UTC). Do not set audit timestamps manually.
 
 **Repository:**
 - Never add query-specific methods to the repository. Use `AsQueryable()` + LINQ.
@@ -126,7 +126,7 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 
 | Pattern | Severity | What to Flag |
 |---------|----------|-------------|
-| `DateTime.Now` | CRITICAL | Must use `DateTime.UtcNow` everywhere |
+| `DateTime.Now` | CRITICAL | Never use `DateTime.Now`; code that stamps or compares times takes `TimeProvider` (UTC) |
 | Missing `IOwned` on resource-accessing command/query | CRITICAL | Security vulnerability — any user can access any resource |
 | Business logic in controller | HIGH | Move to handler |
 | Direct `DbContext` injection outside Infrastructure | HIGH | Use `IDataContext` / `IRepository<T>` |
@@ -203,7 +203,7 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 2. Does every new list query return `PaginatedResult<T>`?
 3. Does every command/query accepting user input have a validator?
 4. Are all dependencies injected via interfaces?
-5. Is `DateTime.UtcNow` used (not `DateTime.Now`)?
+5. Do timestamp operations use an injected `TimeProvider` (UTC), never `DateTime.Now`?
 6. Are there unit tests for the handler and validator?
 7. Is there an integration test for the endpoint?
 8. Does the controller only call `_mediator.Send()` and return a status code?

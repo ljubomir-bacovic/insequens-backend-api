@@ -36,7 +36,7 @@ It is not yet an enterprise-grade platform. The gap is not in the CQRS core, whi
 - **The persistence layer contradicts its own stated design.** A generic repository exists but handlers use EF Core directly through `AsQueryable()`, so the Application project references EF Core anyway. The repository exposes `Clone`, `Find`, sync `SaveChanges`, and an `AddOrUpdate` that only adds. Audit timestamps still use `DateTime.Now`. There are no indexes, no max lengths, no foreign key to users, and no concurrency token.
 - **The ownership mechanism is hard-wired to one entity.** `OwnershipBehavior` always loads `ToDoItem`. The first new aggregate (projects, tags, lists) will break authorization unless this is generalised first.
 - **Operational maturity is near zero.** No health checks (the warmup endpoint is a stand-in), no request logging, no correlation IDs, no metrics or tracing, no rate limiting, no security headers, no containerisation, and a CI pipeline that still uses Windows VSBuild and almost certainly runs no tests.
-- **Documentation has drifted from the code.** README, CLAUDE.md and AGENTS.md describe MailKit, UTC timestamps and single Identity registration as done; none of them are. README and `coderabbit.yaml` link to `docs/architecture.md`, which does not exist.
+- **Documentation has drifted from the code.** README, CLAUDE.md and AGENTS.md describe MailKit, UTC timestamps and single Identity registration as done; none of them are. README and `.coderabbit.yaml` link to `docs/architecture.md`, which does not exist.
 - **Two dependencies may carry licensing obligations for a proprietary product.** AutoMapper 16.x and FluentAssertions 8.x both moved to commercial licensing for non-open-source use. This needs an explicit decision.
 
 The recommended path is a staged transformation across six milestones (Section 9). Milestone 1 closes out the existing v1 plan and security blockers. Milestone 2 restructures the core so it can host more than one aggregate. Milestones 3–4 add the operational and testing foundations an enterprise system needs. Milestones 5–6 turn the API into a platform: workspaces, collaboration, domain events, background processing, sync for mobile, and integration points.
@@ -120,7 +120,7 @@ These should be preserved through the transformation.
 - **The ToDoItem controller is genuinely thin** (`src/Insequens.Api/Controllers/ToDoItemController.cs`): one dependency, claim extraction, `Send`, status code. Cancellation tokens are forwarded. `ProducesResponseType` is declared on every action.
 - **CORS is handled sensibly** (`src/Insequens.Api/Program.cs:31-69`): fail-fast outside Development if no origins are configured; explicit development fallback.
 - **The error contract is ProblemDetails** with grouped validation errors under `extensions.errors` (`src/Insequens.Api/ExceptionMiddleware.cs:85-109`) and no stack traces outside Development.
-- **Governance tooling exists.** `AGENTS.md`, `CLAUDE.md` and `coderabbit.yaml` encode the rules. That is unusual for a project this size and is the main reason the ToDoItem slice is consistent.
+- **Governance tooling exists.** `AGENTS.md`, `CLAUDE.md` and `.coderabbit.yaml` encode the rules. That is unusual for a project this size and is the main reason the ToDoItem slice is consistent.
 - **The v1 plan was executed as written.** Phases 1–4 are demonstrably complete. This backlog builds on that plan rather than replacing it.
 
 ---
@@ -1063,7 +1063,7 @@ These issues turn a single-user task API into a platform. Each is sized as a fea
 
 #### INS-100 — Fix documentation drift; one source of truth per topic
 - **Labels:** `epic:e10`, `type:docs`, `priority:P1`, `effort:S`, `good-first-agent-task`
-- **Change:** Apply Appendix A. Rename `docs/insequens-v1-architecture-and-guidelines.md` → `docs/architecture.md` and `docs/insequens-v1-modernisation-plan.md` → `docs/v1-modernisation-plan.md` (mark completed phases, point to this document for v2). Fix links in `README.md:34-35,146-147` and `coderabbit.yaml:189`. Remove claims that are not yet true (MailKit, UTC, single Identity registration) or move them to "target state". Make `AGENTS.md` and `CLAUDE.md` reference `docs/architecture.md` instead of duplicating rules, keeping only agent-specific instructions. Add `docs/configuration.md`, `docs/deployment.md`, `docs/testing.md` stubs filled by the owning issues.
+- **Change:** Apply Appendix A. Rename `docs/insequens-v1-architecture-and-guidelines.md` → `docs/architecture.md` and `docs/insequens-v1-modernisation-plan.md` → `docs/v1-modernisation-plan.md` (mark completed phases, point to this document for v2). Fix links in `README.md:34-35,146-147` and `.coderabbit.yaml:189`. Remove claims that are not yet true (MailKit, UTC, single Identity registration) or move them to "target state". Make `AGENTS.md` and `CLAUDE.md` reference `docs/architecture.md` instead of duplicating rules, keeping only agent-specific instructions. Add `docs/configuration.md`, `docs/deployment.md`, `docs/testing.md` stubs filled by the owning issues.
 - **Acceptance criteria:** A link checker (`lychee` in CI, optional) passes; no statement in README/CLAUDE/AGENTS contradicts the code at merge time.
 - **Depends on:** none.
 
@@ -1142,8 +1142,8 @@ These rules apply to every issue above when executed by Claude Code or another a
 | `AGENTS.md:118` | Same UTC claim | Same | Same |
 | `AGENTS.md:123` | "Method `Add()` only adds" | Method is still `AddOrUpdate` | Fix after INS-026 |
 | `AGENTS.md:167-171` | "Login/registration errors MUST NOT reveal whether a user account exists" | Violated in `AuthController.cs:44,89,99,151,168` | Keep rule; fix code (INS-010) |
-| `coderabbit.yaml:159` | "Only one Identity registration" | Two registrations | Fix after INS-001 |
-| `coderabbit.yaml:189` | Knowledge base `**/docs/architecture.md` | File does not exist | Rename |
+| `.coderabbit.yaml:159` | "Only one Identity registration" | Two registrations | Fix after INS-001 |
+| `.coderabbit.yaml:189` | Knowledge base `**/docs/architecture.md` | File does not exist | Rename |
 | `docs/insequens-v1-architecture-and-guidelines.md` §10.5 | Forgot-password always returns success | Returns 400 "User not found." | Fix code (INS-010) |
 | `docs/insequens-v1-modernisation-plan.md` §13 | Lists target state as achieved after all phases | Phases 5–8 open | Mark status per phase |
 | `src/Insequens.Api/Insequens.Api.http:3` | `GET /weatherforecast/` | No such endpoint | Delete or rewrite |
