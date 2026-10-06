@@ -1,6 +1,6 @@
-﻿namespace Insequens.Domain.ServiceContracts;
+namespace Insequens.Domain.ServiceContracts;
 
 public interface IEmailSender
 {
-    Task SendEmailAsync(string email, string subject, string message);
+    Task SendEmailAsync(EmailMessage message, CancellationToken cancellationToken);
 }

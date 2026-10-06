@@ -1,9 +1,6 @@
 ﻿namespace Insequens.Domain;
 
-public interface IEntity
-{
-    bool IsNew { get; }
-}
+public interface IEntity;
 
 public interface IEntity<T> : IEntity
 {

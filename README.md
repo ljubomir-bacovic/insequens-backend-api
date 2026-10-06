@@ -67,13 +67,13 @@ See [docs/insequens-v1-architecture-and-guidelines.md](docs/insequens-v1-archite
    ```
    cd src/Insequens.Api
    dotnet user-secrets init
-   dotnet user-secrets set "ConnectionStrings:InsequensConnection" "Server=localhost;Database=Insequens;Integrated Security=True;TrustServerCertificate=True"
    dotnet user-secrets set "Jwt:Key" "your-256-bit-secret-key-here-minimum-32-chars"
-   dotnet user-secrets set "Email:Password" "your-smtp-password"
    ```
+   `appsettings.Development.json` already points at a local SQL Express instance and a mail catcher on `localhost:1025`. Override either in User Secrets if your machine differs; see [docs/configuration.md](docs/configuration.md).
 
-3. Apply EF Core migrations:
+3. Restore the EF Core tools and apply migrations:
    ```
+   dotnet tool restore
    dotnet ef database update --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
    ```
 
@@ -92,22 +92,11 @@ dotnet test
 
 ## Configuration
 
-Configuration is loaded from `appsettings.json`, environment-specific overrides (`appsettings.Development.json`), environment variables, and User Secrets.
+Settings come from `appsettings.json` (shape and safe defaults only), `appsettings.{Environment}.json` (localhost values only), User Secrets in Development, and environment variables, in increasing order of precedence. Deployed environments supply every real value through environment variables such as `Jwt__Key` and `Email__SmtpServer`.
 
-| Setting | Description | Where to Set |
-|---------|-------------|-------------|
-| `ConnectionStrings:InsequensConnection` | SQL Server connection string | User Secrets / Env var |
-| `Jwt:Key` | JWT signing key (min 32 chars) | User Secrets / Env var |
-| `Jwt:Issuer` | JWT issuer URL | appsettings.json |
-| `Jwt:Audience` | JWT audience URL | appsettings.json |
-| `Email:SmtpServer` | SMTP server hostname | appsettings.json |
-| `Email:Port` | SMTP port | appsettings.json |
-| `Email:Username` | SMTP username | appsettings.json |
-| `Email:Password` | SMTP password | User Secrets / Env var |
-| `Email:From` | Sender email address | appsettings.json |
-| `Cors:AllowedOrigins` | Allowed CORS origins array | appsettings.{Env}.json |
+[docs/configuration.md](docs/configuration.md) lists every setting, its environment variable, its validation and the per-environment matrix. `.env.example` is the template for container deployments.
 
-Never commit real credentials to appsettings.json. Use User Secrets for local dev and environment variables for deployed environments.
+Never commit real credentials, hostnames or IP addresses to configuration files.
 
 ## API Endpoints
 
