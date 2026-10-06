@@ -21,9 +21,9 @@ Committed configuration files never contain secrets, IP addresses, hostnames oth
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0`, `Cors__AllowedOrigins__1`, … | Outside Development | `http://localhost:5173`, `http://localhost:8081` | Startup fails outside Development when the list is empty. In Development an empty list falls back to open CORS. |
 | `Email:SmtpServer` | `Email__SmtpServer` | Yes | `localhost` | Validated at startup. |
 | `Email:Port` | `Email__Port` | Yes | `1025` | Validated at startup: 1–65535. Base default `587`. |
-| `Email:UseTls` | `Email__UseTls` | No | `false` | Base default `true`. Port 465 connects with implicit TLS; any other port requires STARTTLS. `false` sends in plain text and is for local mail catchers only. |
+| `Email:UseTls` | `Email__UseTls` | No | `false` | Base default `true`. Port 465 connects with implicit TLS; any other port requires STARTTLS. `false` sends in plain text and is for local mail catchers only. Validated at startup: must be `true` when `Username` is set, so credentials never travel unencrypted. |
 | `Email:Username` | `Email__Username` | No | none | When empty, the sender skips SMTP authentication. |
-| `Email:Password` | `Email__Password` | With `Username` | none | Secret. |
+| `Email:Password` | `Email__Password` | With `Username` | none | Secret. Validated at startup: required when `Username` is set. |
 | `Email:From` | `Email__From` | Yes | `no-reply@localhost` | Validated at startup: must be an email address. |
 
 `Email` settings are bound to `EmailOptions` and validated when the host starts, so a missing or malformed value stops the API instead of failing on the first email.

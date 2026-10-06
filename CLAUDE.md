@@ -71,7 +71,7 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 - No `System.Net.Mail`; email goes through `IEmailSender`, implemented with MailKit. No `Newtonsoft.Json`.
 - No concrete-class injection; depend on interfaces. Controllers inject only `IMediator`.
 - No query methods on the repository; no `SaveChanges` inside the repository.
-- No secrets, hostnames or IP addresses in committed configuration.
+- No secrets, IP addresses, usernames or hostnames other than `localhost` in committed configuration. Development defaults may point at `localhost`; everything else comes from User Secrets or environment variables.
 - File-scoped namespaces; one public type per file; `_camelCase` private fields.
 - Structured logging with named placeholders; never log passwords, tokens or full email addresses.
 - Entities: inherit `AuditableEntity`, `Guid` keys, `Guid UserId` on user data, Fluent API configuration only.

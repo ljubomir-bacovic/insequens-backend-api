@@ -42,6 +42,40 @@ public class EmailServiceCollectionExtensionsTests
             .Which.Failures.Should().ContainSingle(failure => failure.Contains(expectedMember));
     }
 
+    [Fact]
+    public void AddEmailSender_WithUsernamePasswordAndTls_PassesValidation()
+    {
+        var configuration = ValidConfiguration();
+        configuration["Email:Username"] = "smtp-user";
+        configuration["Email:Password"] = "smtp-password";
+        configuration["Email:UseTls"] = "true";
+        using var serviceProvider = BuildServiceProvider(configuration);
+
+        var options = serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+
+        options.Username.Should().Be("smtp-user");
+    }
+
+    [Theory]
+    [InlineData("", "true", "Password")]
+    [InlineData("smtp-password", "false", "UseTls")]
+    public void AddEmailSender_WithUsernameAndInvalidCredentialSettings_FailsValidation(
+        string password,
+        string useTls,
+        string expectedMember)
+    {
+        var configuration = ValidConfiguration();
+        configuration["Email:Username"] = "smtp-user";
+        configuration["Email:Password"] = password;
+        configuration["Email:UseTls"] = useTls;
+        using var serviceProvider = BuildServiceProvider(configuration);
+
+        var action = () => serviceProvider.GetRequiredService<IOptions<EmailOptions>>().Value;
+
+        action.Should().Throw<OptionsValidationException>()
+            .Which.Failures.Should().ContainSingle(failure => failure.Contains(expectedMember));
+    }
+
     private static Dictionary<string, string?> ValidConfiguration() => new()
     {
         ["Email:SmtpServer"] = "localhost",
