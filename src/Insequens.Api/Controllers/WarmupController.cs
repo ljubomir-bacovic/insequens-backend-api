@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Insequens.Domain.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace Insequens.Api.Controllers;
 
+[AllowAnonymous]
 [ApiController]
 [Route("warmup")]
 public class WarmupController : ControllerBase

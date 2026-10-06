@@ -20,19 +20,19 @@ dotnet ef migrations add <Name> --project src/Infrastructure/Insequens.Infrastru
 dotnet ef database update     --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
 ```
 
-Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars; anything else that differs on your machine). Committed `appsettings*.json` hold only shape, safe defaults and localhost values; deployed environments use environment variables with `__` nesting (`Jwt__Key`). `docs/configuration.md` is the full matrix.
+Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars; the API does not start without it; anything else that differs on your machine). Committed `appsettings*.json` hold only shape, safe defaults and localhost values; deployed environments use environment variables with `__` nesting (`Jwt__Key`). `docs/configuration.md` is the full matrix.
 
 ## Layout and dependency rule
 
 ```
-src/Insequens.Api                              Controllers, ExceptionMiddleware, Program.cs (DI root)
-src/Insequens.Application                      Commands/, Queries/, Validators/, Behaviors/, Profiles/, Exceptions/, Models/PaginatedResult
-src/Insequens.Domain                           Entities/, Types/ (enums), Models/ (DTO records), DataAccess/ (IRepository, IDataContext), ServiceContracts/
+src/Insequens.Api                              Controllers, ExceptionMiddleware, Program.cs (DI root), Configuration/ (Cors, AllowedHosts, ReverseProxy options), Security/ (headers, JWT bearer setup), RateLimiting/
+src/Insequens.Application                      Commands/, Queries/, Validators/, Behaviors/, Profiles/, Exceptions/, Options/ (FrontendOptions), Models/PaginatedResult
+src/Insequens.Domain                           Entities/, Types/ (enums), Models/ (DTO records), DataAccess/ (IRepository, IDataContext), ServiceContracts/ (IEmailSender, IIdentityService, ITokenService)
 src/Infrastructure/Insequens.Infrastructure.Data        InsequensContext (IdentityDbContext), ApplicationUser, Migrations/
-src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps), Email/ (MailKitEmailSender, EmailOptions)
+src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps), Email/ (MailKitEmailSender, EmailOptions), Identity/ (IdentityService, TokenService, JwtOptions, signing key ring)
 tests/Insequens.Application.Tests              Handler, validator, behavior unit tests (NSubstitute)
-tests/Insequens.Infrastructure.Tests           DataContext and email sender unit tests (EF InMemory, FakeTimeProvider), source guard tests
-tests/Insequens.Api.Tests                      WebApplicationFactory tests, middleware tests
+tests/Insequens.Infrastructure.Tests           DataContext, email sender, JWT options/key ring/token service unit tests (EF InMemory, FakeTimeProvider), source guard tests
+tests/Insequens.Api.Tests                      WebApplicationFactory tests (shared Support/InsequensApiFactory), Auth/ flows, security and rate-limit tests
 docs/                                          architecture guidelines, v1 plan, v2 assessment
 ```
 
@@ -50,7 +50,9 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 
 `ExceptionMiddleware` maps exceptions to RFC 7807 ProblemDetails. FluentValidation errors become 400 with grouped `errors`.
 
-`AuthController` does **not** go through MediatR yet and has no tests. Do not add logic to it; INS-010 moves it into commands. If you must touch it, add an integration test for the behaviour you change.
+Auth follows the same flow: `AuthController` injects only `IMediator` and sends the commands in `Application/Commands/Auth/`, whose handlers use `IIdentityService` and `ITokenService` (implemented in Infrastructure). Every failed login or refresh throws `AuthenticationFailedException`, which becomes one generic 401; register, forgot-password and reset-password return the same 202 body whether or not the email has an account. Keep it that way: no auth response may reveal whether an account exists. `tests/Insequens.Api.Tests/Auth/` covers every flow.
+
+Every endpoint requires an authenticated user through the fallback authorization policy; an anonymous endpoint opts out with `[AllowAnonymous]` on the action. Rate limiting partitions by user ID, or by client IP when anonymous: a global limit on everything, `auth` on login, register, refresh and password reset (plus a per-email limit), `write` on POST/PATCH/DELETE.
 
 ## Adding a feature (today's conventions)
 
@@ -59,7 +61,7 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 3. Handler in the same folder, named `{Verb}{Entity}Handler`. Command handlers construct entities explicitly, use tracked entities, call `SaveChangesAsync(cancellationToken)` once at the end. Query handlers use `AsQueryable()` + LINQ, `AsNoTracking()`, `ProjectTo<TDto>()`, and pass the cancellation token to every EF call.
 4. User input → validator in `Application/Validators/{Entity}/` named `{Request}Validator`. Shape and range only; business rules live in handlers.
 5. New response shape → record in `Domain/Models/{Entity}/`. New read mapping → `Application/Profiles/ToDoItemProfile`. Never use AutoMapper for writes.
-6. Controller action: inject only `IMediator`, return `IActionResult`. POST → `CreatedAtAction` 201. PATCH/DELETE → 204. GET → 200. Lists return `PaginatedResult<T>`, never a bare list. Add `[ProducesResponseType]` for every status.
+6. Controller action: inject only `IMediator`, return `IActionResult`. POST → `CreatedAtAction` 201. PATCH/DELETE → 204. GET → 200. Lists return `PaginatedResult<T>`, never a bare list. Add `[ProducesResponseType]` for every status. State-changing actions get `[EnableRateLimiting(RateLimitPolicies.Write)]`.
 7. New exception type → new catch block in `ExceptionMiddleware`.
 8. Tests: handler happy path + each error path; validator valid + each invalid field; one HTTP-level test per new endpoint. Name tests `Method_State_Expected`.
 
@@ -71,6 +73,7 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 - No `System.Net.Mail`; email goes through `IEmailSender`, implemented with MailKit. No `Newtonsoft.Json`.
 - No concrete-class injection; depend on interfaces. Controllers inject only `IMediator`.
 - No query methods on the repository; no `SaveChanges` inside the repository.
+- Settings are bound to an options record and validated at startup (`ValidateDataAnnotations().ValidateOnStart()`); never read `IConfiguration[...]` outside `Program.cs`.
 - No secrets, IP addresses, usernames or hostnames other than `localhost` in committed configuration. Development defaults may point at `localhost`; everything else comes from User Secrets or environment variables.
 - File-scoped namespaces; one public type per file; `_camelCase` private fields.
 - Structured logging with named placeholders; never log passwords, tokens or full email addresses.

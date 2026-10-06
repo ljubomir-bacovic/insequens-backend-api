@@ -1,261 +1,120 @@
-﻿using Insequens.Domain.Models.RefreshToken;
+using System.Security.Claims;
+using Insequens.Api.RateLimiting;
+using Insequens.Application.Commands.Auth;
 using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
-using Insequens.Infrastructure.Data.Models;
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Insequens.Api.Controllers;
 
 [Route(Constants.BaseUrl)]
 [ApiController]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IConfiguration _configuration;
-    private readonly IEmailSender _emailSender;
-    private readonly string _frontendUrl;
+    private readonly IMediator _mediator;
 
-    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, IEmailSender emailSender)
+    public AuthController(IMediator mediator)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _configuration = configuration;
-        _emailSender = emailSender;
-        _frontendUrl = _configuration["Jwt:Audience"] ?? string.Empty;
+        _mediator = mediator;
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest model)
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    [TypeFilter<EmailRateLimitFilter>]
+    [ProducesResponseType<AuthMessageResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
-        if (await _userManager.FindByEmailAsync(model.Email) != null)
-        {
-            return BadRequest("Email already registered.");
-        }
-
-        var user = new ApplicationUser
-        {
-            UserName = model.Email,
-            Email = model.Email,
-            EmailConfirmed = false
-        };
-
-        var result = await _userManager.CreateAsync(user, model.Password);
-        if (!result.Succeeded)
-        {
-            return BadRequest(result.Errors);
-        }
-
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-        var confirmationLink = $"{_frontendUrl}/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-
-        await _emailSender.SendEmailAsync(
-            new EmailMessage(
-                user.Email,
-                "Please confirm your registration",
-                $"Please confirm your email by clicking <a href='{HtmlEncoder.Default.Encode(confirmationLink)}'>here</a>.",
-                null),
-            CancellationToken.None);
-
-        return Ok(new { message = "User registered successfully. Please check your email to confirm your account." });
+        var response = await _mediator.Send(new RegisterUserCommand(request.Email, request.Password), cancellationToken);
+        return Accepted(response);
     }
 
+    [AllowAnonymous]
     [HttpGet("confirm-email")]
-    public async Task<IActionResult> ConfirmEmail(string userId, string token)
+    [ProducesResponseType<AuthMessageResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return BadRequest("Invalid user.");
-
-        var result = await _userManager.ConfirmEmailAsync(user, token);
-        if (!result.Succeeded) return BadRequest("Email confirmation failed.");
-
-        return Ok(new { message = "Email confirmed successfully!" });
+        var response = await _mediator.Send(new ConfirmEmailCommand(userId, token), cancellationToken);
+        return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest model)
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    [TypeFilter<EmailRateLimitFilter>]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-
-        if (user == null)
-        {
-            return Unauthorized("User doesn't exist.");
-        }
-
-        if (!user.EmailConfirmed)
-        {
-            return Unauthorized("Please confirm your email before logging in.");
-        }
-
-        if (!await _userManager.CheckPasswordAsync(user, model.Password))
-        {
-            return Unauthorized("Wrong password.");
-        }
-
-        var token = GenerateJwtToken(user);
-        var refreshToken = GenerateRefreshToken();
-
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-        await _userManager.UpdateAsync(user);
-
-        return Ok(new { Token = token, RefreshToken = refreshToken });
+        var response = await _mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
+        return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestModel model)
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    [ProducesResponseType<AuthTokensResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        if (model is null)
-        {
-            return BadRequest("Invalid request.");
-        }
-
-        var principal = GetPrincipalFromExpiredToken(model.Token);
-        if (principal == null)
-        {
-            return Unauthorized("Invalid token.");
-        }
-
-        var user = await _userManager.FindByIdAsync(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        if (user == null || user.RefreshToken != model.RefreshToken || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-        {
-            return Unauthorized("Invalid refresh token.");
-        }
-
-        var newAccessToken = GenerateJwtToken(user);
-        var newRefreshToken = GenerateRefreshToken();
-
-        user.RefreshToken = newRefreshToken;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-        await _userManager.UpdateAsync(user);
-
-        return Ok(new
-        {
-            Token = newAccessToken,
-            RefreshToken = newRefreshToken
-        });
+        var response = await _mediator.Send(new RefreshTokenCommand(request.Token, request.RefreshToken), cancellationToken);
+        return Ok(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest model)
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    [TypeFilter<EmailRateLimitFilter>]
+    [ProducesResponseType<AuthMessageResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null)
-            return BadRequest("User not found.");
-
-        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-
-        // Create reset link (Frontend should handle this route)
-        var resetLink = $"{_frontendUrl}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(user.Email)}";
-
-        await _emailSender.SendEmailAsync(
-            new EmailMessage(user.Email, "Password Reset", $"Click <a href='{resetLink}'>here</a> to reset your password.", null),
-            CancellationToken.None);
-
-        return Ok("Password reset link sent.");
+        var response = await _mediator.Send(new ForgotPasswordCommand(request.Email), cancellationToken);
+        return Accepted(response);
     }
 
+    [AllowAnonymous]
     [HttpPost("reset-password")]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestModel model)
+    [EnableRateLimiting(RateLimitPolicies.Auth)]
+    [TypeFilter<EmailRateLimitFilter>]
+    [ProducesResponseType<AuthMessageResponse>(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null)
-            return BadRequest("User not found.");
-
-        var resetResult = await _userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
-        if (!resetResult.Succeeded)
-            return BadRequest(resetResult.Errors);
-
-        return Ok("Password reset successful.");
+        var response = await _mediator.Send(
+            new ResetPasswordCommand(request.Email, request.Token, request.NewPassword),
+            cancellationToken);
+        return Accepted(response);
     }
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost("logout")]
-    public async Task<IActionResult> LogOut()
+    [EnableRateLimiting(RateLimitPolicies.Write)]
+    [ProducesResponseType<AuthMessageResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> LogOut(CancellationToken cancellationToken)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userId))
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
         {
-            return Unauthorized("User not authenticated.");
+            return Unauthorized();
         }
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
-
-        // Invalidate refresh token
-        user.RefreshToken = null;
-        user.RefreshTokenExpiryTime = DateTime.UtcNow;
-        await _userManager.UpdateAsync(user);
-
-        return Ok(new { message = "User logged out successfully." });
-    }
-
-    private string GenerateJwtToken(ApplicationUser user)
-    {
-        var authClaims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id),
-        new Claim(ClaimTypes.Name, user.UserName),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-    };
-
-        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-
-        var token = new JwtSecurityToken(
-            issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"],
-            expires: DateTime.UtcNow.AddMinutes(15),
-            claims: authClaims,
-            signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-
-    private string GenerateRefreshToken()
-    {
-        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-    }
-
-    // 🔹 Extract Claims from Expired Token
-    private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
-    {
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidIssuer = _configuration["Jwt:Issuer"],
-            ValidAudience = _configuration["Jwt:Audience"],
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])),
-            ValidateLifetime = false // We allow expired tokens to extract claims
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        SecurityToken securityToken;
-
-        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out securityToken);
-        var jwtSecurityToken = securityToken as JwtSecurityToken;
-
-        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
-        {
-            throw new SecurityTokenException("Invalid token");
-        }
-
-        return principal;
+        var response = await _mediator.Send(new LogoutCommand(userId), cancellationToken);
+        return Ok(response);
     }
 }

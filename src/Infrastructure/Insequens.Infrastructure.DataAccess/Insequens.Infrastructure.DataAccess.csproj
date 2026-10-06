@@ -13,9 +13,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- SignInManager (password sign-in with lockout) ships in the ASP.NET Core shared framework. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MailKit" Version="4.18.1" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.4" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.14.0" />
   </ItemGroup>
 
 </Project>

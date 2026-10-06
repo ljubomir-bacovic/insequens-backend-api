@@ -63,6 +63,46 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
+        catch (AuthenticationFailedException)
+        {
+            // One body for every reason, so a client cannot tell an unknown email from a wrong password,
+            // an unconfirmed account or a lockout.
+            _logger.LogInformation("Authentication failed.");
+
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Detail = string.Empty,
+                Instance = "",
+                Title = "Authentication failed.",
+                Type = "Error"
+            };
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
+        catch (EmailConfirmationFailedException)
+        {
+            _logger.LogInformation("Email confirmation failed.");
+
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Detail = string.Empty,
+                Instance = "",
+                Title = "Email confirmation failed.",
+                Type = "Error"
+            };
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
         catch (ValidationException ex)
         {
             _logger.LogWarning("Validation error. Details: {ValidationDetails}", ex.Value);
