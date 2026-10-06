@@ -6,18 +6,18 @@ namespace Insequens.Infrastructure.Tests;
 public partial class SourceGuardTests
 {
     [Fact]
-    public void SourceFiles_DoNotUseDateTimeNow()
+    public void SourceFiles_WhenScanned_DoNotUseLocalNow()
     {
         var sourceDirectory = Path.Combine(FindRepositoryRoot(), "src");
 
         var offenders = Directory
             .EnumerateFiles(sourceDirectory, "*.cs", SearchOption.AllDirectories)
             .Where(path => !IsBuildOutput(path))
-            .Where(path => DateTimeNowPattern().IsMatch(File.ReadAllText(path)))
+            .Where(path => LocalNowPattern().IsMatch(File.ReadAllText(path)))
             .Select(path => Path.GetRelativePath(sourceDirectory, path))
             .ToList();
 
-        offenders.Should().BeEmpty("audit and business timestamps must be UTC; use TimeProvider or DateTime.UtcNow");
+        offenders.Should().BeEmpty("timestamps must be UTC; use an injected TimeProvider instead of DateTime.Now or DateTimeOffset.Now");
     }
 
     private static bool IsBuildOutput(string path)
@@ -37,6 +37,6 @@ public partial class SourceGuardTests
         return directory?.FullName ?? throw new InvalidOperationException("Insequens.sln not found above the test output directory.");
     }
 
-    [GeneratedRegex(@"\bDateTime\.Now\b")]
-    private static partial Regex DateTimeNowPattern();
+    [GeneratedRegex(@"\bDateTime(?:Offset)?\s*\.\s*Now\b")]
+    private static partial Regex LocalNowPattern();
 }
