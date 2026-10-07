@@ -1,4 +1,4 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
 using Insequens.Domain.Model.ToDoItem;
 using Insequens.Domain.Types;
 using MediatR;
@@ -6,7 +6,7 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class CreateToDoItemHandler(IDataContext dataContext)
+public class CreateToDoItemHandler(IApplicationDbContext dbContext)
     : IRequestHandler<CreateToDoItemCommand, ToDoItemGetDetailsModel>
 {
     public async Task<ToDoItemGetDetailsModel> Handle(
@@ -24,8 +24,8 @@ public class CreateToDoItemHandler(IDataContext dataContext)
             IsCompleted = false,
         };
 
-        dataContext.GetRepository<ToDoItemEntity>().AddOrUpdate(item);
-        await dataContext.SaveChangesAsync(cancellationToken);
+        dbContext.ToDoItems.Add(item);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new ToDoItemGetDetailsModel(
             item.Id,

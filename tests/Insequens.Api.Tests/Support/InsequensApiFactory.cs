@@ -1,3 +1,4 @@
+using Insequens.Application.Abstractions;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.ServiceContracts;
 using Insequens.Infrastructure.Identity;
@@ -117,7 +118,8 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<DbContextOptions<InsequensContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<InsequensContext>>();
             services.RemoveAll<InsequensContext>();
-            services.AddDbContextPool<InsequensContext>(options => options.UseInMemoryDatabase(_databaseName));
+            services.RemoveAll<IApplicationDbContext>();
+            services.AddInsequensContext(options => options.UseInMemoryDatabase(_databaseName));
 
             if (_captureEmails)
             {

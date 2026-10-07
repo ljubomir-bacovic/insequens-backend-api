@@ -1,20 +1,23 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Exceptions;
 using MediatR;
-using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
+using Microsoft.EntityFrameworkCore;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class ToggleToDoItemCompleteHandler(IDataContext dataContext)
+public class ToggleToDoItemCompleteHandler(IApplicationDbContext dbContext)
     : IRequestHandler<ToggleToDoItemCompleteCommand, Unit>
 {
     public async Task<Unit> Handle(
         ToggleToDoItemCompleteCommand request,
         CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = (await repository.FindAsync(request.ItemId))!;
+        var item = await dbContext.ToDoItems
+            .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
+            ?? throw new ToDoItemNotFoundException(request.ItemId);
+
         item.IsCompleted = !item.IsCompleted;
-        await dataContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }

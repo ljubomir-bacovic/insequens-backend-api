@@ -1,90 +1,45 @@
 using FluentAssertions;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Exceptions;
-using Insequens.Domain.DataAccess;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
-using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
+using Insequens.Application.Tests.Support;
 
 namespace Insequens.Application.Tests.Commands;
 
-public class DeleteToDoItemHandlerTests
+public sealed class DeleteToDoItemHandlerTests : IDisposable
 {
+    private readonly TestDbContextFactory _database = new();
+
+    public void Dispose() => _database.Dispose();
+
     [Fact]
-    public async Task Handle_WithOwnedItem_RemovesItemAndSavesChanges()
+    public async Task Send_WithOwnedItem_RemovesItem()
     {
         var userId = Guid.NewGuid();
-        var itemId = Guid.NewGuid();
-        var request = new DeleteToDoItemCommand(itemId, userId);
-        var item = new ToDoItemEntity { Id = itemId, UserId = userId };
-        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var handler = new DeleteToDoItemHandler(dataContext);
+        var item = await _database.SeedItemAsync(userId);
 
-        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        repository.FindAsync(request.ItemId).Returns(item);
+        await _database.SendAsync(new DeleteToDoItemCommand(item.Id, userId));
 
-        using var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
-
-        var result = await handler.Handle(request, cancellationToken);
-
-        result.Should().Be(Unit.Value);
-        await repository.Received(1).FindAsync(request.ItemId);
-        repository.Received(1).Remove(item);
-        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
+        (await _database.FindItemAsync(item.Id)).Should().BeNull();
     }
 
     [Fact]
-    public async Task Send_WithNonexistentItem_ThrowsToDoItemNotFoundExceptionBeforeInvokingHandler()
+    public async Task Send_WithNonexistentItem_ThrowsToDoItemNotFoundException()
     {
-        var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var request = new DeleteToDoItemCommand(itemId, userId);
-        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
 
-        repository.FindAsync(request.ItemId).Returns((ToDoItemEntity?)null);
-        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        var action = () => _database.SendAsync(new DeleteToDoItemCommand(itemId, Guid.NewGuid()));
 
-        var action = () => mediator.Send(request);
-
-        var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
-        exception.Which.Id.Should().Be(itemId);
-        repository.DidNotReceive().Remove(Arg.Any<ToDoItemEntity>());
-        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        (await action.Should().ThrowAsync<ToDoItemNotFoundException>()).Which.Id.Should().Be(itemId);
     }
 
     [Fact]
-    public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenExceptionBeforeInvokingHandler()
+    public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenExceptionAndKeepsItem()
     {
-        var userId = Guid.NewGuid();
-        var itemId = Guid.NewGuid();
-        var request = new DeleteToDoItemCommand(itemId, userId);
-        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
+        var item = await _database.SeedItemAsync(Guid.NewGuid());
 
-        repository.FindAsync(request.ItemId).Returns(new ToDoItemEntity { Id = itemId, UserId = Guid.NewGuid() });
-        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        var action = () => _database.SendAsync(new DeleteToDoItemCommand(item.Id, Guid.NewGuid()));
 
-        var action = () => mediator.Send(request);
-
-        var exception = await action.Should().ThrowAsync<ResourceForbiddenException>();
-        exception.Which.Id.Should().Be(itemId);
-        repository.DidNotReceive().Remove(Arg.Any<ToDoItemEntity>());
-        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        (await action.Should().ThrowAsync<ResourceForbiddenException>()).Which.Id.Should().Be(item.Id);
+        (await _database.FindItemAsync(item.Id)).Should().NotBeNull();
     }
 }

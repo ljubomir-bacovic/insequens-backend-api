@@ -1,18 +1,23 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Exceptions;
 using MediatR;
-using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
+using Microsoft.EntityFrameworkCore;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class DeleteToDoItemHandler(IDataContext dataContext)
+public class DeleteToDoItemHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteToDoItemCommand, Unit>
 {
-    public async Task<Unit> Handle(DeleteToDoItemCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(
+        DeleteToDoItemCommand request,
+        CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = (await repository.FindAsync(request.ItemId))!;
-        repository.Remove(item);
-        await dataContext.SaveChangesAsync(cancellationToken);
+        var item = await dbContext.ToDoItems
+            .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
+            ?? throw new ToDoItemNotFoundException(request.ItemId);
+
+        dbContext.ToDoItems.Remove(item);
+        await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }
 }

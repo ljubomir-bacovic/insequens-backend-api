@@ -1,22 +1,24 @@
-using System.Linq.Expressions;
 using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Api.Tests.Support;
+using Insequens.Application.Abstractions;
 using Insequens.Application.Behaviors;
 using Insequens.Application.Commands;
-using Insequens.Domain;
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Exceptions;
 using Insequens.Domain.Entities;
 using Insequens.Domain.ServiceContracts;
 using Insequens.Infrastructure.Identity;
 using Insequens.Infrastructure.Email;
+using Insequens.Infrastructure.Persistence;
+using Insequens.Infrastructure.Persistence.Interceptors;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -233,23 +235,38 @@ public class ProgramStartupTests
     }
 
     [Fact]
+    public void Startup_RegistersApplicationDbContextWithAuditInterceptor()
+    {
+        using var factory = new InsequensApiFactory();
+        using var scope = factory.Services.CreateScope();
+
+        var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
+        dbContext.Should().BeSameAs(scope.ServiceProvider.GetRequiredService<InsequensContext>());
+        scope.ServiceProvider.GetServices<ISaveChangesInterceptor>()
+            .Should().ContainSingle().Which.Should().BeOfType<AuditableEntityInterceptor>();
+    }
+
+    [Fact]
     public async Task Startup_RegistersApplicationPipelineBehaviors()
     {
         var trace = new ExecutionTrace();
-        var request = new TestOwnedRequest(Guid.NewGuid(), Guid.NewGuid(), "example");
         using var factory = new InsequensApiFactory()
             .WithWebHostBuilder(builder =>
             {
                 builder.ConfigureTestServices(services =>
                 {
                     services.AddSingleton(trace);
-                    services.AddScoped<IDataContext>(_ => new TestDataContext(request, trace));
                     services.AddTransient<IRequestHandler<TestOwnedRequest, string>, TestOwnedRequestHandler>();
                     services.AddTransient<IValidator<TestOwnedRequest>, TestOwnedRequestValidator>();
                 });
             });
         using var scope = factory.Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
+        var dbContext = serviceProvider.GetRequiredService<IApplicationDbContext>();
+        var item = new ToDoItem { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Name = "Task" };
+        dbContext.ToDoItems.Add(item);
+        await dbContext.SaveChangesAsync(CancellationToken.None);
 
         var behaviors = serviceProvider
             .GetServices<IPipelineBehavior<TestOwnedRequest, string>>()
@@ -262,10 +279,12 @@ public class ProgramStartupTests
             typeof(OwnershipBehavior<,>));
 
         var mediator = serviceProvider.GetRequiredService<IMediator>();
-        var response = await mediator.Send(request);
+        var response = await mediator.Send(new TestOwnedRequest(item.UserId, item.Id, "example"));
+        var otherUsersRequest = () => mediator.Send(new TestOwnedRequest(Guid.NewGuid(), item.Id, "example"));
 
         response.Should().Be("handled:example");
-        trace.Steps.Should().Equal("validation", "ownership", "handler");
+        trace.Steps.Should().Equal("validation", "handler");
+        await otherUsersRequest.Should().ThrowAsync<ResourceForbiddenException>();
     }
 
     private sealed class ExecutionTrace
@@ -294,55 +313,5 @@ public class ProgramStartupTests
                 return !string.IsNullOrWhiteSpace(name);
             });
         }
-    }
-
-    private sealed class TestDataContext(TestOwnedRequest request, ExecutionTrace trace) : IDataContext
-    {
-        public void Dispose()
-        {
-        }
-
-        public IRepository<T> GetRepository<T>()
-            where T : class, IEntity
-        {
-            if (typeof(T) != typeof(ToDoItem))
-            {
-                throw new InvalidOperationException($"Unexpected repository type: {typeof(T).Name}");
-            }
-
-            return (IRepository<T>)(object)new TestToDoItemRepository(request, trace);
-        }
-
-        public void SaveChanges()
-        {
-        }
-
-        public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
-
-    private sealed class TestToDoItemRepository(TestOwnedRequest request, ExecutionTrace trace) : IRepository<ToDoItem>
-    {
-        public void AddOrUpdate(ToDoItem entity, bool? isNew = null) => throw new NotSupportedException();
-
-        public IQueryable<ToDoItem> AsQueryable(params Expression<Func<ToDoItem, object>>[]? includeExpressions) => throw new NotSupportedException();
-
-        public void AddOrUpdate(IEnumerable<ToDoItem> entities, bool? isNew = null) => throw new NotSupportedException();
-
-        public ToDoItem? Find(params object[] keyValues) => throw new NotSupportedException();
-
-        public Task<ToDoItem?> FindAsync(params object[] keyValues)
-        {
-            trace.Steps.Add("ownership");
-
-            return Task.FromResult<ToDoItem?>(new ToDoItem
-            {
-                Id = request.ItemId,
-                UserId = request.UserId,
-            });
-        }
-
-        public void Remove(ToDoItem entity) => throw new NotSupportedException();
-
-        public void Remove(IEnumerable<ToDoItem> entities) => throw new NotSupportedException();
     }
 }
