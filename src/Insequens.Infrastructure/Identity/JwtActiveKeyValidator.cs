@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 /// <summary>Fails startup when every configured signing key has an <c>ActiveFrom</c> in the future.</summary>
 public sealed class JwtActiveKeyValidator(TimeProvider timeProvider) : IValidateOptions<JwtOptions>

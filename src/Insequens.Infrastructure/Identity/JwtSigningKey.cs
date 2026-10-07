@@ -1,4 +1,4 @@
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 public sealed record JwtSigningKey
 {

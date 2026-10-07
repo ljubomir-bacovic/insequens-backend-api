@@ -2,7 +2,7 @@ using Insequens.Domain.ServiceContracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Insequens.Infrastructure.DataAccess.Email;
+namespace Insequens.Infrastructure.Email;
 
 public static class EmailServiceCollectionExtensions
 {

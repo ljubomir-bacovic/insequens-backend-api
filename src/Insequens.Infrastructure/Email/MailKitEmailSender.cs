@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace Insequens.Infrastructure.DataAccess.Email;
+namespace Insequens.Infrastructure.Email;
 
 public sealed class MailKitEmailSender(
     IOptions<EmailOptions> options,

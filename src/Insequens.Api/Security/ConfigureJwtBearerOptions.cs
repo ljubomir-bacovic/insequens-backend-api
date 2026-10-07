@@ -1,4 +1,4 @@
-using Insequens.Infrastructure.DataAccess.Identity;
+using Insequens.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 

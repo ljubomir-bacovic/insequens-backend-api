@@ -2,10 +2,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Insequens.Domain.Models.Auth;
 using Insequens.Domain.ServiceContracts;
-using Insequens.Infrastructure.Data.Models;
 using Microsoft.AspNetCore.Identity;
 
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 public sealed class IdentityService(
     UserManager<ApplicationUser> userManager,

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 public sealed record JwtOptions : IValidatableObject
 {

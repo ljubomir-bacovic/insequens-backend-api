@@ -1,9 +1,8 @@
 using Insequens.Domain;
-using Insequens.Domain.Data;
 using Insequens.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
-namespace Insequens.Infrastructure.DataAccess;
+namespace Insequens.Infrastructure.Persistence;
 
 public class DataContext : IDataContext
 {

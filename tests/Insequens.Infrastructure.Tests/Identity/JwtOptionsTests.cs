@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FluentAssertions;
-using Insequens.Infrastructure.DataAccess.Identity;
+using Insequens.Infrastructure.Identity;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Insequens.Infrastructure.Tests.Identity;

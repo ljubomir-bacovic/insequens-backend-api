@@ -2,7 +2,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 public sealed class JwtKeyRing : IJwtKeyRing
 {

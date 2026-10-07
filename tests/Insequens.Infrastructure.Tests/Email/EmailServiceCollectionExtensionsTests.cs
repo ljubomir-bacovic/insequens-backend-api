@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Insequens.Domain.ServiceContracts;
-using Insequens.Infrastructure.DataAccess.Email;
+using Insequens.Infrastructure.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;

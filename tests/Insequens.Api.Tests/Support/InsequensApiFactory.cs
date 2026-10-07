@@ -1,6 +1,6 @@
-using Insequens.Domain.Data;
+using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.ServiceContracts;
-using Insequens.Infrastructure.Data.Models;
+using Insequens.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;

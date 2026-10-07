@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Insequens.Infrastructure.DataAccess.Email;
+namespace Insequens.Infrastructure.Email;
 
 public sealed record EmailOptions : IValidatableObject
 {

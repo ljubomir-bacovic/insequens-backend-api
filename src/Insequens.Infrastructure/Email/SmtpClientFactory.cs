@@ -1,6 +1,6 @@
 using MailKit.Net.Smtp;
 
-namespace Insequens.Infrastructure.DataAccess.Email;
+namespace Insequens.Infrastructure.Email;
 
 public sealed class SmtpClientFactory : ISmtpClientFactory
 {

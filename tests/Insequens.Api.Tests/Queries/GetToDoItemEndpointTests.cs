@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Insequens.Api.Tests.Support;
-using Insequens.Domain.Data;
+using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.Entities;
 using Insequens.Domain.Model.ToDoItem;
 using Insequens.Domain.Types;

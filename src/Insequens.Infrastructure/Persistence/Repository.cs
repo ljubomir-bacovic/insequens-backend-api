@@ -3,7 +3,7 @@ using Insequens.Domain.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace Insequens.Infrastructure.DataAccess;
+namespace Insequens.Infrastructure.Persistence;
 
 public class Repository<T> : IRepository<T>
     where T : class, IEntity

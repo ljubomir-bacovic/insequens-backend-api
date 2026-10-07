@@ -1,14 +1,13 @@
-using Insequens.Domain.Data;
+using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.Models.Auth;
 using Insequens.Domain.ServiceContracts;
-using Insequens.Infrastructure.Data.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 public static class IdentityServiceCollectionExtensions
 {

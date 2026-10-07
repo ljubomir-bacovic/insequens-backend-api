@@ -1,8 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using FluentAssertions;
-using Insequens.Domain.Data;
+using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.Entities;
-using Insequens.Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
 

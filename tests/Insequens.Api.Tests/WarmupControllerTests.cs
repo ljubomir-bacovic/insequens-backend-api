@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Insequens.Api.Controllers;
-using Insequens.Domain.Data;
+using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -1,6 +1,6 @@
 using Microsoft.IdentityModel.Tokens;
 
-namespace Insequens.Infrastructure.DataAccess.Identity;
+namespace Insequens.Infrastructure.Identity;
 
 /// <summary>
 /// The configured JWT signing keys. Shared by token creation and by the JWT bearer handler so both

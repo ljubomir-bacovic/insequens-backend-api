@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using FluentAssertions;
-using Insequens.Infrastructure.DataAccess.Identity;
+using Insequens.Infrastructure.Identity;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;

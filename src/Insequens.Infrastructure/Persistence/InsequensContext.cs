@@ -1,10 +1,10 @@
 ﻿using Insequens.Domain.Entities;
-using Insequens.Infrastructure.Data.Models;
+using Insequens.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Insequens.Domain.Data;
+namespace Insequens.Infrastructure.Persistence;
 
 public class InsequensContext : IdentityDbContext<ApplicationUser>
 {

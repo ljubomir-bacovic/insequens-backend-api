@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Insequens.Infrastructure.Data.Migrations
+namespace Insequens.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class IdentityImproved : Migration
