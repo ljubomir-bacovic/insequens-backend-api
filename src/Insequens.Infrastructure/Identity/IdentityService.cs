@@ -1,14 +1,12 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Infrastructure.Identity;
 
 public sealed class IdentityService(
     UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager,
-    TimeProvider timeProvider) : IIdentityService
+    SignInManager<ApplicationUser> signInManager) : IIdentityService
 {
     public async Task<AuthUser?> CreateUserAsync(string email, string password, CancellationToken cancellationToken)
     {
@@ -32,7 +30,7 @@ public sealed class IdentityService(
 
         var user = await userManager.FindByEmailAsync(email);
 
-        return user is null ? null : ToAuthUser(user);
+        return user is null || IsDeleted(user) ? null : ToAuthUser(user);
     }
 
     public async Task<AuthUser?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
@@ -100,72 +98,132 @@ public sealed class IdentityService(
         return user is not null && (await userManager.ResetPasswordAsync(user, token, newPassword)).Succeeded;
     }
 
-    public async Task StoreRefreshTokenAsync(
-        Guid userId,
-        IssuedRefreshToken refreshToken,
-        CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(refreshToken);
-
-        var user = await RequireUserAsync(userId, cancellationToken);
-        user.RefreshToken = Hash(refreshToken.Value);
-        user.RefreshTokenExpiryTime = refreshToken.ExpiresAt.UtcDateTime;
-
-        await UpdateAsync(user);
-    }
-
-    public async Task<bool> ValidateRefreshTokenAsync(Guid userId, string refreshToken, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<string>> GetRolesAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await FindUserAsync(userId, cancellationToken);
-        if (user?.RefreshToken is null || user.RefreshTokenExpiryTime <= timeProvider.GetUtcNow().UtcDateTime)
-        {
-            return false;
-        }
 
-        return CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(user.RefreshToken),
-            Encoding.UTF8.GetBytes(Hash(refreshToken)));
+        return user is null ? [] : [.. await userManager.GetRolesAsync(user)];
     }
 
-    public async Task RevokeRefreshTokenAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<bool> IsInRoleAsync(Guid userId, string role, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+
+        return user is not null && await userManager.IsInRoleAsync(user, role);
+    }
+
+    private static AuthUser ToAuthUser(ApplicationUser user) =>
+        new(user.Id, user.Email ?? string.Empty);
+
+    public async Task<AccountDetails?> GetAccountAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await FindUserAsync(userId, cancellationToken);
         if (user is null)
         {
-            return;
+            return null;
         }
 
-        user.RefreshToken = null;
-        user.RefreshTokenExpiryTime = timeProvider.GetUtcNow().UtcDateTime;
+        var roles = await userManager.GetRolesAsync(user);
 
-        await UpdateAsync(user);
+        return new AccountDetails(user.Id, user.Email ?? string.Empty, user.EmailConfirmed, [.. roles]);
     }
 
-    // Only a SHA-256 hash is stored, so a copy of the database does not yield usable refresh tokens.
-    private static string Hash(string refreshToken) =>
-        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
+    public async Task<bool> ChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
 
-    private static AuthUser ToAuthUser(ApplicationUser user) =>
-        new(Guid.Parse(user.Id), user.Email ?? string.Empty);
+        return user is not null && (await userManager.ChangePasswordAsync(user, currentPassword, newPassword)).Succeeded;
+    }
 
-    private async Task<ApplicationUser?> FindUserAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<string> GenerateChangeEmailTokenAsync(Guid userId, string newEmail, CancellationToken cancellationToken)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+
+        return await userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+    }
+
+    public async Task<bool> ChangeEmailAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        // Users sign in with their email, so the user name follows it; ChangeEmailAsync saves both.
+        var previousUserName = user.UserName;
+        user.UserName = newEmail;
+        var result = await userManager.ChangeEmailAsync(user, newEmail, token);
+        if (!result.Succeeded)
+        {
+            user.UserName = previousUserName;
+        }
+
+        return result.Succeeded;
+    }
+
+    public async Task<bool> MarkForDeletionAsync(Guid userId, DateTime requestedAt, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.DeletionRequestedAt = requestedAt;
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+
+        // A new security stamp invalidates outstanding email-confirmation and password-reset tokens.
+        await EnsureSucceededAsync(user, userManager.UpdateSecurityStampAsync(user));
+        return true;
+    }
+
+    public async Task<IReadOnlyList<Guid>> FindAccountsDueForPurgeAsync(
+        DateTime deletionRequestedBefore,
+        CancellationToken cancellationToken) =>
+        await userManager.Users
+            .Where(user => user.DeletionRequestedAt != null && user.DeletionRequestedAt <= deletionRequestedBefore)
+            .Select(user => user.Id)
+            .ToListAsync(cancellationToken);
+
+    public async Task DeleteUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return await userManager.FindByIdAsync(userId.ToString());
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is not null)
+        {
+            await EnsureSucceededAsync(user, userManager.DeleteAsync(user));
+        }
     }
 
-    private async Task<ApplicationUser> RequireUserAsync(Guid userId, CancellationToken cancellationToken) =>
-        await FindUserAsync(userId, cancellationToken)
-        ?? throw new InvalidOperationException($"User {userId} does not exist.");
+    private static bool IsDeleted(ApplicationUser user) => user.DeletionRequestedAt is not null;
 
-    private async Task UpdateAsync(ApplicationUser user)
+    private static async Task EnsureSucceededAsync(ApplicationUser user, Task<IdentityResult> operation)
     {
-        var result = await userManager.UpdateAsync(user);
+        var result = await operation;
         if (!result.Succeeded)
         {
             throw new InvalidOperationException(
                 $"Updating user {user.Id} failed: {string.Join(", ", result.Errors.Select(error => error.Code))}");
         }
     }
+
+    private async Task<ApplicationUser?> FindUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await userManager.FindByIdAsync(userId.ToString());
+
+        return user is null || IsDeleted(user) ? null : user;
+    }
+
+    private async Task<ApplicationUser> RequireUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        await FindUserAsync(userId, cancellationToken)
+        ?? throw new InvalidOperationException($"User {userId} does not exist.");
 }

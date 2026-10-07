@@ -1,5 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
 using Insequens.Application.Abstractions;
 using Insequens.Domain.Entities;
+using Insequens.Infrastructure.Identity;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Infrastructure.Persistence.Interceptors;
 using MediatR;
@@ -43,6 +46,7 @@ public sealed class TestDbContextFactory : IDisposable
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<TimeProvider>(Clock);
         services.AddScoped<IApplicationDbContext>(_ => CreateContext());
         services.AddApplication();
         configure?.Invoke(services);
@@ -74,6 +78,7 @@ public sealed class TestDbContextFactory : IDisposable
         DateOnly? dueDate = null,
         bool isCompleted = false)
     {
+        await SeedUserAsync(userId);
         var item = ToDoItem.Create(userId, name, description, priority, dueDate);
         if (isCompleted)
         {
@@ -87,11 +92,59 @@ public sealed class TestDbContextFactory : IDisposable
         return item;
     }
 
+    /// <summary>Adds the account that owned items reference by foreign key, unless it already exists.</summary>
+    public async Task SeedUserAsync(Guid userId)
+    {
+        await using var context = CreateContext();
+        if (await context.Users.AnyAsync(user => user.Id == userId))
+        {
+            return;
+        }
+
+        context.Users.Add(new ApplicationUser { Id = userId, UserName = $"{userId}@example.com", Email = $"{userId}@example.com" });
+        await context.SaveChangesAsync(CancellationToken.None);
+    }
+
     public async Task<ToDoItem?> FindItemAsync(Guid itemId)
     {
         await using var context = CreateContext();
         return await context.ToDoItems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == itemId);
     }
+
+    public async Task<List<ToDoItem>> ItemsAsync(Guid userId)
+    {
+        await using var context = CreateContext();
+        return await context.ToDoItems.AsNoTracking().Where(item => item.UserId == userId).ToListAsync();
+    }
+
+    /// <summary>Stores a refresh token the way login does: only its SHA-256 hash.</summary>
+    public async Task<RefreshToken> SeedRefreshTokenAsync(Guid userId, string value, TimeSpan? lifetime = null)
+    {
+        await SeedUserAsync(userId);
+        var token = RefreshToken.Issue(
+            userId,
+            HashRefreshToken(value),
+            (Clock.GetUtcNow() + (lifetime ?? TimeSpan.FromDays(7))).UtcDateTime,
+            deviceName: null,
+            createdByIp: null);
+
+        await using var context = CreateContext();
+        context.RefreshTokens.Add(token);
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        return token;
+    }
+
+    public async Task<List<RefreshToken>> RefreshTokensAsync(Guid userId)
+    {
+        await using var context = CreateContext();
+        return await context.RefreshTokens.AsNoTracking()
+            .Where(token => token.UserId == userId)
+            .ToListAsync();
+    }
+
+    public static string HashRefreshToken(string value) =>
+        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
     public void Dispose() => _connection.Dispose();
 }

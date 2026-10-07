@@ -3,4 +3,5 @@ using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Application.Commands.Auth;
 
-public record RefreshTokenCommand(string Token, string RefreshToken) : IRequest<AuthTokensResponse>;
+/// <param name="IpAddress">The client address, recorded on the new refresh token; never logged.</param>
+public record RefreshTokenCommand(string Token, string RefreshToken, string? IpAddress = null) : IRequest<AuthTokensResponse>;

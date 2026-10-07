@@ -46,9 +46,9 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
-        catch (ResourceForbiddenException ex)
+        catch (ForbiddenException ex)
         {
-            _logger.LogWarning("Forbidden access attempt. ResourceId: {ResourceId}", ex.Id);
+            _logger.LogWarning("Forbidden: the {RequiredRole} role is required", ex.RequiredRole);
 
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
@@ -99,6 +99,25 @@ public class ExceptionMiddleware
                 Detail = string.Empty,
                 Instance = "",
                 Title = "Email confirmation failed.",
+                Type = "Error"
+            };
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
+        catch (AccountUpdateFailedException ex)
+        {
+            _logger.LogInformation("Account update refused: {Reason}", ex.Message);
+
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message,
+                Instance = "",
+                Title = "Account update failed.",
                 Type = "Error"
             };
 

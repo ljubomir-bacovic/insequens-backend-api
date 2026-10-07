@@ -1,4 +1,5 @@
 using Insequens.Application.Abstractions;
+using Insequens.Domain.Entities;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
@@ -110,12 +111,38 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
         return user;
     }
 
+    public async Task AddToRoleAsync(ApplicationUser user, string role)
+    {
+        using var scope = Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var result = await userManager.AddToRoleAsync((await userManager.FindByIdAsync(user.Id.ToString()))!, role);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(string.Join(", ", result.Errors.Select(error => error.Description)));
+        }
+    }
+
+    public async Task RemoveFromRoleAsync(ApplicationUser user, string role)
+    {
+        using var scope = Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        await userManager.RemoveFromRoleAsync((await userManager.FindByIdAsync(user.Id.ToString()))!, role);
+    }
+
     public async Task<ApplicationUser?> FindUserAsync(string email)
     {
         using var scope = Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         return await userManager.FindByEmailAsync(email);
+    }
+
+    public async Task<List<RefreshToken>> RefreshTokensAsync(Guid userId)
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<InsequensContext>();
+
+        return await context.RefreshTokens.AsNoTracking().Where(token => token.UserId == userId).ToListAsync();
     }
 
     public string CreateAccessToken(Guid userId) =>
@@ -160,9 +187,9 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
     {
         var host = base.CreateHost(builder);
 
-        if (_sqliteConnection is not null)
+        // Creates the schema on SQLite and, on both providers, adds the seeded data such as the roles.
+        using (var scope = host.Services.CreateScope())
         {
-            using var scope = host.Services.CreateScope();
             scope.ServiceProvider.GetRequiredService<InsequensContext>().Database.EnsureCreated();
         }
 

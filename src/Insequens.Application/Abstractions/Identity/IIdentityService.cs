@@ -1,6 +1,9 @@
-
 namespace Insequens.Application.Abstractions.Identity;
 
+/// <summary>
+/// The user store. Accounts scheduled for deletion are treated as missing by every method except
+/// <see cref="FindAccountsDueForPurgeAsync"/> and <see cref="DeleteUserAsync"/>.
+/// </summary>
 public interface IIdentityService
 {
     Task<AuthUser?> CreateUserAsync(string email, string password, CancellationToken cancellationToken);
@@ -19,9 +22,24 @@ public interface IIdentityService
 
     Task<bool> ResetPasswordAsync(Guid userId, string token, string newPassword, CancellationToken cancellationToken);
 
-    Task StoreRefreshTokenAsync(Guid userId, IssuedRefreshToken refreshToken, CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> GetRolesAsync(Guid userId, CancellationToken cancellationToken);
 
-    Task<bool> ValidateRefreshTokenAsync(Guid userId, string refreshToken, CancellationToken cancellationToken);
+    Task<bool> IsInRoleAsync(Guid userId, string role, CancellationToken cancellationToken);
 
-    Task RevokeRefreshTokenAsync(Guid userId, CancellationToken cancellationToken);
+    Task<AccountDetails?> GetAccountAsync(Guid userId, CancellationToken cancellationToken);
+
+    Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken cancellationToken);
+
+    Task<string> GenerateChangeEmailTokenAsync(Guid userId, string newEmail, CancellationToken cancellationToken);
+
+    /// <summary>Changes the email and the sign-in name together, if the token was issued for this new email.</summary>
+    Task<bool> ChangeEmailAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken);
+
+    /// <summary>Disables sign-in and records when deletion was requested. False when the account does not exist.</summary>
+    Task<bool> MarkForDeletionAsync(Guid userId, DateTime requestedAt, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<Guid>> FindAccountsDueForPurgeAsync(DateTime deletionRequestedBefore, CancellationToken cancellationToken);
+
+    /// <summary>Permanently deletes the account with its roles, claims, logins and tokens.</summary>
+    Task DeleteUserAsync(Guid userId, CancellationToken cancellationToken);
 }

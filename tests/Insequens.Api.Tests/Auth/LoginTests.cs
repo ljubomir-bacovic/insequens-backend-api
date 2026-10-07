@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Insequens.Api.Tests.Support;
@@ -104,7 +106,7 @@ public class LoginTests
         (accessToken.ValidTo - accessToken.IssuedAt).Should().Be(TimeSpan.FromMinutes(15));
         accessToken.Issuer.Should().Be(InsequensApiFactory.JwtIssuer);
         accessToken.Audiences.Should().Equal(InsequensApiFactory.JwtAudience);
-        accessToken.GetClaim(JwtRegisteredClaimNames.NameId).Value.Should().Be(user.Id);
+        accessToken.GetClaim(JwtRegisteredClaimNames.NameId).Value.Should().Be(user.Id.ToString());
         accessToken.GetClaim(JwtRegisteredClaimNames.UniqueName).Value.Should().Be(Email);
         accessToken.Alg.Should().Be("HS256");
     }
@@ -119,9 +121,10 @@ public class LoginTests
         var tokens = await client.LoginForTokensAsync();
 
         var user = await factory.FindUserAsync(Email);
-        user!.RefreshToken.Should().NotBeNullOrEmpty();
-        user.RefreshToken.Should().NotBe(tokens.RefreshToken);
-        user.RefreshTokenExpiryTime.Should().Be(factory.Clock.GetUtcNow().AddDays(7).UtcDateTime);
+        var stored = (await factory.RefreshTokensAsync(user!.Id)).Should().ContainSingle().Subject;
+        stored.TokenHash.Should().Be(Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(tokens.RefreshToken))));
+        stored.TokenHash.Should().NotBe(tokens.RefreshToken);
+        stored.ExpiresAt.Should().Be(factory.Clock.GetUtcNow().AddDays(7).UtcDateTime);
     }
 
     [Theory]

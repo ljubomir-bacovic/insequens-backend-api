@@ -15,7 +15,7 @@ namespace Insequens.Api.Tests.Auth;
 public class RefreshTokenTests
 {
     [Fact]
-    public async Task Refresh_WithValidPair_RotatesRefreshToken_OldOneRejected()
+    public async Task Refresh_WithValidPair_RotatesBothTokens()
     {
         await using var factory = new InsequensApiFactory();
         await factory.CreateUserAsync(Email, Password);
@@ -24,14 +24,54 @@ public class RefreshTokenTests
 
         var refreshResponse = await client.RefreshAsync(original.Token, original.RefreshToken);
         var rotated = await refreshResponse.Content.ReadFromJsonAsync<AuthTokensResponse>();
-        var reuseResponse = await client.RefreshAsync(original.Token, original.RefreshToken);
         var secondRefreshResponse = await client.RefreshAsync(rotated!.Token, rotated.RefreshToken);
 
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         rotated.RefreshToken.Should().NotBe(original.RefreshToken);
         rotated.Token.Should().NotBe(original.Token);
-        reuseResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         secondRefreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Refresh_WithAlreadyRotatedToken_Returns401AndEndsTheSession()
+    {
+        await using var factory = new InsequensApiFactory();
+        var user = await factory.CreateUserAsync(Email, Password);
+        using var client = factory.CreateHttpsClient();
+        var original = await client.LoginForTokensAsync();
+        var rotated = await (await client.RefreshAsync(original.Token, original.RefreshToken))
+            .Content.ReadFromJsonAsync<AuthTokensResponse>();
+
+        var reuseResponse = await client.RefreshAsync(original.Token, original.RefreshToken);
+        var legitimateRefresh = await client.RefreshAsync(rotated!.Token, rotated.RefreshToken);
+
+        reuseResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        await AssertAuthenticationFailedAsync(reuseResponse);
+        legitimateRefresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized, "reuse revokes every token in the session");
+        (await factory.RefreshTokensAsync(user.Id)).Should().OnlyContain(token => token.RevokedAt != null);
+    }
+
+    [Fact]
+    public async Task Refresh_OnTwoDevices_EachSessionRotatesIndependently()
+    {
+        await using var factory = new InsequensApiFactory();
+        await factory.CreateUserAsync(Email, Password);
+        using var phone = factory.CreateHttpsClient();
+        using var laptop = factory.CreateHttpsClient();
+        var phoneTokens = await phone.LoginForTokensAsync();
+        var laptopTokens = await laptop.LoginForTokensAsync();
+
+        var phoneRefresh = await phone.RefreshAsync(phoneTokens.Token, phoneTokens.RefreshToken);
+        var laptopRefresh = await laptop.RefreshAsync(laptopTokens.Token, laptopTokens.RefreshToken);
+        var phoneRotated = await phoneRefresh.Content.ReadFromJsonAsync<AuthTokensResponse>();
+        var laptopRotated = await laptopRefresh.Content.ReadFromJsonAsync<AuthTokensResponse>();
+        var phoneAgain = await phone.RefreshAsync(phoneRotated!.Token, phoneRotated.RefreshToken);
+        var laptopAgain = await laptop.RefreshAsync(laptopRotated!.Token, laptopRotated.RefreshToken);
+
+        phoneRefresh.StatusCode.Should().Be(HttpStatusCode.OK);
+        laptopRefresh.StatusCode.Should().Be(HttpStatusCode.OK, "a second login no longer logs the first device out");
+        phoneAgain.StatusCode.Should().Be(HttpStatusCode.OK);
+        laptopAgain.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -59,7 +99,7 @@ public class RefreshTokenTests
         {
             Issuer = InsequensApiFactory.JwtIssuer,
             Audience = InsequensApiFactory.JwtAudience,
-            Subject = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.NameId, user.Id)]),
+            Subject = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString())]),
             Expires = DateTime.UtcNow.AddMinutes(5),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes("an-attacker-signing-key-of-32-characters")),

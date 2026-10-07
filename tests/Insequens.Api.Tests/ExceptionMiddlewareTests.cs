@@ -51,6 +51,20 @@ public class ExceptionMiddlewareTests
     }
 
     [Fact]
+    public async Task Invoke_WhenAccountUpdateFailedExceptionIsThrown_Returns400ProblemDetailsWithReason()
+    {
+        var context = await InvokeMiddlewareAsync(_ => throw new AccountUpdateFailedException("The current password is incorrect."));
+        var responseBody = await ReadResponseBodyAsync(context);
+        using var json = JsonDocument.Parse(responseBody);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        context.Response.ContentType.Should().Be("application/problem+json");
+        json.RootElement.GetProperty("title").GetString().Should().Be("Account update failed.");
+        json.RootElement.GetProperty("detail").GetString().Should().Be("The current password is incorrect.");
+        responseBody.Should().NotContain("StackTrace");
+    }
+
+    [Fact]
     public async Task Invoke_WhenDomainExceptionIsThrown_Returns400ProblemDetailsWithRule()
     {
         var context = await InvokeMiddlewareAsync(_ => throw new ToDoItemDescriptionTooLongException(4000));
@@ -65,10 +79,9 @@ public class ExceptionMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WhenResourceForbiddenExceptionIsThrown_Returns403ProblemDetails()
+    public async Task Invoke_WhenForbiddenExceptionIsThrown_Returns403ProblemDetails()
     {
-        var itemId = Guid.NewGuid();
-        var exception = new ResourceForbiddenException(itemId);
+        var exception = new ForbiddenException("Admin");
         var context = await InvokeMiddlewareAsync(_ => throw exception);
         var responseBody = await ReadResponseBodyAsync(context);
         using var json = JsonDocument.Parse(responseBody);

@@ -31,6 +31,7 @@ Each section is bound to an options record and validated when the host starts, s
 | `RateLimiting:Auth:PermitLimit`, `RateLimiting:Auth:Window` | `RateLimiting__Auth__PermitLimit`, `RateLimiting__Auth__Window` | No | `10`, `00:01:00` | Login, register, refresh-token, forgot-password and reset-password: per client and, separately, per email address. |
 | `RateLimiting:Write:TokenLimit`, `TokensPerPeriod`, `ReplenishmentPeriod` | `RateLimiting__Write__TokenLimit`, … | No | `60`, `60`, `00:01:00` | Token bucket for POST, PATCH and DELETE, per user. |
 | `RateLimiting:Global:PermitLimit`, `RateLimiting:Global:Window` | `RateLimiting__Global__PermitLimit`, `RateLimiting__Global__Window` | No | `300`, `00:01:00` | Every request, per user, or per client IP when anonymous. |
+| `AccountDeletion:GracePeriod` | `AccountDeletion__GracePeriod` | No | `30.00:00:00` | 0 to 365 days. How long a deleted account stays recoverable before `PurgeDeletedAccountsCommand` deletes it with all its data. |
 | `Email:SmtpServer` | `Email__SmtpServer` | Yes | `localhost` | |
 | `Email:Port` | `Email__Port` | Yes | `1025` | 1–65535. Base default `587`. |
 | `Email:UseTls` | `Email__UseTls` | No | `false` | Base default `true`. Port 465 connects with implicit TLS; any other port requires STARTTLS. `false` sends in plain text and is for local mail catchers only. Must be `true` when `Username` is set, so credentials never travel unencrypted. |
@@ -58,6 +59,17 @@ Jwt__Keys__1__ActiveFrom=2026-07-01T00:00:00Z
 ```
 
 When moving from `Jwt:Key` to `Jwt:Keys`, list the old secret as the first key. Tokens it signed have no `kid` and are matched against every configured key. Startup fails if a key has no `Id`, two keys share an `Id`, a secret is shorter than 32 characters, or no key is active yet.
+
+## Roles
+
+Migrations seed two roles, `Admin` and `Support`. No endpoint assigns them; an operator adds a user to a role in the database:
+
+```sql
+INSERT INTO AspNetUserRoles (UserId, RoleId)
+SELECT Id, '8d0c6c39-2f4e-4c1a-9a57-3b8f1e2d4a01' FROM AspNetUsers WHERE NormalizedEmail = 'ADMIN@EXAMPLE.COM';
+```
+
+The role reaches the access token at the next login or refresh. Removing a role takes effect at once for requests that check it in the Application layer (`[RequiresRole]`).
 
 ## Environments
 

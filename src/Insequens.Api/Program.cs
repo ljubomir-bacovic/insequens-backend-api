@@ -26,6 +26,10 @@ builder.Services.AddOptions<FrontendOptions>()
     .Bind(builder.Configuration.GetSection(FrontendOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<AccountDeletionOptions>()
+    .Bind(builder.Configuration.GetSection(AccountDeletionOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddApiSecurity(builder.Configuration);
 builder.Services.AddApiRateLimiting(builder.Configuration);

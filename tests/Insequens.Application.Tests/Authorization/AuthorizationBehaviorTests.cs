@@ -1,8 +1,11 @@
 using FluentAssertions;
 using Insequens.Application.Abstractions;
+using Insequens.Application.Abstractions.Identity;
 using Insequens.Application.Authorization;
 using Insequens.Application.Exceptions;
+using Insequens.Application.Queries.Admin;
 using Insequens.Application.Tests.Support;
+using Insequens.Contracts.V1.Admin;
 using Insequens.Domain;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -79,6 +82,35 @@ public sealed class AuthorizationBehaviorTests : IDisposable
     }
 
     [Fact]
+    public async Task Send_ForAdminQueryAsAdmin_ReachesTheHandler()
+    {
+        var response = await SendAdminPingAsync(isAdmin: true);
+
+        response.Status.Should().Be("ok");
+    }
+
+    [Fact]
+    public async Task Send_ForAdminQueryAsNormalUser_ThrowsForbidden()
+    {
+        var action = () => SendAdminPingAsync(isAdmin: false);
+
+        await action.Should().ThrowAsync<ForbiddenException>();
+    }
+
+    [Fact]
+    public async Task Send_ForRequestNeedingRoleAndOwnership_ChecksTheRoleBeforeLoadingTheResource()
+    {
+        var note = new Note(Guid.NewGuid(), Guid.NewGuid(), "Note text");
+        var policy = new InMemoryNotePolicy(note);
+        await using var services = BuildServices(policy, isAdmin: false);
+
+        var action = () => services.GetRequiredService<IMediator>().Send(new ReadNoteAsAdmin(note.UserId, note.Id));
+
+        await action.Should().ThrowAsync<ForbiddenException>();
+        policy.Calls.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Resource_WhenNothingWasAuthorized_ThrowsInvalidOperationException()
     {
         await using var services = BuildServices(new InMemoryNotePolicy());
@@ -93,14 +125,34 @@ public sealed class AuthorizationBehaviorTests : IDisposable
         _database.SendAsync(request, services =>
             services.AddTransient<IRequestHandler<ReadToDoItemName, string>, ReadToDoItemNameHandler>());
 
-    private static ServiceProvider BuildServices(InMemoryNotePolicy policy)
+    private Task<AdminPingResponse> SendAdminPingAsync(bool isAdmin)
     {
+        _database.CurrentUser.UserId = Guid.NewGuid();
+        var identityService = Substitute.For<IIdentityService>();
+        identityService.IsInRoleAsync(_database.CurrentUser.UserId.Value, Roles.Admin, Arg.Any<CancellationToken>()).Returns(isAdmin);
+
+        return _database.SendAsync(new AdminPingQuery(), services =>
+        {
+            services.AddSingleton<ICurrentUser>(_database.CurrentUser);
+            services.AddSingleton(identityService);
+        });
+    }
+
+    private static ServiceProvider BuildServices(InMemoryNotePolicy policy, bool isAdmin = false)
+    {
+        var currentUser = new TestCurrentUser { UserId = Guid.NewGuid() };
+        var identityService = Substitute.For<IIdentityService>();
+        identityService.IsInRoleAsync(currentUser.UserId.Value, Roles.Admin, Arg.Any<CancellationToken>()).Returns(isAdmin);
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddScoped(_ => Substitute.For<IApplicationDbContext>());
         services.AddApplication();
+        services.AddSingleton<ICurrentUser>(currentUser);
+        services.AddSingleton(identityService);
         services.AddSingleton<IOwnershipPolicy<Note>>(policy);
         services.AddTransient<IRequestHandler<ReadNoteText, string>, ReadNoteTextHandler>();
+        services.AddTransient<IRequestHandler<ReadNoteAsAdmin, string>, ReadNoteAsAdminHandler>();
         services.AddTransient<IRequestHandler<Unowned, string>, UnownedHandler>();
 
         return services.BuildServiceProvider();
@@ -118,11 +170,20 @@ public sealed class AuthorizationBehaviorTests : IDisposable
 
     public sealed record ReadNoteText(Guid UserId, Guid ResourceId) : IRequest<string>, IOwned<Note>;
 
+    [RequiresRole(Roles.Admin)]
+    public sealed record ReadNoteAsAdmin(Guid UserId, Guid ResourceId) : IRequest<string>, IOwned<Note>;
+
     public sealed record Unowned(Guid UserId) : IRequest<string>;
 
     private sealed class ReadNoteTextHandler(IResourceContext<Note> note) : IRequestHandler<ReadNoteText, string>
     {
         public Task<string> Handle(ReadNoteText request, CancellationToken cancellationToken) =>
+            Task.FromResult(note.Resource.Text);
+    }
+
+    private sealed class ReadNoteAsAdminHandler(IResourceContext<Note> note) : IRequestHandler<ReadNoteAsAdmin, string>
+    {
+        public Task<string> Handle(ReadNoteAsAdmin request, CancellationToken cancellationToken) =>
             Task.FromResult(note.Resource.Text);
     }
 

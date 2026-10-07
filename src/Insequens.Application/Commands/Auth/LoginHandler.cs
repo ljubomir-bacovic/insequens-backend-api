@@ -1,14 +1,17 @@
+using Insequens.Application.Abstractions;
 using Insequens.Application.Exceptions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Insequens.Contracts.V1.Auth;
 using Insequens.Application.Abstractions.Identity;
+using Insequens.Domain.Entities;
 
 namespace Insequens.Application.Commands.Auth;
 
 public class LoginHandler(
     IIdentityService identityService,
     ITokenService tokenService,
+    IApplicationDbContext dbContext,
     ILogger<LoginHandler> logger)
     : IRequestHandler<LoginCommand, AuthTokensResponse>
 {
@@ -28,6 +31,18 @@ public class LoginHandler(
             throw new AuthenticationFailedException();
         }
 
-        return await AuthTokenIssuer.IssueAsync(tokenService, identityService, user, cancellationToken);
+        // Every login starts a new token family, so each device refreshes and logs out independently.
+        var refreshToken = tokenService.CreateRefreshToken();
+        var storedToken = RefreshToken.Issue(
+            user.Id,
+            RefreshTokenHash.Compute(refreshToken.Value),
+            refreshToken.ExpiresAt.UtcDateTime,
+            request.DeviceName,
+            request.IpAddress);
+        dbContext.RefreshTokens.Add(storedToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return await AuthTokenIssuer.CreateResponseAsync(
+            tokenService, identityService, user, storedToken.FamilyId, refreshToken, cancellationToken);
     }
 }

@@ -25,7 +25,7 @@ public class RegisterTests
         var link = ExtractLink(message);
         link.GetLeftPart(UriPartial.Path).Should().Be($"{InsequensApiFactory.FrontendBaseUrl}/confirm-email");
         var user = await factory.FindUserAsync(Email);
-        QueryValue(link, "userId").Should().Be(user!.Id);
+        QueryValue(link, "userId").Should().Be(user!.Id.ToString());
         QueryValue(link, "token").Should().NotBeNullOrWhiteSpace();
         message.HtmlBody.Should().Contain(WebUtility.HtmlEncode(link.OriginalString));
         user.EmailConfirmed.Should().BeFalse();

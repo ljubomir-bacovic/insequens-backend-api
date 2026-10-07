@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using FluentAssertions;
 using Insequens.Api.Tests.Support;
 using Insequens.Domain.Entities;
+using Insequens.Infrastructure.Identity;
 using Insequens.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -91,6 +92,7 @@ public sealed class ToDoItemQueryCountTests : IAsyncDisposable
         {
             var context = scope.ServiceProvider.GetRequiredService<InsequensContext>();
             var item = ToDoItem.Create(ownerId, "Task", null, null, null);
+            context.Users.Add(new ApplicationUser { Id = ownerId, UserName = $"{ownerId}@example.com" });
             context.ToDoItems.Add(item);
             await context.SaveChangesAsync();
             _recorder.Clear();

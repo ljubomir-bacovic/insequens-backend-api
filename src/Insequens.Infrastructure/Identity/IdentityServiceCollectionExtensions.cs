@@ -27,7 +27,7 @@ public static class IdentityServiceCollectionExtensions
                 options.SignIn.RequireConfirmedEmail = true;
                 options.User.RequireUniqueEmail = true;
             })
-            .AddRoles<IdentityRole>()
+            .AddRoles<IdentityRole<Guid>>()
             .AddEntityFrameworkStores<InsequensContext>()
             .AddDefaultTokenProviders()
             .AddSignInManager();
