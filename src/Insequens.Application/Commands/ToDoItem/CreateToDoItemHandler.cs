@@ -1,37 +1,34 @@
-using Insequens.Domain.DataAccess;
-using Insequens.Domain.Model.ToDoItem;
-using Insequens.Domain.Types;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Profiles;
+using Insequens.Contracts.V1.Tasks;
 using MediatR;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class CreateToDoItemHandler(IDataContext dataContext)
+public class CreateToDoItemHandler(IApplicationDbContext dbContext)
     : IRequestHandler<CreateToDoItemCommand, ToDoItemGetDetailsModel>
 {
     public async Task<ToDoItemGetDetailsModel> Handle(
         CreateToDoItemCommand request,
         CancellationToken cancellationToken)
     {
-        var item = new ToDoItemEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = request.UserId,
-            Name = request.Name,
-            Description = request.Description,
-            Priority = (TaskPriority?)request.Priority,
-            DueDate = request.DueDate,
-            IsCompleted = false,
-        };
+        var item = ToDoItemEntity.Create(
+            request.UserId,
+            request.Name,
+            request.Description,
+            (DomainPriority?)request.Priority,
+            request.DueDate);
 
-        dataContext.GetRepository<ToDoItemEntity>().AddOrUpdate(item);
-        await dataContext.SaveChangesAsync(cancellationToken);
+        dbContext.ToDoItems.Add(item);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return new ToDoItemGetDetailsModel(
             item.Id,
             item.Name,
             item.Description,
-            item.Priority,
+            item.Priority.ToContract(),
             item.DueDate,
             item.IsCompleted);
     }

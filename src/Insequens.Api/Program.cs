@@ -4,12 +4,9 @@ using Insequens.Api.RateLimiting;
 using Insequens.Api.Security;
 using Insequens.Application;
 using Insequens.Application.Options;
-using Insequens.Domain.Data;
-using Insequens.Domain.DataAccess;
-using Insequens.Infrastructure.DataAccess;
-using Insequens.Infrastructure.DataAccess.Email;
-using Insequens.Infrastructure.DataAccess.Identity;
-using Microsoft.EntityFrameworkCore;
+using Insequens.Infrastructure.Email;
+using Insequens.Infrastructure.Identity;
+using Insequens.Infrastructure.Persistence;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -21,12 +18,8 @@ builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 
 builder.Services.Configure<IISServerOptions>(options => options.MaxRequestBodySize = RequestLimits.MaxRequestBodySize);
 
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddScoped<IDataContext, DataContext>();
 
-builder.Services.AddDbContextPool<InsequensContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("InsequensConnection"),
-            providerOptions => providerOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null)));
-
+builder.Services.AddPersistence(builder.Configuration.GetConnectionString("InsequensConnection"));
 builder.Services.AddIdentityServices(builder.Configuration);
 builder.Services.AddEmailSender(builder.Configuration);
 builder.Services.AddOptions<FrontendOptions>()

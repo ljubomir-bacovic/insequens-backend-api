@@ -10,8 +10,12 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="FluentAssertions" Version="8.10.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.4" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.4.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <!-- Replaces the native SQLite 2.1.11 that EF Core Sqlite 10.0.4 brings in (GHSA-2m69-gcr7-jv3q). -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -23,6 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Insequens.Application\Insequens.Application.csproj" />
     <ProjectReference Include="..\..\src\Insequens.Domain\Insequens.Domain.csproj" />
+    <!-- Handler tests run on the real InsequensContext and its configurations over SQLite. -->
+    <ProjectReference Include="..\..\src\Insequens.Infrastructure\Insequens.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Validators.ToDoItem;
-using Insequens.Domain.Types;
+using Insequens.Contracts.V1.Tasks;
 
 namespace Insequens.Application.Tests.Validators;
 

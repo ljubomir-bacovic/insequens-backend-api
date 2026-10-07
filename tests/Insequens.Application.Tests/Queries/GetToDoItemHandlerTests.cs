@@ -1,65 +1,59 @@
 using FluentAssertions;
-using Insequens.Application;
 using Insequens.Application.Exceptions;
 using Insequens.Application.Queries.ToDoItem;
-using Insequens.Domain.DataAccess;
-using Insequens.Domain.Types;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
-using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
+using Insequens.Application.Tests.Support;
+using Insequens.Contracts.V1.Tasks;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Application.Tests.Queries;
 
-public class GetToDoItemHandlerTests
+public sealed class GetToDoItemHandlerTests : IDisposable
 {
+    private readonly TestDbContextFactory _database = new();
+
+    public void Dispose() => _database.Dispose();
+
     [Fact]
-    public async Task Send_WithNonexistentItem_ThrowsToDoItemNotFoundExceptionBeforeInvokingHandler()
+    public async Task Send_WithOwnedItem_ReturnsDetails()
     {
         var userId = Guid.NewGuid();
-        var itemId = Guid.NewGuid();
-        var request = new GetToDoItemQuery(itemId, userId);
-        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
+        var item = await _database.SeedItemAsync(
+            userId,
+            name: "Task",
+            description: "Description",
+            priority: DomainPriority.High,
+            dueDate: new DateOnly(2026, 2, 1));
 
-        repository.FindAsync(request.ItemId).Returns((ToDoItemEntity?)null);
-        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        var result = await _database.SendAsync(new GetToDoItemQuery(item.Id, userId));
 
-        var action = () => mediator.Send(request);
-
-        var exception = await action.Should().ThrowAsync<ToDoItemNotFoundException>();
-        exception.Which.Id.Should().Be(itemId);
-        await repository.Received(1).FindAsync(request.ItemId);
+        result.Should().Be(new ToDoItemGetDetailsModel(
+            item.Id,
+            "Task",
+            "Description",
+            TaskPriority.High,
+            new DateOnly(2026, 2, 1),
+            false));
     }
 
     [Fact]
-    public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenExceptionBeforeInvokingHandler()
+    public async Task Send_WithNonexistentItem_ThrowsNotFoundException()
     {
-        var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
-        var request = new GetToDoItemQuery(itemId, userId);
-        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
 
-        repository.FindAsync(request.ItemId).Returns(new ToDoItemEntity { Id = itemId, UserId = Guid.NewGuid() });
-        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
+        var action = () => _database.SendAsync(new GetToDoItemQuery(itemId, Guid.NewGuid()));
 
-        var action = () => mediator.Send(request);
-
-        var exception = await action.Should().ThrowAsync<ResourceForbiddenException>();
+        var exception = await action.Should().ThrowAsync<NotFoundException>();
         exception.Which.Id.Should().Be(itemId);
-        await repository.Received(1).FindAsync(request.ItemId);
+        exception.Which.ResourceName.Should().Be("ToDoItem");
+    }
+
+    [Fact]
+    public async Task Send_WithOtherUsersItem_ThrowsNotFoundException()
+    {
+        var item = await _database.SeedItemAsync(Guid.NewGuid());
+
+        var action = () => _database.SendAsync(new GetToDoItemQuery(item.Id, Guid.NewGuid()));
+
+        (await action.Should().ThrowAsync<NotFoundException>()).Which.Id.Should().Be(item.Id);
     }
 }

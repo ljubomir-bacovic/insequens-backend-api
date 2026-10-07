@@ -6,24 +6,16 @@ namespace Insequens.Application.Tests.Exceptions;
 public class ApplicationExceptionsTests
 {
     [Fact]
-    public void ToDoItemNotFoundException_WithId_SetsId()
+    public void NotFoundException_WithResourceAndId_SetsBothAndMessage()
     {
         var itemId = Guid.NewGuid();
 
-        var exception = new ToDoItemNotFoundException(itemId);
+        var exception = new NotFoundException("ToDoItem", itemId);
 
+        exception.ResourceName.Should().Be("ToDoItem");
         exception.Id.Should().Be(itemId);
-    }
-
-    [Fact]
-    public void ToDoItemNotFoundException_WithMessageAndInnerException_PreservesBaseExceptionData()
-    {
-        var innerException = new InvalidOperationException("inner");
-
-        var exception = new ToDoItemNotFoundException("message", innerException);
-
-        exception.Message.Should().Be("message");
-        exception.InnerException.Should().BeSameAs(innerException);
+        exception.Message.Should().Be($"ToDoItem {itemId} was not found.");
+        exception.Should().BeAssignableTo<ResourceException>();
     }
 
     [Fact]
@@ -35,5 +27,6 @@ public class ApplicationExceptionsTests
 
         exception.Id.Should().Be(itemId);
         exception.Message.Should().Be($"Access denied for resource {itemId}.");
+        exception.Should().BeAssignableTo<ResourceException>();
     }
 }

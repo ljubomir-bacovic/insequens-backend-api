@@ -1,5 +1,5 @@
-using Insequens.Domain.Models.Auth;
 using MediatR;
+using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Application.Commands.Auth;
 

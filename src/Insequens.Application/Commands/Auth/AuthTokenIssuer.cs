@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
+using Insequens.Contracts.V1.Auth;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Application.Commands.Auth;
 

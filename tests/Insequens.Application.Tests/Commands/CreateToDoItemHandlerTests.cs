@@ -1,80 +1,57 @@
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Commands.ToDoItem;
-using Insequens.Domain.DataAccess;
-using Insequens.Domain.Model.ToDoItem;
-using MediatR;
-using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
-using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
+using Insequens.Application.Tests.Support;
+using Insequens.Contracts.V1.Tasks;
+using Microsoft.EntityFrameworkCore;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Application.Tests.Commands;
 
-public class CreateToDoItemHandlerTests
+public sealed class CreateToDoItemHandlerTests : IDisposable
 {
+    private readonly TestDbContextFactory _database = new();
+
+    public void Dispose() => _database.Dispose();
+
     [Fact]
-    public async Task Handle_WithValidCommand_CreatesItemAndReturnsDetails()
+    public async Task Send_WithValidCommand_PersistsItemAndReturnsDetails()
     {
         var userId = Guid.NewGuid();
-        var repository = Substitute.For<IRepository<ToDoItemEntity>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var handler = new CreateToDoItemHandler(dataContext);
+        _database.CurrentUser.UserId = userId;
         var request = new CreateToDoItemCommand("Task", "Description", 2, new DateOnly(2026, 1, 1), userId);
-        ToDoItemEntity? addedItem = null;
 
-        dataContext.GetRepository<ToDoItemEntity>().Returns(repository);
-        repository
-            .When(x => x.AddOrUpdate(Arg.Any<ToDoItemEntity>(), Arg.Any<bool?>()))
-            .Do(callInfo => addedItem = callInfo.Arg<ToDoItemEntity>());
+        var result = await _database.SendAsync(request);
 
-        using var cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = cancellationTokenSource.Token;
-
-        var result = await handler.Handle(request, cancellationToken);
-
-        addedItem.Should().NotBeNull();
-        addedItem!.Id.Should().NotBe(Guid.Empty);
-        addedItem.UserId.Should().Be(userId);
-        addedItem.Name.Should().Be(request.Name);
-        addedItem.Description.Should().Be(request.Description);
-        addedItem.DueDate.Should().Be(request.DueDate);
-        addedItem.Priority.Should().Be((Domain.Types.TaskPriority?)request.Priority);
-        addedItem.IsCompleted.Should().BeFalse();
+        var item = await _database.FindItemAsync(result.Id);
+        item.Should().NotBeNull();
+        item!.UserId.Should().Be(userId);
+        item.Name.Should().Be(request.Name);
+        item.Description.Should().Be(request.Description);
+        item.DueDate.Should().Be(request.DueDate);
+        item.Priority.Should().Be(DomainPriority.Medium);
+        item.IsCompleted.Should().BeFalse();
+        item.CreatedOn.Should().Be(TestDbContextFactory.StartTime.UtcDateTime);
+        item.CreatedBy.Should().Be(userId);
         result.Should().Be(new ToDoItemGetDetailsModel(
-            addedItem.Id,
+            item.Id,
             request.Name,
             request.Description,
-            (Domain.Types.TaskPriority?)request.Priority,
+            TaskPriority.Medium,
             request.DueDate,
             false));
-        repository.Received(1).AddOrUpdate(Arg.Is<ToDoItemEntity>(item =>
-            item.Id == addedItem.Id &&
-            item.UserId == userId &&
-            item.Name == request.Name &&
-            item.Description == request.Description &&
-            item.DueDate == request.DueDate &&
-            item.Priority == (Domain.Types.TaskPriority?)request.Priority &&
-            !item.IsCompleted));
-        await dataContext.Received(1).SaveChangesAsync(cancellationToken);
     }
 
     [Fact]
-    public async Task Send_WithInvalidCommand_ThrowsValidationExceptionBeforeInvokingHandler()
+    public async Task Send_WithInvalidCommand_ThrowsValidationExceptionAndPersistsNothing()
     {
-        var dataContext = Substitute.For<IDataContext>();
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton(dataContext);
-        services.AddApplication();
-        using var serviceProvider = services.BuildServiceProvider();
-        var mediator = serviceProvider.GetRequiredService<IMediator>();
-
-        var action = () => mediator.Send(new CreateToDoItemCommand(string.Empty, null, 0, null, Guid.NewGuid()));
+        var action = () => _database.SendAsync(new CreateToDoItemCommand(string.Empty, null, 0, null, Guid.NewGuid()));
 
         var exception = await action.Should().ThrowAsync<ValidationException>();
         exception.Which.Errors.Should().ContainSingle(error =>
             error.PropertyName == "Name" &&
             error.ErrorMessage == "Task name is required.");
-        await dataContext.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await using var context = _database.CreateContext();
+        (await context.ToDoItems.CountAsync()).Should().Be(0);
     }
 }

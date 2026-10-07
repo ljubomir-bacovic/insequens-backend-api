@@ -1,5 +1,5 @@
-using Insequens.Domain.Model.ToDoItem;
 using MediatR;
+using Insequens.Contracts.V1.Tasks;
 
 namespace Insequens.Application.Commands.ToDoItem;
 

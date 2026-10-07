@@ -13,11 +13,12 @@ The v1 modernisation (Phases 1–4) is complete. The v2 transformation is tracke
 ```
 dotnet build                                   # whole solution
 dotnet test                                    # all tests (xUnit); no Docker needed yet
-dotnet test tests/Insequens.Application.Tests  # fast unit tests only
+dotnet test tests/Insequens.Domain.Tests       # fastest: entity rules only
+dotnet test tests/Insequens.Application.Tests  # handlers through the pipeline on SQLite in memory
 dotnet run --project src/Insequens.Api         # API on http://localhost:5008, Scalar UI at /scalar/v1 in Development
 dotnet tool restore                            # once per clone: dotnet-ef pinned in .config/dotnet-tools.json
-dotnet ef migrations add <Name> --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
-dotnet ef database update     --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
+dotnet ef migrations add <Name> --project src/Insequens.Infrastructure --startup-project src/Insequens.Api --output-dir Migrations
+dotnet ef database update     --project src/Insequens.Infrastructure --startup-project src/Insequens.Api
 ```
 
 Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars; the API does not start without it; anything else that differs on your machine). Committed `appsettings*.json` hold only shape, safe defaults and localhost values; deployed environments use environment variables with `__` nesting (`Jwt__Key`). `docs/configuration.md` is the full matrix.
@@ -25,20 +26,19 @@ Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars
 ## Layout and dependency rule
 
 ```
-src/Insequens.Api                              Controllers, ExceptionMiddleware, Program.cs (DI root), Configuration/ (Cors, AllowedHosts, ReverseProxy options), Security/ (headers, JWT bearer setup), RateLimiting/
-src/Insequens.Application                      Commands/, Queries/, Validators/, Behaviors/, Profiles/, Exceptions/, Options/ (FrontendOptions), Models/PaginatedResult
-src/Insequens.Domain                           Entities/, Types/ (enums), Models/ (DTO records), DataAccess/ (IRepository, IDataContext), ServiceContracts/ (IEmailSender, IIdentityService, ITokenService)
-src/Infrastructure/Insequens.Infrastructure.Data        InsequensContext (IdentityDbContext), ApplicationUser, Migrations/
-src/Infrastructure/Insequens.Infrastructure.DataAccess  Repository<T>, DataContext (unit of work, audit timestamps), Email/ (MailKitEmailSender, EmailOptions), Identity/ (IdentityService, TokenService, JwtOptions, signing key ring)
-tests/Insequens.Application.Tests              Handler, validator, behavior unit tests (NSubstitute)
-tests/Insequens.Infrastructure.Tests           DataContext, email sender, JWT options/key ring/token service unit tests (EF InMemory, FakeTimeProvider), source guard tests
-tests/Insequens.Api.Tests                      WebApplicationFactory tests (shared Support/InsequensApiFactory), Auth/ flows, security and rate-limit tests
-docs/                                          architecture guidelines, v1 plan, v2 assessment
+src/Insequens.Api                    Controllers, ExceptionMiddleware, Program.cs (DI root), Configuration/ (Cors, AllowedHosts, ReverseProxy options), Security/ (headers, JWT bearer setup, HttpContextCurrentUser), RateLimiting/
+src/Insequens.Contracts              HTTP request/response records shared with clients: V1/Tasks, V1/Auth, V1/PaginatedResult. References nothing.
+src/Insequens.Application            Commands/, Queries/, Validators/, Behaviors/, Authorization/ (IOwned<T>, AuthorizationBehavior, ownership policies), Abstractions/ (IApplicationDbContext, ICurrentUser, Identity/, Email/), Profiles/, Exceptions/, Options/
+src/Insequens.Domain                 Entities/ (behaviour and invariants), Types/ (enums), Exceptions/ (DomainException), IOwnedEntity, AuditableEntity
+src/Insequens.Infrastructure         Persistence/ (InsequensContext, Configurations/, Interceptors/), Identity/ (ApplicationUser, IdentityService, TokenService, JWT options, key ring), Email/ (MailKit), Migrations/
+tests/Insequens.Domain.Tests         Entity behaviour and invariants
+tests/Insequens.Application.Tests    Handlers, validators, behaviors and authorization through MediatR on SQLite in memory (Support/TestDbContextFactory)
+tests/Insequens.Infrastructure.Tests Audit interceptor, email sender, JWT options/key ring/token service, source guard and project dependency tests
+tests/Insequens.Api.Tests            WebApplicationFactory tests (Support/InsequensApiFactory on EF InMemory, or SQLite to observe SQL), Auth/ flows, ToDoItems/, security and rate-limit tests
+docs/                                architecture guidelines, v1 plan, v2 assessment
 ```
 
-Domain references nothing. Application references only Domain (plus the EF Core package, by accepted exception). Infrastructure references only Domain. Api references Application and Infrastructure. Never add a reference in the other direction; if an inner layer needs an outer type, define an interface in Domain or Application.
-
-Known wart: `InsequensContext` declares `namespace Insequens.Domain.Data` although it lives in Infrastructure. Do not copy that pattern; it is removed by INS-020.
+Domain and Contracts reference nothing. Application references Domain and Contracts (plus the EF Core package, by accepted exception). Infrastructure references Application and Domain, and implements Application's interfaces. Api references Application, Contracts and Infrastructure, and has no EF provider package. Never add a reference in the other direction; if an inner layer needs an outer type, define an interface in Application. `ProjectDependencyTests` guards the Contracts, Domain and Api rules until INS-062 adds architecture tests.
 
 ## How a request flows
 
@@ -46,9 +46,9 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
 
 1. `LoggingBehavior` — request name and elapsed time.
 2. `ValidationBehavior` — FluentValidation, if a validator is registered for the request type.
-3. `OwnershipBehavior` — for requests implementing `IOwned` (`UserId`, `ItemId`): loads the `ToDoItem`, throws `ToDoItemNotFoundException` (404) or `ResourceForbiddenException` (403).
+3. `AuthorizationBehavior` — for requests implementing `IOwned<TEntity>` (`UserId`, `ResourceId`): loads the entity once through `IOwnershipPolicy<TEntity>` (ID and owner in one query) into the scoped `IResourceContext<TEntity>`, or throws `NotFoundException`. A missing and a foreign resource both return 404, so IDs cannot be probed. `ResourceForbiddenException` (403) is reserved for role checks.
 
-`ExceptionMiddleware` maps exceptions to RFC 7807 ProblemDetails. FluentValidation errors become 400 with grouped `errors`.
+Command handlers take the authorized entity from `IResourceContext<TEntity>`, call its methods, and save through `IApplicationDbContext`. `AuditableEntityInterceptor` stamps `CreatedOn/By` and `UpdatedOn/By` from `TimeProvider` and `ICurrentUser`. `ExceptionMiddleware` maps exceptions to RFC 7807 ProblemDetails. FluentValidation errors become 400 with grouped `errors`; a `DomainException` (violated entity invariant) becomes 400 with the rule as detail.
 
 Auth follows the same flow: `AuthController` injects only `IMediator` and sends the commands in `Application/Commands/Auth/`, whose handlers use `IIdentityService` and `ITokenService` (implemented in Infrastructure). Every failed login or refresh throws `AuthenticationFailedException`, which becomes one generic 401; register, forgot-password and reset-password return the same 202 body whether or not the email has an account. Keep it that way: no auth response may reveal whether an account exists. `tests/Insequens.Api.Tests/Auth/` covers every flow.
 
@@ -57,12 +57,12 @@ Every endpoint requires an authenticated user through the fallback authorization
 ## Adding a feature (today's conventions)
 
 1. Command (changes state) or query (reads state)? Create the record in `Application/Commands/{Entity}/` or `Application/Queries/{Entity}/`. Records for requests and DTOs; classes for entities, handlers, validators.
-2. Accesses an existing resource by ID → implement `IOwned`. Creates a resource → include `UserId`, no `IOwned`. `UserId` always comes from the JWT, never from the body.
-3. Handler in the same folder, named `{Verb}{Entity}Handler`. Command handlers construct entities explicitly, use tracked entities, call `SaveChangesAsync(cancellationToken)` once at the end. Query handlers use `AsQueryable()` + LINQ, `AsNoTracking()`, `ProjectTo<TDto>()`, and pass the cancellation token to every EF call.
-4. User input → validator in `Application/Validators/{Entity}/` named `{Request}Validator`. Shape and range only; business rules live in handlers.
-5. New response shape → record in `Domain/Models/{Entity}/`. New read mapping → `Application/Profiles/ToDoItemProfile`. Never use AutoMapper for writes.
+2. A command on an existing resource → implement `IOwned<TEntity>`, mapping `ResourceId` to the ID as the ToDoItem commands do; a new owned entity implements `IOwnedEntity`. A query by ID → filter by `UserId` in its single projected query and throw `NotFoundException` when empty, instead of `IOwned`. Creates a resource → include `UserId`, no `IOwned`. `UserId` always comes from the JWT, never from the body. `OwnedRequestTests` fails if a request carrying an `ItemId` is neither. Void commands implement `IRequest`, not `IRequest<Unit>`.
+3. Handler in the same folder, named `{Verb}{Entity}Handler`. Command handlers create entities with their factory (`ToDoItem.Create`), change them only through their methods, and call `SaveChangesAsync(cancellationToken)` once at the end; invariants live in the entity and throw a `DomainException`. Query handlers use `IApplicationDbContext` + LINQ, `AsNoTracking()`, `ProjectTo<TDto>()`, and pass the cancellation token to every EF call. Handler tests send the request through MediatR on `TestDbContextFactory` (SQLite), not mocks.
+4. User input → validator in `Application/Validators/{Entity}/` named `{Request}Validator`. Shape and range only; business rules live in the entity or handler. A request with no such rule needs no validator and no comment saying so (`docs/insequens-v1-architecture-and-guidelines.md` 12.2).
+5. New request or response shape → record in `Contracts/V1/{Area}/`; a wire enum is a Contracts type with the domain values. New read mapping → `Application/Profiles/`. Never use AutoMapper for writes.
 6. Controller action: inject only `IMediator`, return `IActionResult`. POST → `CreatedAtAction` 201. PATCH/DELETE → 204. GET → 200. Lists return `PaginatedResult<T>`, never a bare list. Add `[ProducesResponseType]` for every status. State-changing actions get `[EnableRateLimiting(RateLimitPolicies.Write)]`.
-7. New exception type → new catch block in `ExceptionMiddleware`.
+7. New exception type → new catch block in `ExceptionMiddleware`. Resource failures derive from `ResourceException` (required `Id`); entity invariants from `DomainException`.
 8. Tests: handler happy path + each error path; validator valid + each invalid field; one HTTP-level test per new endpoint. Name tests `Method_State_Expected`.
 
 ## Hard rules
@@ -72,12 +72,12 @@ Every endpoint requires an authenticated user through the fallback authorization
 - No `.Result`, `.Wait()`, `.GetAwaiter().GetResult()`.
 - No `System.Net.Mail`; email goes through `IEmailSender`, implemented with MailKit. No `Newtonsoft.Json`.
 - No concrete-class injection; depend on interfaces. Controllers inject only `IMediator`.
-- No query methods on the repository; no `SaveChanges` inside the repository.
+- No repository layer: handlers use `IApplicationDbContext`. Entity configuration lives in `Infrastructure/Persistence/Configurations/` as `IEntityTypeConfiguration<T>`.
 - Settings are bound to an options record and validated at startup (`ValidateDataAnnotations().ValidateOnStart()`); never read `IConfiguration[...]` outside `Program.cs`.
 - No secrets, IP addresses, usernames or hostnames other than `localhost` in committed configuration. Development defaults may point at `localhost`; everything else comes from User Secrets or environment variables.
 - File-scoped namespaces; one public type per file; `_camelCase` private fields.
 - Structured logging with named placeholders; never log passwords, tokens or full email addresses.
-- Entities: inherit `AuditableEntity`, `Guid` keys, `Guid UserId` on user data, Fluent API configuration only.
+- Entities: inherit `AuditableEntity`, `Guid` keys, `Guid UserId` on user data (`IOwnedEntity`), private setters with a static factory and intention-revealing methods, a private parameterless constructor for EF, Fluent API configuration only.
 
 ## Working an `[INS-xxx]` issue
 

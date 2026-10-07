@@ -1,11 +1,14 @@
+using System.Data.Common;
 using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Behaviors;
-using Insequens.Application.Commands;
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Authorization;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Tests.Support;
 using Insequens.Domain.Entities;
 using MediatR;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -45,34 +48,27 @@ public class DependencyInjectionTests
         behaviorRegistrations.Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
-            typeof(OwnershipBehavior<,>));
+            typeof(AuthorizationBehavior<,>));
     }
 
     [Fact]
     public async Task AddApplication_ResolvesPipelineBehaviorsAndExecutesThemInExpectedOrder()
     {
+        using var database = new TestDbContextFactory();
         var trace = new ExecutionTrace();
-        var request = new TestOwnedRequest(Guid.NewGuid(), Guid.NewGuid(), "example");
-        var repository = Substitute.For<IRepository<ToDoItem>>();
-        var dataContext = Substitute.For<IDataContext>();
-        var services = CreateApplicationServiceCollection(trace, dataContext);
+        var userId = Guid.NewGuid();
+        var item = await database.SeedItemAsync(userId);
+        var request = new TestOwnedRequest(userId, item.Id, "example");
+        var services = new ServiceCollection();
 
-        repository.FindAsync(request.ItemId).Returns(_ =>
-        {
-            trace.Steps.Add("ownership");
-            return Task.FromResult<ToDoItem?>(new ToDoItem
-            {
-                Id = request.ItemId,
-                UserId = request.UserId,
-            });
-        });
-        dataContext.GetRepository<ToDoItem>().Returns(repository);
-
+        services.AddSingleton(trace);
+        services.AddSingleton(typeof(ILogger<>), typeof(CapturingLogger<>));
+        services.AddScoped<IApplicationDbContext>(_ => database.CreateContext(new QueryTracingInterceptor(trace)));
         services.AddApplication();
         services.AddTransient<IRequestHandler<TestOwnedRequest, string>, TestOwnedRequestHandler>();
         services.AddTransient<IValidator<TestOwnedRequest>, TestOwnedRequestValidator>();
 
-        using var serviceProvider = services.BuildServiceProvider();
+        await using var serviceProvider = services.BuildServiceProvider();
 
         var behaviors = serviceProvider
             .GetServices<IPipelineBehavior<TestOwnedRequest, string>>()
@@ -82,7 +78,7 @@ public class DependencyInjectionTests
         behaviors.Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
-            typeof(OwnershipBehavior<,>));
+            typeof(AuthorizationBehavior<,>));
 
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -92,29 +88,16 @@ public class DependencyInjectionTests
         trace.Steps.Should().Equal(
             "log:Handling TestOwnedRequest",
             "validation",
-            "ownership",
+            "query",
             "handler",
             "log:Handled TestOwnedRequest");
-        await repository.Received(1).FindAsync(request.ItemId);
     }
 
-    private static ServiceCollection CreateApplicationServiceCollection(
-        ExecutionTrace? trace = null,
-        IDataContext? dataContext = null)
+    private static ServiceCollection CreateApplicationServiceCollection()
     {
         var services = new ServiceCollection();
-
-        if (trace is not null)
-        {
-            services.AddSingleton(trace);
-            services.AddSingleton(typeof(ILogger<>), typeof(CapturingLogger<>));
-        }
-        else
-        {
-            services.AddLogging();
-        }
-
-        services.AddSingleton(dataContext ?? Substitute.For<IDataContext>());
+        services.AddLogging();
+        services.AddScoped(_ => Substitute.For<IApplicationDbContext>());
 
         return services;
     }
@@ -124,7 +107,7 @@ public class DependencyInjectionTests
         public List<string> Steps { get; } = [];
     }
 
-    private sealed record TestOwnedRequest(Guid UserId, Guid ItemId, string Name) : IRequest<string>, IOwned;
+    private sealed record TestOwnedRequest(Guid UserId, Guid ResourceId, string Name) : IRequest<string>, IOwned<ToDoItem>;
 
     private sealed class TestOwnedRequestHandler(ExecutionTrace trace) : IRequestHandler<TestOwnedRequest, string>
     {
@@ -140,6 +123,20 @@ public class DependencyInjectionTests
         public TestOwnedRequestValidator(ExecutionTrace trace)
         {
             RuleFor(request => request.Name).Custom((_, _) => trace.Steps.Add("validation"));
+        }
+    }
+
+    /// <summary>Records each database read, which is how the ownership check shows up in the trace.</summary>
+    private sealed class QueryTracingInterceptor(ExecutionTrace trace) : DbCommandInterceptor
+    {
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            trace.Steps.Add("query");
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
         }
     }
 

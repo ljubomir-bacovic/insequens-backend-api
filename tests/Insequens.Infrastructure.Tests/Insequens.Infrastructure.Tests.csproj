@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Infrastructure\Insequens.Infrastructure.DataAccess\Insequens.Infrastructure.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\Insequens.Infrastructure\Insequens.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

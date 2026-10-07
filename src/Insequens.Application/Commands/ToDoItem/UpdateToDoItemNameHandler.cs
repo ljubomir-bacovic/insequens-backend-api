@@ -1,22 +1,20 @@
-using Insequens.Application.Exceptions;
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Authorization;
 using MediatR;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class UpdateToDoItemNameHandler(IDataContext dataContext)
-    : IRequestHandler<UpdateToDoItemNameCommand, Unit>
+public class UpdateToDoItemNameHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
+    : IRequestHandler<UpdateToDoItemNameCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemNameCommand request,
         CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = await repository.FindAsync(request.ItemId)
-            ?? throw new ToDoItemNotFoundException(request.ItemId);
-        item.Name = request.Name;
-        await dataContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
+        var item = toDoItem.Resource;
+
+        item.Rename(request.Name);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

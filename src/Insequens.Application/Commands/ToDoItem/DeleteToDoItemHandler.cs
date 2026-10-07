@@ -1,18 +1,20 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Authorization;
 using MediatR;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class DeleteToDoItemHandler(IDataContext dataContext)
-    : IRequestHandler<DeleteToDoItemCommand, Unit>
+public class DeleteToDoItemHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
+    : IRequestHandler<DeleteToDoItemCommand>
 {
-    public async Task<Unit> Handle(DeleteToDoItemCommand request, CancellationToken cancellationToken)
+    public async Task Handle(
+        DeleteToDoItemCommand request,
+        CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = (await repository.FindAsync(request.ItemId))!;
-        repository.Remove(item);
-        await dataContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
+        var item = toDoItem.Resource;
+
+        dbContext.ToDoItems.Remove(item);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

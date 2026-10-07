@@ -1,25 +1,26 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Insequens.Domain.DataAccess;
-using Insequens.Domain.Model.ToDoItem;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Exceptions;
+using Insequens.Contracts.V1.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Queries.ToDoItem;
 
-public class GetToDoItemHandler(IDataContext dataContext, IMapper mapper)
+public class GetToDoItemHandler(IApplicationDbContext dbContext, IMapper mapper)
     : IRequestHandler<GetToDoItemQuery, ToDoItemGetDetailsModel>
 {
     public async Task<ToDoItemGetDetailsModel> Handle(
         GetToDoItemQuery request,
         CancellationToken cancellationToken)
     {
-        return await dataContext.GetRepository<ToDoItemEntity>()
-            .AsQueryable()
-            .Where(item => item.Id == request.ItemId)
+        return await dbContext.ToDoItems
             .AsNoTracking()
+            .Where(item => item.Id == request.ItemId && item.UserId == request.UserId)
             .ProjectTo<ToDoItemGetDetailsModel>(mapper.ConfigurationProvider)
-            .FirstAsync(cancellationToken);
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? throw new NotFoundException(typeof(ToDoItemEntity).Name, request.ItemId);
     }
 }

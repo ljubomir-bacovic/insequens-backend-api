@@ -1,5 +1,5 @@
 using FluentValidation;
-using Insequens.Domain.Models.Auth;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Application.Validators.Auth;
 

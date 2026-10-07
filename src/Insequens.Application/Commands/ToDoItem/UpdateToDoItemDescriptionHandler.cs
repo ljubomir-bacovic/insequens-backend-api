@@ -1,20 +1,20 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Authorization;
 using MediatR;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class UpdateToDoItemDescriptionHandler(IDataContext dataContext)
-    : IRequestHandler<UpdateToDoItemDescriptionCommand, Unit>
+public class UpdateToDoItemDescriptionHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
+    : IRequestHandler<UpdateToDoItemDescriptionCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemDescriptionCommand request,
         CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = (await repository.FindAsync(request.ItemId))!;
-        item.Description = request.Description;
-        await dataContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
+        var item = toDoItem.Resource;
+
+        item.UpdateDescription(request.Description);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

@@ -1,20 +1,21 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Authorization;
+using Insequens.Application.Profiles;
 using MediatR;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class UpdateToDoItemPriorityHandler(IDataContext dataContext)
-    : IRequestHandler<UpdateToDoItemPriorityCommand, Unit>
+public class UpdateToDoItemPriorityHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
+    : IRequestHandler<UpdateToDoItemPriorityCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemPriorityCommand request,
         CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = (await repository.FindAsync(request.ItemId))!;
-        item.Priority = request.Priority;
-        await dataContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
+        var item = toDoItem.Resource;
+
+        item.ChangePriority(request.Priority.ToDomain());
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

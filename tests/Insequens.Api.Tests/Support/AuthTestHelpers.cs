@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
 using Microsoft.AspNetCore.WebUtilities;
+using Insequens.Contracts.V1.Auth;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Api.Tests.Support;
 

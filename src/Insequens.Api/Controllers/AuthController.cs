@@ -1,12 +1,12 @@
 using System.Security.Claims;
 using Insequens.Api.RateLimiting;
 using Insequens.Application.Commands.Auth;
-using Insequens.Domain.Models.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Api.Controllers;
 

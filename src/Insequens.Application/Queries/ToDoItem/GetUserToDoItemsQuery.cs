@@ -1,6 +1,6 @@
-using Insequens.Application.Models;
-using Insequens.Domain.Model.ToDoItem;
 using MediatR;
+using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V1;
 
 namespace Insequens.Application.Queries.ToDoItem;
 

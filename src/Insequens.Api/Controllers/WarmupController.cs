@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Insequens.Domain.Data;
+using Insequens.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Insequens.Api.Controllers;

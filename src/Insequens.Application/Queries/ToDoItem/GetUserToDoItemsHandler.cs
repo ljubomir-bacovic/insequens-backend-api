@@ -1,23 +1,22 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Insequens.Application.Models;
-using Insequens.Domain.DataAccess;
-using Insequens.Domain.Model.ToDoItem;
+using Insequens.Application.Abstractions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
+using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V1;
 
 namespace Insequens.Application.Queries.ToDoItem;
 
-public class GetUserToDoItemsHandler(IDataContext dataContext, IMapper mapper)
+public class GetUserToDoItemsHandler(IApplicationDbContext dbContext, IMapper mapper)
     : IRequestHandler<GetUserToDoItemsQuery, PaginatedResult<ToDoItemGetListModel>>
 {
     public async Task<PaginatedResult<ToDoItemGetListModel>> Handle(
         GetUserToDoItemsQuery request,
         CancellationToken cancellationToken)
     {
-        var query = dataContext.GetRepository<ToDoItemEntity>()
-            .AsQueryable()
+        var query = dbContext.ToDoItems
+            .AsNoTracking()
             .Where(x => x.UserId == request.UserId && x.IsCompleted == request.IsCompleted);
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -27,7 +26,6 @@ public class GetUserToDoItemsHandler(IDataContext dataContext, IMapper mapper)
             .ThenBy(x => x.Priority)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .AsNoTracking()
             .ProjectTo<ToDoItemGetListModel>(mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 

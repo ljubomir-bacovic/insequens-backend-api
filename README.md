@@ -15,7 +15,7 @@ A task management Web API built with .NET 10, CQRS with MediatR, and Clean Archi
 - MailKit (transactional email)
 - Serilog (structured logging)
 - Scalar (OpenAPI documentation)
-- xUnit + FluentAssertions + NSubstitute (testing)
+- xUnit + FluentAssertions + NSubstitute, SQLite in memory for handler tests (testing)
 
 ## Solution Structure
 
@@ -23,14 +23,14 @@ A task management Web API built with .NET 10, CQRS with MediatR, and Clean Archi
 Insequens.sln
 ├── src/
 │   ├── Insequens.Api                    → Controllers, middleware, DI composition root
-│   ├── Insequens.Application            → Commands, queries, handlers, validators, behaviors
-│   ├── Insequens.Domain                 → Entities, enums, DTOs, data access interfaces
-│   └── Infrastructure/
-│       ├── Insequens.Infrastructure.Data         → EF Core DbContext, Identity, migrations
-│       └── Insequens.Infrastructure.DataAccess   → Generic Repository<T>, DataContext (UoW), email, identity and tokens
+│   ├── Insequens.Contracts              → Request/response records shared with clients (no dependencies)
+│   ├── Insequens.Application            → Commands, queries, handlers, validators, behaviors, authorization, interfaces
+│   ├── Insequens.Domain                 → Entities with behaviour and invariants, enums, domain exceptions
+│   └── Insequens.Infrastructure         → EF Core DbContext, configurations, interceptors, migrations, Identity, tokens, email
 ├── tests/
-│   ├── Insequens.Application.Tests      → Handler + validator + behavior unit tests
-│   ├── Insequens.Infrastructure.Tests   → DataContext, email, JWT unit tests
+│   ├── Insequens.Domain.Tests           → Entity behaviour and invariants
+│   ├── Insequens.Application.Tests      → Handlers, validators, behaviors and authorization on SQLite in memory
+│   ├── Insequens.Infrastructure.Tests   → Audit interceptor, email, JWT, source and dependency guards
 │   └── Insequens.Api.Tests              → Integration tests (WebApplicationFactory)
 └── docs/
     ├── insequens-v1-architecture-and-guidelines.md          → Full architecture & coding guidelines reference
@@ -44,7 +44,7 @@ The system follows Clean Architecture with CQRS. Every operation is a discrete c
 
 1. **LoggingBehavior** — logs request name and elapsed time for every operation.
 2. **ValidationBehavior** — runs FluentValidation validators before the handler executes.
-3. **OwnershipBehavior** — verifies the requesting user owns the resource via the `IOwned` marker interface.
+3. **AuthorizationBehavior** — for requests marked `IOwned<TEntity>`, loads the resource once, filtered by its owner, and hands it to the handler. A resource that is missing or belongs to someone else returns `404`.
 
 Controllers are thin HTTP adapters that inject only `IMediator`, extract the user ID from JWT claims, and return `IActionResult`.
 
@@ -76,7 +76,7 @@ See [docs/insequens-v1-architecture-and-guidelines.md](docs/insequens-v1-archite
 3. Restore the EF Core tools and apply migrations:
    ```
    dotnet tool restore
-   dotnet ef database update --project src/Infrastructure/Insequens.Infrastructure.Data --startup-project src/Insequens.Api
+   dotnet ef database update --project src/Insequens.Infrastructure --startup-project src/Insequens.Api
    ```
 
 4. Run the API:
@@ -131,6 +131,8 @@ Five failed logins lock the account for five minutes. Auth endpoints are rate-li
 | PATCH | `/v1/todoitem/{id}/name` | Update name |
 | PATCH | `/v1/todoitem/{id}/description` | Update description |
 | PATCH | `/v1/todoitem/{id}/duedate` | Update due date |
+
+A task that does not exist and a task owned by another user both return `404`. A name over 200 characters or a description over 4000 characters returns `400`.
 
 ## Project References
 

@@ -1,11 +1,11 @@
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Behaviors;
-using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
 using Insequens.Application.Validators.ToDoItem;
-using Insequens.Domain.Model.ToDoItem;
 using MediatR;
+using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V1;
 
 namespace Insequens.Application.Tests.Behaviors;
 
@@ -101,7 +101,42 @@ public class ValidationBehaviorTests
         nextCalled.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Handle_WithSeveralAsyncValidators_RunsThemOneAtATime()
+    {
+        var log = new List<string>();
+        var behavior = new ValidationBehavior<TestRequest, Unit>(
+            [new RecordingValidator("first", log), new RecordingValidator("second", log)]);
+
+        await behavior.Handle(new TestRequest("Name", 1), _ => Task.FromResult(Unit.Value), CancellationToken.None);
+
+        log.Should().Equal("first started", "first finished", "second started", "second finished");
+    }
+
     private sealed record TestRequest(string Name, int Quantity) : IRequest<Unit>;
+
+    private sealed class RecordingValidator : AbstractValidator<TestRequest>
+    {
+        public RecordingValidator(string name, List<string> log)
+        {
+            RuleFor(request => request.Name).MustAsync(async (_, cancellationToken) =>
+            {
+                lock (log)
+                {
+                    log.Add($"{name} started");
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(20), cancellationToken);
+
+                lock (log)
+                {
+                    log.Add($"{name} finished");
+                }
+
+                return true;
+            });
+        }
+    }
 
     private sealed class TestRequestValidator : AbstractValidator<TestRequest>
     {

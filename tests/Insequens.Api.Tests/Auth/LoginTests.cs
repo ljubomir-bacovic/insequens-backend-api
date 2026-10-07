@@ -3,8 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using Insequens.Api.Tests.Support;
-using Insequens.Domain.Models.Auth;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Insequens.Contracts.V1.Auth;
 using static Insequens.Api.Tests.Support.AuthTestHelpers;
 
 namespace Insequens.Api.Tests.Auth;

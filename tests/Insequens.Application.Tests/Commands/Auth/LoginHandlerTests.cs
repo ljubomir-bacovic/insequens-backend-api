@@ -2,10 +2,10 @@ using System.Security.Claims;
 using FluentAssertions;
 using Insequens.Application.Commands.Auth;
 using Insequens.Application.Exceptions;
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Insequens.Contracts.V1.Auth;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Application.Tests.Commands.Auth;
 

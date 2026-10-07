@@ -5,9 +5,9 @@ using System.Text;
 using System.Text.Json;
 using FluentAssertions;
 using Insequens.Api.Tests.Support;
-using Insequens.Domain.Models.Auth;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Insequens.Contracts.V1.Auth;
 using static Insequens.Api.Tests.Support.AuthTestHelpers;
 
 namespace Insequens.Api.Tests.Auth;

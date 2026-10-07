@@ -1,20 +1,28 @@
-using Insequens.Domain.DataAccess;
+using Insequens.Application.Abstractions;
+using Insequens.Application.Authorization;
 using MediatR;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class ToggleToDoItemCompleteHandler(IDataContext dataContext)
-    : IRequestHandler<ToggleToDoItemCompleteCommand, Unit>
+public class ToggleToDoItemCompleteHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
+    : IRequestHandler<ToggleToDoItemCompleteCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         ToggleToDoItemCompleteCommand request,
         CancellationToken cancellationToken)
     {
-        var repository = dataContext.GetRepository<ToDoItemEntity>();
-        var item = (await repository.FindAsync(request.ItemId))!;
-        item.IsCompleted = !item.IsCompleted;
-        await dataContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
+        var item = toDoItem.Resource;
+
+        if (item.IsCompleted)
+        {
+            item.Reopen();
+        }
+        else
+        {
+            item.MarkCompleted();
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

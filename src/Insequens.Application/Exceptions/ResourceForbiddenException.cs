@@ -1,30 +1,7 @@
-using System.Runtime.Serialization;
-
 namespace Insequens.Application.Exceptions;
 
-[Serializable]
-public class ResourceForbiddenException : Exception
-{
-    public Guid Id { get; }
-
-    public ResourceForbiddenException(Guid id)
-        : base($"Access denied for resource {id}.")
-    {
-        Id = id;
-    }
-
-    [Obsolete("Binary serialization is obsolete and should not be used.")]
-    protected ResourceForbiddenException(SerializationInfo info, StreamingContext context) : base(info, context)
-    {
-        Id = (Guid)(info.GetValue(nameof(Id), typeof(Guid)) ?? Guid.Empty);
-    }
-
-    [Obsolete("Binary serialization is obsolete and should not be used.")]
-    public override void GetObjectData(SerializationInfo info, StreamingContext context)
-    {
-        ArgumentNullException.ThrowIfNull(info);
-
-        info.AddValue(nameof(Id), Id);
-        base.GetObjectData(info, context);
-    }
-}
+/// <summary>
+/// The caller can see the resource but lacks the role for this action (403). Ownership failures are a
+/// <see cref="NotFoundException"/> instead.
+/// </summary>
+public sealed class ResourceForbiddenException(Guid id) : ResourceException($"Access denied for resource {id}.", id);
