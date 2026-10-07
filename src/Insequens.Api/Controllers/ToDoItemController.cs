@@ -110,7 +110,7 @@ public class ToDoItemController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly? date, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
         {

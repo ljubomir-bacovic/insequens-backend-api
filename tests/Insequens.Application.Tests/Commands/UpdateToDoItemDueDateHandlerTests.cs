@@ -11,9 +11,9 @@ public sealed class UpdateToDoItemDueDateHandlerTests : IDisposable
 
     public static TheoryData<DateOnly> DueDates =>
     [
-        DateOnly.MinValue,
+        new DateOnly(2016, 3, 1),
         new DateOnly(2026, 1, 1),
-        DateOnly.MaxValue,
+        new DateOnly(2036, 3, 1),
     ];
 
     public void Dispose() => _database.Dispose();
@@ -28,6 +28,29 @@ public sealed class UpdateToDoItemDueDateHandlerTests : IDisposable
         await _database.SendAsync(new UpdateToDoItemDueDateCommand(item.Id, userId, dueDate));
 
         (await _database.FindItemAsync(item.Id))!.DueDate.Should().Be(dueDate);
+    }
+
+    [Fact]
+    public async Task Send_WithNullDueDate_ClearsDueDate()
+    {
+        var userId = Guid.NewGuid();
+        var item = await _database.SeedItemAsync(userId, dueDate: new DateOnly(2026, 1, 1));
+
+        await _database.SendAsync(new UpdateToDoItemDueDateCommand(item.Id, userId, null));
+
+        (await _database.FindItemAsync(item.Id))!.DueDate.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Send_WithDueDateOutOfRange_ThrowsValidationExceptionAndKeepsDueDate()
+    {
+        var userId = Guid.NewGuid();
+        var item = await _database.SeedItemAsync(userId, dueDate: new DateOnly(2026, 1, 1));
+
+        var action = () => _database.SendAsync(new UpdateToDoItemDueDateCommand(item.Id, userId, DateOnly.MaxValue));
+
+        await action.Should().ThrowAsync<FluentValidation.ValidationException>();
+        (await _database.FindItemAsync(item.Id))!.DueDate.Should().Be(new DateOnly(2026, 1, 1));
     }
 
     [Fact]
