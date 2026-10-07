@@ -59,7 +59,7 @@ public class RefreshTokenTests
         {
             Issuer = InsequensApiFactory.JwtIssuer,
             Audience = InsequensApiFactory.JwtAudience,
-            Subject = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.NameId, user.Id)]),
+            Subject = new ClaimsIdentity([new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString())]),
             Expires = DateTime.UtcNow.AddMinutes(5),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes("an-attacker-signing-key-of-32-characters")),

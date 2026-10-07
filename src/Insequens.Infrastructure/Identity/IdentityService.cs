@@ -146,7 +146,7 @@ public sealed class IdentityService(
         Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)));
 
     private static AuthUser ToAuthUser(ApplicationUser user) =>
-        new(Guid.Parse(user.Id), user.Email ?? string.Empty);
+        new(user.Id, user.Email ?? string.Empty);
 
     private async Task<ApplicationUser?> FindUserAsync(Guid userId, CancellationToken cancellationToken)
     {

@@ -104,7 +104,7 @@ public class LoginTests
         (accessToken.ValidTo - accessToken.IssuedAt).Should().Be(TimeSpan.FromMinutes(15));
         accessToken.Issuer.Should().Be(InsequensApiFactory.JwtIssuer);
         accessToken.Audiences.Should().Equal(InsequensApiFactory.JwtAudience);
-        accessToken.GetClaim(JwtRegisteredClaimNames.NameId).Value.Should().Be(user.Id);
+        accessToken.GetClaim(JwtRegisteredClaimNames.NameId).Value.Should().Be(user.Id.ToString());
         accessToken.GetClaim(JwtRegisteredClaimNames.UniqueName).Value.Should().Be(Email);
         accessToken.Alg.Should().Be("HS256");
     }

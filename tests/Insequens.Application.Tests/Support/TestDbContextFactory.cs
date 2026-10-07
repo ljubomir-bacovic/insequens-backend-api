@@ -1,5 +1,6 @@
 using Insequens.Application.Abstractions;
 using Insequens.Domain.Entities;
+using Insequens.Infrastructure.Identity;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Infrastructure.Persistence.Interceptors;
 using MediatR;
@@ -74,6 +75,7 @@ public sealed class TestDbContextFactory : IDisposable
         DateOnly? dueDate = null,
         bool isCompleted = false)
     {
+        await SeedUserAsync(userId);
         var item = ToDoItem.Create(userId, name, description, priority, dueDate);
         if (isCompleted)
         {
@@ -85,6 +87,19 @@ public sealed class TestDbContextFactory : IDisposable
         await context.SaveChangesAsync(CancellationToken.None);
 
         return item;
+    }
+
+    /// <summary>Adds the account that owned items reference by foreign key, unless it already exists.</summary>
+    public async Task SeedUserAsync(Guid userId)
+    {
+        await using var context = CreateContext();
+        if (await context.Users.AnyAsync(user => user.Id == userId))
+        {
+            return;
+        }
+
+        context.Users.Add(new ApplicationUser { Id = userId, UserName = $"{userId}@example.com", Email = $"{userId}@example.com" });
+        await context.SaveChangesAsync(CancellationToken.None);
     }
 
     public async Task<ToDoItem?> FindItemAsync(Guid itemId)

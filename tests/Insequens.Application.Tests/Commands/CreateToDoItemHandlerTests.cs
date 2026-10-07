@@ -18,6 +18,7 @@ public sealed class CreateToDoItemHandlerTests : IDisposable
     public async Task Send_WithValidCommand_PersistsItemAndReturnsDetails()
     {
         var userId = Guid.NewGuid();
+        await _database.SeedUserAsync(userId);
         _database.CurrentUser.UserId = userId;
         var request = new CreateToDoItemCommand("Task", "Description", 2, new DateOnly(2026, 1, 1), userId);
 

@@ -12,7 +12,7 @@ The v1 modernisation (Phases 1–4) is complete. The v2 transformation is tracke
 
 ```
 dotnet build                                   # whole solution
-dotnet test                                    # all tests (xUnit); no Docker needed yet
+dotnet test                                    # all tests (xUnit); Docker must be running for the SQL Server migration tests
 dotnet test tests/Insequens.Domain.Tests       # fastest: entity rules only
 dotnet test tests/Insequens.Application.Tests  # handlers through the pipeline on SQLite in memory
 dotnet run --project src/Insequens.Api         # API on http://localhost:5008, Scalar UI at /scalar/v1 in Development
@@ -33,7 +33,7 @@ src/Insequens.Domain                 Entities/ (behaviour and invariants), Types
 src/Insequens.Infrastructure         Persistence/ (InsequensContext, Configurations/, Interceptors/), Identity/ (ApplicationUser, IdentityService, TokenService, JWT options, key ring), Email/ (MailKit), Migrations/
 tests/Insequens.Domain.Tests         Entity behaviour and invariants
 tests/Insequens.Application.Tests    Handlers, validators, behaviors and authorization through MediatR on SQLite in memory (Support/TestDbContextFactory)
-tests/Insequens.Infrastructure.Tests Audit interceptor, email sender, JWT options/key ring/token service, source guard and project dependency tests
+tests/Insequens.Infrastructure.Tests Audit interceptor, email sender, JWT options/key ring/token service, migrations on SQL Server in Testcontainers (Persistence/Migrations), source guard and project dependency tests
 tests/Insequens.Api.Tests            WebApplicationFactory tests (Support/InsequensApiFactory on EF InMemory, or SQLite to observe SQL), Auth/ flows, ToDoItems/, security and rate-limit tests
 docs/                                architecture guidelines, v1 plan, v2 assessment
 ```

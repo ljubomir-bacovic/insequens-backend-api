@@ -87,7 +87,7 @@ public class ProgramStartupTests
 
         serviceProvider.GetRequiredService<UserManager<ApplicationUser>>().Should().NotBeNull();
         serviceProvider.GetRequiredService<SignInManager<ApplicationUser>>().Should().NotBeNull();
-        serviceProvider.GetRequiredService<RoleManager<IdentityRole>>().Should().NotBeNull();
+        serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>().Should().NotBeNull();
     }
 
     [Fact]
