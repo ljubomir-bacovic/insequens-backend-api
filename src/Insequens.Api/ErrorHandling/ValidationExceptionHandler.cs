@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Insequens.Api.ErrorHandling;
 
 /// <summary>FluentValidation failures as 400 with the messages grouped by property under <c>errors</c>.</summary>
-public sealed class ValidationExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<ValidationExceptionHandler> logger)
-    : ExceptionProblemHandler<ValidationException>(problemDetailsService)
+public sealed class ValidationExceptionHandler(ILogger<ValidationExceptionHandler> logger)
+    : ExceptionProblemHandler<ValidationException>
 {
     private const string ModelLevelErrorKey = "";
 

@@ -4,9 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Insequens.Api.ErrorHandling;
 
 public sealed class PreconditionFailedExceptionHandler(
-    IProblemDetailsService problemDetailsService,
     ILogger<PreconditionFailedExceptionHandler> logger)
-    : ExceptionProblemHandler<PreconditionFailedException>(problemDetailsService)
+    : ExceptionProblemHandler<PreconditionFailedException>
 {
     public const string Title = "The resource has changed.";
 

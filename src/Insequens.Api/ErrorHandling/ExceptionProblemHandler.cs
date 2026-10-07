@@ -4,10 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 namespace Insequens.Api.ErrorHandling;
 
 /// <summary>
-/// Turns one exception type into a ProblemDetails response. <see cref="IProblemDetailsService"/> writes it, so
-/// every error carries the same <c>traceId</c> and <c>instance</c> as framework-generated problems.
+/// Turns one exception type into a ProblemDetails response, written by <see cref="ProblemResponses"/> so every
+/// error carries the same <c>traceId</c> and <c>instance</c> as framework-generated problems.
 /// </summary>
-public abstract class ExceptionProblemHandler<TException>(IProblemDetailsService problemDetailsService) : IExceptionHandler
+public abstract class ExceptionProblemHandler<TException> : IExceptionHandler
     where TException : Exception
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -17,15 +17,9 @@ public abstract class ExceptionProblemHandler<TException>(IProblemDetailsService
             return false;
         }
 
-        var problem = CreateProblem(typedException);
-        httpContext.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
+        await ProblemResponses.WriteAsync(httpContext, CreateProblem(typedException), exception, cancellationToken);
 
-        return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
-        {
-            HttpContext = httpContext,
-            ProblemDetails = problem,
-            Exception = exception,
-        });
+        return true;
     }
 
     /// <summary>Logs the failure and describes it; the status, type and title are required.</summary>

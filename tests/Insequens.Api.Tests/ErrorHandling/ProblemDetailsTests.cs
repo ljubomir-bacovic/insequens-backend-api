@@ -138,6 +138,42 @@ public class ProblemDetailsTests
             .Should().Be("Message: Secret failure detail. Inner Exception: Inner secret.");
     }
 
+    [Theory]
+    [InlineData("not-found", HttpStatusCode.NotFound)]
+    [InlineData("validation", HttpStatusCode.BadRequest)]
+    [InlineData("unhandled", HttpStatusCode.InternalServerError)]
+    public async Task Exception_WhenTheClientAcceptsOnlyText_IsStillProblemDetailsWithItsStatus(string kind, HttpStatusCode status)
+    {
+        await using var factory = CreateFactory();
+        using var client = factory.CreateHttpsClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/test/throw/{kind}");
+        request.Headers.Accept.ParseAdd("text/plain");
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(status);
+        response.Content.Headers.ContentType!.MediaType.Should().Be(ProblemJson);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        json.RootElement.GetProperty("status").GetInt32().Should().Be((int)status);
+        json.RootElement.GetProperty("instance").GetString().Should().Be($"/test/throw/{kind}");
+        json.RootElement.GetProperty("traceId").GetString().Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task OpenApiDocument_DescribesErrorsAsProblemJsonWithTraceId()
+    {
+        await using var factory = new InsequensApiFactory();
+        using var client = factory.CreateHttpsClient();
+
+        using var json = JsonDocument.Parse(await client.GetStringAsync("/openapi/v1.json"));
+
+        var errorResponse = json.RootElement.GetProperty("paths").GetProperty("/v1/ToDoItem/{id}")
+            .GetProperty("get").GetProperty("responses").GetProperty("404");
+        errorResponse.GetProperty("content").EnumerateObject().Select(media => media.Name).Should().Equal(ProblemJson);
+        json.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("ProblemDetails")
+            .GetProperty("properties").TryGetProperty("traceId", out _).Should().BeTrue();
+    }
+
     [Fact]
     public async Task ErrorResponse_KeepsTheSecurityHeaders()
     {

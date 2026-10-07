@@ -43,6 +43,21 @@ public class RateLimitRejectionTests
     }
 
     [Fact]
+    public async Task WriteAsync_WhenTheClientAcceptsOnlyText_StillWritesProblemJson()
+    {
+        var context = CreateHttpContext(new FakeLogCollector());
+        context.Request.Headers.Accept = "text/plain";
+
+        await RateLimitRejection.WriteAsync(context, retryAfter: null, "user:1", CancellationToken.None);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status429TooManyRequests);
+        context.Response.ContentType.Should().StartWith("application/problem+json");
+        context.Response.Body.Position = 0;
+        using var body = await JsonDocument.ParseAsync(context.Response.Body);
+        body.RootElement.GetProperty("type").GetString().Should().Be("urn:insequens:error:rate-limited");
+    }
+
+    [Fact]
     public async Task WriteAsync_WithoutRetryAfter_OmitsHeader()
     {
         var context = CreateHttpContext(new FakeLogCollector());

@@ -108,7 +108,7 @@ Never commit real credentials, hostnames or IP addresses to configuration files.
 
 ## API Endpoints
 
-All endpoints are under `/v1/` and require JWT authentication unless noted. Responses carry `api-supported-versions`. Errors are `application/problem+json` with a stable `type` (`urn:insequens:error:...`) and a `traceId`.
+Endpoints are versioned by URL segment (`/v1/`, `/v2/`) and require JWT authentication unless noted. Responses carry `api-supported-versions`. Errors are `application/problem+json` with a stable `type` (`urn:insequens:error:...`) and a `traceId`.
 
 ### Auth (no auth required)
 

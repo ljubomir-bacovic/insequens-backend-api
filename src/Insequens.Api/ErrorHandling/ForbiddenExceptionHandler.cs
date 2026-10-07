@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.ErrorHandling;
 
-public sealed class ForbiddenExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<ForbiddenExceptionHandler> logger)
-    : ExceptionProblemHandler<ForbiddenException>(problemDetailsService)
+public sealed class ForbiddenExceptionHandler(ILogger<ForbiddenExceptionHandler> logger)
+    : ExceptionProblemHandler<ForbiddenException>
 {
     protected override ProblemDetails CreateProblem(ForbiddenException exception)
     {

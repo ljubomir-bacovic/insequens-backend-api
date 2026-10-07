@@ -4,10 +4,9 @@ namespace Insequens.Api.ErrorHandling;
 
 /// <summary>The last handler: any other exception is a 500, with the message only in Development.</summary>
 public sealed class UnhandledExceptionHandler(
-    IProblemDetailsService problemDetailsService,
     IHostEnvironment environment,
     ILogger<UnhandledExceptionHandler> logger)
-    : ExceptionProblemHandler<Exception>(problemDetailsService)
+    : ExceptionProblemHandler<Exception>
 {
     protected override ProblemDetails CreateProblem(Exception exception)
     {

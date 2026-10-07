@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.ErrorHandling;
 
-public sealed class AuthenticationFailedExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<AuthenticationFailedExceptionHandler> logger)
-    : ExceptionProblemHandler<AuthenticationFailedException>(problemDetailsService)
+public sealed class AuthenticationFailedExceptionHandler(ILogger<AuthenticationFailedExceptionHandler> logger)
+    : ExceptionProblemHandler<AuthenticationFailedException>
 {
     protected override ProblemDetails CreateProblem(AuthenticationFailedException exception)
     {

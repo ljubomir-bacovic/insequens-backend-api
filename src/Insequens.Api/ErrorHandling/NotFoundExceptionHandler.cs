@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.ErrorHandling;
 
-public sealed class NotFoundExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<NotFoundExceptionHandler> logger)
-    : ExceptionProblemHandler<NotFoundException>(problemDetailsService)
+public sealed class NotFoundExceptionHandler(ILogger<NotFoundExceptionHandler> logger)
+    : ExceptionProblemHandler<NotFoundException>
 {
     protected override ProblemDetails CreateProblem(NotFoundException exception)
     {

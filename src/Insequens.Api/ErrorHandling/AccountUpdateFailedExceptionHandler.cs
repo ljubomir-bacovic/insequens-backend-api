@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.ErrorHandling;
 
-public sealed class AccountUpdateFailedExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<AccountUpdateFailedExceptionHandler> logger)
-    : ExceptionProblemHandler<AccountUpdateFailedException>(problemDetailsService)
+public sealed class AccountUpdateFailedExceptionHandler(ILogger<AccountUpdateFailedExceptionHandler> logger)
+    : ExceptionProblemHandler<AccountUpdateFailedException>
 {
     protected override ProblemDetails CreateProblem(AccountUpdateFailedException exception)
     {

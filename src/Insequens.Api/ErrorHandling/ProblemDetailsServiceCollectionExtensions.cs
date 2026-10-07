@@ -12,11 +12,7 @@ public static class ProblemDetailsServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddApiProblemDetails(this IServiceCollection services)
     {
-        services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
-        {
-            context.ProblemDetails.Instance = context.HttpContext.Request.Path;
-            context.ProblemDetails.Extensions[TraceIdKey] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier;
-        });
+        services.AddProblemDetails(options => options.CustomizeProblemDetails = Customize);
 
         // Handlers run in registration order and the first that handles the exception wins.
         services.AddExceptionHandler<NotFoundExceptionHandler>();
@@ -31,5 +27,12 @@ public static class ProblemDetailsServiceCollectionExtensions
         services.AddExceptionHandler<UnhandledExceptionHandler>();
 
         return services;
+    }
+
+    /// <summary>What every problem carries: the request path as <c>instance</c> and a <c>traceId</c>.</summary>
+    public static void Customize(ProblemDetailsContext context)
+    {
+        context.ProblemDetails.Instance = context.HttpContext.Request.Path;
+        context.ProblemDetails.Extensions[TraceIdKey] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier;
     }
 }

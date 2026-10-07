@@ -4,9 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Insequens.Api.ErrorHandling;
 
 public sealed class ConcurrencyConflictExceptionHandler(
-    IProblemDetailsService problemDetailsService,
     ILogger<ConcurrencyConflictExceptionHandler> logger)
-    : ExceptionProblemHandler<ConcurrencyConflictException>(problemDetailsService)
+    : ExceptionProblemHandler<ConcurrencyConflictException>
 {
     protected override ProblemDetails CreateProblem(ConcurrencyConflictException exception)
     {

@@ -21,7 +21,6 @@ public static class RateLimitRejection
             context.Request.Path.Value,
             RateLimitPartitionKey.Hash(partitionKey));
 
-        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
 
         if (retryAfter is { } delay)
         {
@@ -29,16 +28,14 @@ public static class RateLimitRejection
             context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
         }
 
-        await context.RequestServices.GetRequiredService<IProblemDetailsService>().WriteAsync(new ProblemDetailsContext
+        var problem = new ProblemDetails
         {
-            HttpContext = context,
-            ProblemDetails = new ProblemDetails
-            {
-                Status = StatusCodes.Status429TooManyRequests,
-                Type = ProblemTypes.RateLimited,
-                Title = "Too many requests.",
-                Detail = "Try again later.",
-            },
-        });
+            Status = StatusCodes.Status429TooManyRequests,
+            Type = ProblemTypes.RateLimited,
+            Title = "Too many requests.",
+            Detail = "Try again later.",
+        };
+
+        await ProblemResponses.WriteAsync(context, problem, exception: null, cancellationToken);
     }
 }

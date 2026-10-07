@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.ErrorHandling;
 
-public sealed class EmailConfirmationFailedExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<EmailConfirmationFailedExceptionHandler> logger)
-    : ExceptionProblemHandler<EmailConfirmationFailedException>(problemDetailsService)
+public sealed class EmailConfirmationFailedExceptionHandler(ILogger<EmailConfirmationFailedExceptionHandler> logger)
+    : ExceptionProblemHandler<EmailConfirmationFailedException>
 {
     protected override ProblemDetails CreateProblem(EmailConfirmationFailedException exception)
     {

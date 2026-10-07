@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.ErrorHandling;
 
-public sealed class DomainExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<DomainExceptionHandler> logger)
-    : ExceptionProblemHandler<DomainException>(problemDetailsService)
+public sealed class DomainExceptionHandler(ILogger<DomainExceptionHandler> logger)
+    : ExceptionProblemHandler<DomainException>
 {
     protected override ProblemDetails CreateProblem(DomainException exception)
     {
