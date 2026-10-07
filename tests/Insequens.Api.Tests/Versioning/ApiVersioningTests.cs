@@ -7,6 +7,7 @@ using FluentAssertions;
 using Insequens.Api.Controllers;
 using Insequens.Api.Tests.Support;
 using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V2.Tasks;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.Tests.Versioning;
@@ -14,7 +15,7 @@ namespace Insequens.Api.Tests.Versioning;
 public class ApiVersioningTests
 {
     [Fact]
-    public async Task V1AndV2Tasks_ForTheSameData_ReturnTheSameBody()
+    public async Task V1AndV2Tasks_ListTheSameTasksEachInItsOwnContract()
     {
         await using var factory = new InsequensApiFactory();
         using var client = factory.CreateHttpsClient();
@@ -22,11 +23,14 @@ public class ApiVersioningTests
         (await client.PostAsJsonAsync("/v1/ToDoItem", new ToDoItemCreateModel("Task", "Description", 1, null)))
             .EnsureSuccessStatusCode();
 
-        var v1 = await client.GetStringAsync("/v1/ToDoItem");
-        var v2 = await client.GetStringAsync("/v2/Tasks");
+        using var v1 = JsonDocument.Parse(await client.GetStringAsync("/v1/ToDoItem"));
+        using var v2 = JsonDocument.Parse(await client.GetStringAsync("/v2/Tasks"));
 
-        v2.Should().Be(v1);
-        JsonDocument.Parse(v1).RootElement.GetProperty("items").GetArrayLength().Should().Be(1);
+        var v1Task = v1.RootElement.GetProperty("items").EnumerateArray().Should().ContainSingle().Subject;
+        var v2Task = v2.RootElement.GetProperty("items").EnumerateArray().Should().ContainSingle().Subject;
+        v2Task.GetProperty("id").GetGuid().Should().Be(v1Task.GetProperty("id").GetGuid());
+        v1Task.GetProperty("priority").GetInt32().Should().Be(1);
+        v2Task.GetProperty("priority").GetString().Should().Be("high");
     }
 
     [Fact]
@@ -36,10 +40,10 @@ public class ApiVersioningTests
         using var client = factory.CreateHttpsClient();
         client.UseBearer(factory.CreateAccessToken(Guid.NewGuid()));
 
-        var response = await client.PostAsJsonAsync("/v2/Tasks", new ToDoItemCreateModel("Task", null, 0, null));
+        var response = await client.PostAsJsonAsync("/v2/Tasks", new CreateTaskRequest("Task"));
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var created = await response.Content.ReadFromJsonAsync<ToDoItemGetDetailsModel>();
+        var created = await response.Content.ReadFromJsonAsync<TaskResponse>();
         response.Headers.Location!.AbsolutePath.Should().BeEquivalentTo($"/v2/Tasks/{created!.Id}");
         (await client.GetAsync(response.Headers.Location)).StatusCode.Should().Be(HttpStatusCode.OK);
     }

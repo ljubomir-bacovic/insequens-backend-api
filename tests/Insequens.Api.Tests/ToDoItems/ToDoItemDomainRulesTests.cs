@@ -37,7 +37,7 @@ public class ToDoItemDomainRulesTests
     {
         var userId = Guid.NewGuid();
         await using var factory = new InsequensApiFactory();
-        var itemId = await SeedAsync(factory, ToDoItem.Create(userId, "Task", "Original", null, null));
+        var itemId = await SeedAsync(factory, ToDoItem.Create(userId, "Task", "Original", Insequens.Domain.Types.TaskPriority.None, null));
         using var client = factory.CreateHttpsClient();
         client.UseBearer(factory.CreateAccessToken(userId));
 
@@ -75,7 +75,7 @@ public class ToDoItemDomainRulesTests
         var userId = Guid.NewGuid();
         await using var factory = new InsequensApiFactory();
         var today = DateOnly.FromDateTime(factory.Clock.GetUtcNow().UtcDateTime);
-        var itemId = await SeedAsync(factory, ToDoItem.Create(userId, "Task", null, null, today));
+        var itemId = await SeedAsync(factory, ToDoItem.Create(userId, "Task", null, Insequens.Domain.Types.TaskPriority.None, today));
         using var client = factory.CreateHttpsClient();
         client.UseBearer(factory.CreateAccessToken(userId));
 
@@ -94,7 +94,7 @@ public class ToDoItemDomainRulesTests
     {
         var userId = Guid.NewGuid();
         await using var factory = new InsequensApiFactory();
-        var itemId = await SeedAsync(factory, ToDoItem.Create(userId, "Task", null, null, null));
+        var itemId = await SeedAsync(factory, ToDoItem.Create(userId, "Task", null, Insequens.Domain.Types.TaskPriority.None, null));
         using var client = factory.CreateHttpsClient();
         client.UseBearer(factory.CreateAccessToken(userId));
 

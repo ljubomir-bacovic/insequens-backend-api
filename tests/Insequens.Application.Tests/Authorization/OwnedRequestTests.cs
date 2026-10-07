@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Insequens.Application.Authorization;
 using Insequens.Application.Commands.ToDoItem;
+using Insequens.Application.Queries.Tasks;
 using Insequens.Application.Queries.ToDoItem;
 using MediatR;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
@@ -10,7 +11,7 @@ namespace Insequens.Application.Tests.Authorization;
 public class OwnedRequestTests
 {
     /// <summary>Requests that address an item by ID but authorize in their own query, filtered by owner.</summary>
-    private static readonly Type[] OwnerFilteredQueries = [typeof(GetToDoItemQuery)];
+    private static readonly Type[] OwnerFilteredQueries = [typeof(GetToDoItemQuery), typeof(GetTaskQuery)];
 
     [Fact]
     public void RequestsAddressingAnItem_AreOwnedOrFilterByOwner()

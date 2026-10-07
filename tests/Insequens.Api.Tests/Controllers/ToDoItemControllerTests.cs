@@ -289,7 +289,10 @@ public class ToDoItemControllerTests
         mediator.Send(Arg.Any<ToggleToDoItemCompleteCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
+        // The deprecated v1 toggle stays until the mobile app moves to v2, so it keeps its test.
+#pragma warning disable CS0618
         var result = await controller.CompleteToDoItem(itemId, cancellationToken);
+#pragma warning restore CS0618
 
         result.Should().BeOfType<NoContentResult>();
         await mediator.Received(1)

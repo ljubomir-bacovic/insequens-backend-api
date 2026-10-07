@@ -15,17 +15,17 @@ public sealed class UpdateToDoItemPriorityHandlerTests : IDisposable
     public void Dispose() => _database.Dispose();
 
     [Theory]
-    [InlineData(TaskPriority.High)]
-    [InlineData(TaskPriority.Medium)]
-    [InlineData(TaskPriority.Low)]
-    public async Task Send_WithOwnedItem_UpdatesPriority(TaskPriority priority)
+    [InlineData(TaskPriority.High, DomainPriority.High)]
+    [InlineData(TaskPriority.Medium, DomainPriority.Medium)]
+    [InlineData(TaskPriority.Low, DomainPriority.Low)]
+    public async Task Send_WithOwnedItem_UpdatesPriority(TaskPriority priority, DomainPriority expected)
     {
         var userId = Guid.NewGuid();
         var item = await _database.SeedItemAsync(userId);
 
         await _database.SendAsync(new UpdateToDoItemPriorityCommand(item.Id, userId, priority));
 
-        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be((DomainPriority)priority);
+        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(expected);
     }
 
     [Fact]

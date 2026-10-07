@@ -24,20 +24,20 @@ public class ToDoItemTests
     }
 
     [Fact]
-    public void Create_WithOptionalValuesOmitted_LeavesThemNull()
+    public void Create_WithOptionalValuesOmitted_LeavesThemEmpty()
     {
-        var item = ToDoItem.Create(UserId, "Task", null, null, null);
+        var item = ToDoItem.Create(UserId, "Task", null, TaskPriority.None, null);
 
         item.Description.Should().BeNull();
-        item.Priority.Should().BeNull();
+        item.Priority.Should().Be(TaskPriority.None);
         item.DueDate.Should().BeNull();
     }
 
     [Fact]
     public void Create_CalledTwice_GivesDistinctIds()
     {
-        var first = ToDoItem.Create(UserId, "Task", null, null, null);
-        var second = ToDoItem.Create(UserId, "Task", null, null, null);
+        var first = ToDoItem.Create(UserId, "Task", null, TaskPriority.None, null);
+        var second = ToDoItem.Create(UserId, "Task", null, TaskPriority.None, null);
 
         first.Id.Should().NotBe(second.Id);
     }
@@ -48,7 +48,7 @@ public class ToDoItemTests
     [InlineData(null)]
     public void Create_WithoutName_ThrowsInvalidToDoItemNameException(string? name)
     {
-        var action = () => ToDoItem.Create(UserId, name!, null, null, null);
+        var action = () => ToDoItem.Create(UserId, name!, null, TaskPriority.None, null);
 
         action.Should().Throw<InvalidToDoItemNameException>().WithMessage("Task name is required.");
     }
@@ -56,7 +56,7 @@ public class ToDoItemTests
     [Fact]
     public void Create_WithTooLongDescription_ThrowsToDoItemDescriptionTooLongException()
     {
-        var action = () => ToDoItem.Create(UserId, "Task", new string('a', ToDoItem.DescriptionMaxLength + 1), null, null);
+        var action = () => ToDoItem.Create(UserId, "Task", new string('a', ToDoItem.DescriptionMaxLength + 1), TaskPriority.None, null);
 
         action.Should().Throw<ToDoItemDescriptionTooLongException>();
     }
@@ -148,8 +148,8 @@ public class ToDoItemTests
     [Theory]
     [InlineData(TaskPriority.High)]
     [InlineData(TaskPriority.Low)]
-    [InlineData(null)]
-    public void ChangePriority_SetsPriority(TaskPriority? priority)
+    [InlineData(TaskPriority.None)]
+    public void ChangePriority_SetsPriority(TaskPriority priority)
     {
         var item = NewItem();
 

@@ -3,9 +3,10 @@ using Insequens.Application.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
-namespace Insequens.Application.Commands.ToDoItem;
+namespace Insequens.Application.Commands;
 
-internal static class ToDoItemVersioning
+/// <remarks>Shared by the v1 and v2 task commands.</remarks>
+internal static class EntityVersioning
 {
     /// <summary>
     /// Saves a change to <paramref name="item"/> under optimistic concurrency. With an expected version (the

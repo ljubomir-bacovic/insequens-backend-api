@@ -1,3 +1,4 @@
+using Insequens.Domain.Types;
 using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
@@ -265,7 +266,7 @@ public class ProgramStartupTests
         using var scope = factory.Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
         var dbContext = serviceProvider.GetRequiredService<IApplicationDbContext>();
-        var item = ToDoItem.Create(Guid.NewGuid(), "Task", null, null, null);
+        var item = ToDoItem.Create(Guid.NewGuid(), "Task", null, TaskPriority.None, null);
         dbContext.ToDoItems.Add(item);
         await dbContext.SaveChangesAsync(CancellationToken.None);
 
