@@ -73,12 +73,12 @@ The `IOwned<TEntity>` marker + `AuthorizationBehavior` pipeline behavior is the 
 
 **Non-negotiable rule:** Any command that acts on a specific resource by ID MUST implement `IOwned<TEntity>`, and any query by ID MUST filter by `UserId` in its own query. Missing either is a CRITICAL security defect. Flag it immediately. `OwnedRequestTests` fails the build for a request carrying an `ItemId` that does neither.
 
-The AuthorizationBehavior:
+The AuthorizationBehavior runs every `IAuthorizationPolicy<TRequest>` in registration order. The ownership policy:
 1. Resolves the request's scoped `IResourceContext<TEntity>`.
 2. Loads the entity through `IOwnershipPolicy<TEntity>`: one query on `Id == ResourceId && UserId == request.UserId`.
 3. Throws `NotFoundException` (404) when nothing comes back, whether the resource is missing or someone else's, so IDs cannot be probed.
 
-`ResourceForbiddenException` (403) is only for an authenticated caller who can see a resource but lacks the role for an action.
+Before it, the role policy checks `[RequiresRole(...)]` on the request against the user store and throws `ForbiddenException` (403). An admin-only endpoint has both `[RequiresRole(Roles.Admin)]` on its request and `[Authorize(Policy = AuthorizationPolicies.Admin)]` on its controller; flag one without the other. New kinds of authorization (workspace membership, INS-091) are new `IAuthorizationPolicy<TRequest>` implementations, never checks inside handlers.
 
 ## Controller Rules — Flag Violations
 
@@ -160,7 +160,9 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 ## Exception Handling
 
 - `NotFoundException` → 404 (missing or not owned)
-- `ResourceForbiddenException` → 403 (role checks only)
+- `ForbiddenException` → 403 (missing role only)
+- `AuthenticationFailedException` → the same 401 for every login or refresh failure
+- `AccountUpdateFailedException` → 400 with the reason, for a signed-in user's own account changes
 - `DomainException` → 400 with the violated rule as detail
 - `FluentValidation.ValidationException` → 400 with grouped errors
 - Resource exceptions derive from `ResourceException` (required `Id`); entity invariants from `DomainException`. No `[Serializable]` boilerplate.
@@ -171,7 +173,8 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 ## Security Rules
 
 - JWT Bearer with 15-min access tokens, 7-day refresh tokens.
-- Refresh token rotation on every refresh.
+- Refresh tokens are stored only as SHA-256 hashes in `RefreshToken`, one family per login. Rotation on every refresh; reuse of a rotated or revoked token revokes the family.
+- Password reset, password change and email change revoke every session. Changes to a user's own account require the current password.
 - CORS locked to configured origins per environment. `AllowAnyOrigin()` forbidden in production.
 - Login/registration errors MUST NOT reveal whether a user account exists.
 - Exception details MUST NOT be included in non-Development HTTP responses.

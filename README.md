@@ -9,7 +9,9 @@ A task management Web API built with .NET 10, CQRS with MediatR, and Clean Archi
 - MediatR 12 (CQRS command/query pipeline)
 - FluentValidation (automatic input validation via pipeline behavior)
 - ASP.NET Core Identity (user management)
-- JWT Bearer authentication (15-min access tokens, 7-day hashed refresh tokens with rotation, signing key rotation)
+- JWT Bearer authentication (15-min access tokens, 7-day refresh tokens stored as hashes, one session per device with rotation and reuse detection, signing key rotation)
+- Account self-service: change password or email, export data, delete account
+- Admin and Support roles with role-based authorization
 - ASP.NET Core rate limiting, security headers, fallback authorization policy
 - AutoMapper (query projections)
 - MailKit (transactional email)
@@ -44,7 +46,7 @@ The system follows Clean Architecture with CQRS. Every operation is a discrete c
 
 1. **LoggingBehavior** — logs request name and elapsed time for every operation.
 2. **ValidationBehavior** — runs FluentValidation validators before the handler executes.
-3. **AuthorizationBehavior** — for requests marked `IOwned<TEntity>`, loads the resource once, filtered by its owner, and hands it to the handler. A resource that is missing or belongs to someone else returns `404`.
+3. **AuthorizationBehavior** — runs the authorization policies. A request marked `[RequiresRole]` needs that role (`403` otherwise). For requests marked `IOwned<TEntity>`, it loads the resource once, filtered by its owner, and hands it to the handler. A resource that is missing or belongs to someone else returns `404`.
 
 Controllers are thin HTTP adapters that inject only `IMediator`, extract the user ID from JWT claims, and return `IActionResult`.
 
@@ -92,6 +94,8 @@ See [docs/insequens-v1-architecture-and-guidelines.md](docs/insequens-v1-archite
 dotnet test
 ```
 
+Docker must be running: the migration tests in `Insequens.Infrastructure.Tests` start SQL Server in a container.
+
 ## Configuration
 
 Settings come from `appsettings.json` (shape and safe defaults only), `appsettings.{Environment}.json` (localhost values only), User Secrets in Development, and environment variables, in increasing order of precedence. Deployed environments supply every real value through environment variables such as `Jwt__Key` and `Email__SmtpServer`.
@@ -110,11 +114,12 @@ All endpoints are under `/v1/` and require JWT authentication unless noted.
 |--------|-------|-------------|
 | POST | `/v1/auth/register` | Register a new user. Always `202` with the same body, whether or not the email is already registered |
 | GET | `/v1/auth/confirm-email` | Confirm email address |
-| POST | `/v1/auth/login` | Login, returns JWT + refresh token. Every failure is the same `401` |
-| POST | `/v1/auth/refresh-token` | Rotate an expired access token and its refresh token. Every failure is the same `401` |
+| POST | `/v1/auth/login` | Login, returns JWT + refresh token and starts a session. Optional `deviceName`. Every failure is the same `401` |
+| POST | `/v1/auth/refresh-token` | Rotate an expired access token and its refresh token. Reusing an already rotated refresh token ends that session. Every failure is the same `401` |
 | POST | `/v1/auth/forgot-password` | Request a password reset email. Always `202` with the same body |
 | POST | `/v1/auth/reset-password` | Reset password with token. Always `202` with the same body |
-| POST | `/v1/auth/logout` | Invalidate refresh token (auth required) |
+| POST | `/v1/auth/logout` | End this session (auth required) |
+| POST | `/v1/auth/logout-all` | End every session of the user (auth required) |
 
 Five failed logins lock the account for five minutes. Auth endpoints are rate-limited per client and per email address; any endpoint can return `429` with `Retry-After`.
 
@@ -133,6 +138,24 @@ Five failed logins lock the account for five minutes. Auth endpoints are rate-li
 | PATCH | `/v1/todoitem/{id}/duedate` | Update due date |
 
 A task that does not exist and a task owned by another user both return `404`. A name over 200 characters or a description over 4000 characters returns `400`.
+
+### Account (auth required)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/v1/account/change-password` | Change the password with the current one; ends every session. `204` |
+| POST | `/v1/account/change-email` | Send a confirmation link to the new address; needs the current password. Always `202` with the same body |
+| POST | `/v1/account/confirm-email-change` | Apply the link from that email (no auth required); ends every session |
+| POST | `/v1/account/deletion` | Delete the account; needs the current password. Sign-in stops at once; data is purged after the grace period. `202` |
+| GET | `/v1/account/export` | Download the user's account, tasks and sessions as JSON |
+
+A wrong current password returns `400` and counts towards lockout.
+
+### Admin (Admin role required)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/v1/admin/ping` | `200` for an admin, `403` for anyone else |
 
 ## Project References
 

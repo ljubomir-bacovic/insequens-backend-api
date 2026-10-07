@@ -114,7 +114,8 @@ reviews:
         Pipeline behaviors implement IPipelineBehavior<TRequest, TResponse>.
         Execution order: Logging → Validation → Authorization → Handler.
 
-        AuthorizationBehavior (in Application/Authorization) only acts on requests implementing IOwned<TEntity>.
+        AuthorizationBehavior (in Application/Authorization) runs every IAuthorizationPolicy<TRequest>: the role policy
+        for requests marked [RequiresRole] (403), then the ownership policy for requests implementing IOwned<TEntity> (404).
         ValidationBehavior only runs for requests with registered validators, one validator at a time.
         LoggingBehavior runs for all requests.
 
