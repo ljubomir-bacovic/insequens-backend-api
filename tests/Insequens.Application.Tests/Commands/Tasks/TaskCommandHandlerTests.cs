@@ -120,6 +120,29 @@ public sealed class TaskCommandHandlerTests : IDisposable
         await action.Should().ThrowAsync<NotFoundException>();
     }
 
+    [Fact]
+    public async Task Delete_WithTheCurrentVersion_RemovesTheTask()
+    {
+        var item = await SeedFullTaskAsync();
+
+        await _database.SendAsync(new DeleteTaskCommand(item.Id, _userId, item.RowVersion));
+
+        (await _database.FindItemAsync(item.Id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Delete_WithAStaleVersionOrAnotherUsersTask_KeepsTheTask()
+    {
+        var item = await SeedFullTaskAsync();
+
+        var stale = () => _database.SendAsync(new DeleteTaskCommand(item.Id, _userId, [1, 2, 3]));
+        var foreign = () => _database.SendAsync(new DeleteTaskCommand(item.Id, Guid.NewGuid()));
+
+        await stale.Should().ThrowAsync<PreconditionFailedException>();
+        await foreign.Should().ThrowAsync<NotFoundException>();
+        (await _database.FindItemAsync(item.Id)).Should().NotBeNull();
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

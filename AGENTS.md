@@ -105,7 +105,8 @@ Controllers are thin HTTP adapters. They do exactly three things: extract UserId
 
 - Records (immutable, value equality).
 - Named `{Entity}{Get|Create|Update}{Purpose}Model` (tasks) or `{Purpose}Request`/`{Purpose}Response` (auth).
-- Live in `Insequens.Contracts`, under `V1/{Area}/`. Wire enums are Contracts types whose values match the domain enum.
+- Live in `Insequens.Contracts`, under `V1/{Area}/` (frozen) or `V2/{Area}/`. Wire enums are Contracts types whose values match the domain enum; v2 enums carry `[JsonConverter(typeof(CamelCaseStringEnumConverter<T>))]`.
+- The only non-record types allowed are wire-format helpers that contract types reference: `Optional<T>` (absent vs null in a PATCH), `OptionalJsonConverterFactory` and `CamelCaseStringEnumConverter<T>`. They must live in Contracts because Contracts references nothing.
 - These are the API contract — changing a record's properties is a breaking change.
 - No logic, no methods, no validation in DTOs.
 

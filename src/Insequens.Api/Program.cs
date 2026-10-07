@@ -37,7 +37,7 @@ builder.Services.AddApiProblemDetails();
 builder.Services.AddApiSecurity(builder.Configuration);
 builder.Services.AddApiRateLimiting(builder.Configuration);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.ModelBinderProviders.Insert(0, new StringEnumModelBinderProvider()));
 builder.Services.AddApiVersions();
 
 foreach (var documentName in ApiVersions.DocumentNames)

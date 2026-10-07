@@ -136,8 +136,10 @@ reviews:
 
     - path: "src/Insequens.Contracts/**"
       instructions: |
-        The HTTP contract shared with clients. Immutable records and enums only, under V1/{Area}/.
-        The project references NOTHING. Changing a property is a breaking change for v1 clients.
+        The HTTP contract shared with clients. Immutable records and enums, under V1/{Area}/ (frozen)
+        or V2/{Area}/. The project references NOTHING. Changing a property is a breaking change for clients.
+        Allowed exceptions: wire-format helpers that contract types reference (Optional<T>,
+        OptionalJsonConverterFactory, CamelCaseStringEnumConverter<T>), since they must live in Contracts.
 
     - path: "src/Insequens.Infrastructure/**"
       instructions: |

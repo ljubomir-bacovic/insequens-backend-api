@@ -3,7 +3,6 @@ using Insequens.Api.Http;
 using Insequens.Api.RateLimiting;
 using Insequens.Api.Versioning;
 using Insequens.Application.Commands.Tasks;
-using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Queries.Tasks;
 using Insequens.Contracts.V1;
 using Insequens.Contracts.V2;
@@ -154,7 +153,7 @@ public class TasksController(IMediator mediator) : TasksControllerBase(mediator)
             return UnmatchableIfMatch();
         }
 
-        await Mediator.Send(new DeleteToDoItemCommand(id, userId, expectedVersion), cancellationToken);
+        await Mediator.Send(new DeleteTaskCommand(id, userId, expectedVersion), cancellationToken);
         return NoContent();
     }
 }

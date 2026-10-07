@@ -1,6 +1,5 @@
 using Insequens.Application.Abstractions;
 using Insequens.Application.Authorization;
-using Insequens.Application.Commands.ToDoItem;
 using MediatR;
 using DomainPriority = Insequens.Domain.Types.TaskPriority;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;

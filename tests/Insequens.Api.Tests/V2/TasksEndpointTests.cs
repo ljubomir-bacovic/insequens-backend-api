@@ -96,12 +96,26 @@ public sealed class TasksEndpointTests : IAsyncLifetime
         seen.Should().OnlyHaveUniqueItems().And.BeEquivalentTo(created);
     }
 
-    [Fact]
-    public async Task List_WithAnUnknownSortField_Returns400()
+    [Theory]
+    [InlineData("sortBy=colour")]
+    [InlineData("sortBy=1")]
+    [InlineData("priority=3")]
+    [InlineData("priority=-1")]
+    [InlineData("sortDirection=0")]
+    public async Task List_WithANumericOrUnknownEnumValue_Returns400(string query)
     {
-        var response = await _client.GetAsync("/v2/Tasks?sortBy=colour");
+        var response = await _client.GetAsync($"/v2/Tasks?{query}");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task List_WithEnumNamesInAnyCase_Binds()
+    {
+        await CreateAsync("""{ "name": "High", "priority": "high" }""");
+        await CreateAsync("""{ "name": "Low", "priority": "low" }""");
+
+        (await NamesAsync("/v2/Tasks?sortBy=PRIORITY&sortDirection=Asc&priority=High")).Should().Equal("High");
     }
 
     [Fact]
