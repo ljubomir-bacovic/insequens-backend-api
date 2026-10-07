@@ -1,5 +1,6 @@
 using Insequens.Api;
 using Insequens.Api.Configuration;
+using Insequens.Api.ErrorHandling;
 using Insequens.Api.RateLimiting;
 using Insequens.Api.Security;
 using Insequens.Application;
@@ -31,6 +32,7 @@ builder.Services.AddOptions<AccountDeletionOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
+builder.Services.AddApiProblemDetails();
 builder.Services.AddApiSecurity(builder.Configuration);
 builder.Services.AddApiRateLimiting(builder.Configuration);
 
@@ -53,7 +55,11 @@ builder.Host.UseSerilog();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline. The exception handler is first so it catches failures in every
+// later middleware; status code pages give empty error responses (401, 404) a ProblemDetails body.
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 app.UseForwardedHeaders();
 
@@ -85,8 +91,6 @@ if (app.Environment.IsDevelopment())
         .AllowAnonymous()
         .ExcludeFromDescription();
 }
-
-app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseRateLimiter();

@@ -1,5 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
+using FluentAssertions;
 using Microsoft.AspNetCore.WebUtilities;
 using Insequens.Contracts.V1.Auth;
 using Insequens.Application.Abstractions.Email;
@@ -23,6 +25,17 @@ public static class AuthTestHelpers
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<AuthTokensResponse>())!;
+    }
+
+    /// <summary>
+    /// The ProblemDetails body without its per-request <c>traceId</c>, so two failures can be compared byte for byte.
+    /// </summary>
+    public static async Task<string> ReadProblemWithoutTraceIdAsync(this HttpResponseMessage response)
+    {
+        var problem = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
+        problem.Remove("traceId").Should().BeTrue("every ProblemDetails carries a traceId");
+
+        return problem.ToJsonString();
     }
 
     public static void UseBearer(this HttpClient client, string accessToken) =>

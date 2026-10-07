@@ -39,6 +39,7 @@ public class RateLimitRejectionTests
         context.Response.Body.Position = 0;
         using var body = await JsonDocument.ParseAsync(context.Response.Body);
         body.RootElement.GetProperty("status").GetInt32().Should().Be(429);
+        body.RootElement.GetProperty("type").GetString().Should().Be("urn:insequens:error:rate-limited");
     }
 
     [Fact]
@@ -64,6 +65,7 @@ public class RateLimitRejectionTests
     {
         var services = new ServiceCollection()
             .AddLogging(logging => logging.AddProvider(new FakeLoggerProvider(collector)))
+            .AddProblemDetails()
             .BuildServiceProvider();
 
         return new DefaultHttpContext

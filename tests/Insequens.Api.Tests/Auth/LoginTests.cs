@@ -26,8 +26,8 @@ public class LoginTests
 
         unconfirmedResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         await AssertGenericUnauthorizedAsync(unconfirmedResponse);
-        (await unconfirmedResponse.Content.ReadAsByteArrayAsync())
-            .Should().Equal(await wrongPasswordResponse.Content.ReadAsByteArrayAsync());
+        (await unconfirmedResponse.ReadProblemWithoutTraceIdAsync())
+            .Should().Be(await wrongPasswordResponse.ReadProblemWithoutTraceIdAsync());
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public class LoginTests
         var wrongPasswordResponse = await client.LoginAsync(Email, "Wrong-Passw0rd");
 
         unknownEmailResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await unknownEmailResponse.Content.ReadAsByteArrayAsync())
-            .Should().Equal(await wrongPasswordResponse.Content.ReadAsByteArrayAsync());
+        (await unknownEmailResponse.ReadProblemWithoutTraceIdAsync())
+            .Should().Be(await wrongPasswordResponse.ReadProblemWithoutTraceIdAsync());
     }
 
     [Fact]
@@ -71,19 +71,19 @@ public class LoginTests
         await using var factory = new InsequensApiFactory();
         await factory.CreateUserAsync(Email, Password);
         using var client = factory.CreateHttpsClient();
-        var failures = new List<byte[]>();
+        var failures = new List<string>();
 
         for (var attempt = 0; attempt < 5; attempt++)
         {
-            failures.Add(await (await client.LoginAsync(Email, "Wrong-Passw0rd")).Content.ReadAsByteArrayAsync());
+            failures.Add(await (await client.LoginAsync(Email, "Wrong-Passw0rd")).ReadProblemWithoutTraceIdAsync());
         }
 
         // The sixth attempt uses the correct password and is still refused, with the same body.
         var lockedOutResponse = await client.LoginAsync();
 
         lockedOutResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        (await lockedOutResponse.Content.ReadAsByteArrayAsync()).Should().Equal(failures[0]);
-        failures.Should().AllSatisfy(body => body.Should().Equal(failures[0]));
+        (await lockedOutResponse.ReadProblemWithoutTraceIdAsync()).Should().Be(failures[0]);
+        failures.Should().AllBe(failures[0]);
         var user = await factory.FindUserAsync(Email);
         user!.LockoutEnd.Should().NotBeNull();
         user.LockoutEnd.Should().BeAfter(DateTimeOffset.UtcNow);
@@ -149,6 +149,6 @@ public class LoginTests
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         body.RootElement.GetProperty("status").GetInt32().Should().Be(401);
         body.RootElement.GetProperty("title").GetString().Should().Be("Authentication failed.");
-        body.RootElement.GetProperty("detail").GetString().Should().BeEmpty();
+        body.RootElement.TryGetProperty("detail", out _).Should().BeFalse();
     }
 }
