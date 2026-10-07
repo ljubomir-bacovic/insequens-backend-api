@@ -15,6 +15,6 @@ public class UpdateToDoItemNameHandler(IResourceContext<ToDoItemEntity> toDoItem
         var item = toDoItem.Resource;
 
         item.Rename(request.Name);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }

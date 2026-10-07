@@ -149,15 +149,16 @@ reviews:
         Audit fields are set by AuditableEntityInterceptor from TimeProvider and ICurrentUser.
         Migrations are generated with dotnet ef, never hand-written.
 
-    - path: "src/Insequens.Api/ExceptionMiddleware.cs"
+    - path: "src/Insequens.Api/ErrorHandling/**"
       instructions: |
-        Exception-to-HTTP mapping. Every application exception gets its own catch block.
+        Exception-to-HTTP mapping. Every application exception gets its own IExceptionHandler,
+        derived from ExceptionProblemHandler<TException> and registered in AddApiProblemDetails,
+        with a stable `type` from ProblemTypes. Published `type` values never change.
 
-        CRITICAL: The generic Exception catch must NEVER expose ex.Message or ex.InnerException
+        CRITICAL: UnhandledExceptionHandler must NEVER expose exception.Message or InnerException
         in non-Development environments. Only return generic message in production.
 
-        Error responses must use RFC 7807 ProblemDetails format.
-        If a new exception type is introduced, this file must be updated.
+        Error responses must use RFC 7807 ProblemDetails format, written by IProblemDetailsService.
 
     - path: "src/Insequens.Api/Program.cs"
       instructions: |

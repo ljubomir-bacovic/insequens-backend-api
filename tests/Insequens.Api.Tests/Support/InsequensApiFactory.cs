@@ -16,6 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Insequens.Application.Abstractions.Identity;
 using Insequens.Application.Abstractions.Email;
+using Insequens.Application.Tests.Support;
 
 namespace Insequens.Api.Tests.Support;
 
@@ -36,17 +37,20 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
     private readonly Action<IServiceCollection>? _configureServices;
     private readonly bool _captureEmails;
     private readonly SqliteConnection? _sqliteConnection;
+    private readonly string? _sqlServerConnectionString;
 
     /// <param name="startTime">Start of the fake clock; defaults to the real current time so tokens it issues also pass the JWT bearer handler.</param>
     /// <param name="captureEmails">Replace the MailKit sender with <see cref="EmailSender"/>.</param>
     /// <param name="relationalDatabase">Use SQLite in memory instead of the EF InMemory provider, so SQL commands can be observed.</param>
+    /// <param name="sqlServerConnectionString">Use this SQL Server database instead (see <see cref="SqlServerContainerFixture"/>).</param>
     public InsequensApiFactory(
         IReadOnlyDictionary<string, string?>? settings = null,
         string environment = "Development",
         Action<IServiceCollection>? configureServices = null,
         DateTimeOffset? startTime = null,
         bool captureEmails = true,
-        bool relationalDatabase = false)
+        bool relationalDatabase = false,
+        string? sqlServerConnectionString = null)
     {
         _settings = new Dictionary<string, string?>
         {
@@ -64,6 +68,7 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
         _environment = environment;
         _configureServices = configureServices;
         _captureEmails = captureEmails;
+        _sqlServerConnectionString = sqlServerConnectionString;
         Clock = new FakeTimeProvider(startTime ?? DateTimeOffset.UtcNow);
 
         if (relationalDatabase)
@@ -160,13 +165,18 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IApplicationDbContext>();
             services.AddInsequensContext(options =>
             {
-                if (_sqliteConnection is null)
+                if (_sqlServerConnectionString is not null)
+                {
+                    options.UseSqlServer(_sqlServerConnectionString);
+                }
+                else if (_sqliteConnection is null)
                 {
                     options.UseInMemoryDatabase(_databaseName);
                 }
                 else
                 {
-                    options.UseSqlite(_sqliteConnection);
+                    options.UseSqlite(_sqliteConnection)
+                        .ReplaceService<IModelCustomizer, SqliteRowVersionModelCustomizer>();
                 }
             });
 

@@ -9,6 +9,7 @@ using MediatR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 
@@ -37,6 +38,7 @@ public sealed class TestDbContextFactory : IDisposable
 
     public InsequensContext CreateContext(params IInterceptor[] interceptors) => new(new DbContextOptionsBuilder<InsequensContext>()
         .UseSqlite(_connection)
+        .ReplaceService<IModelCustomizer, SqliteRowVersionModelCustomizer>()
         .AddInterceptors(new AuditableEntityInterceptor(Clock, CurrentUser))
         .AddInterceptors(interceptors)
         .Options);

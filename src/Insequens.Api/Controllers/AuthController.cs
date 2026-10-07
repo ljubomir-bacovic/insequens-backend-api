@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Insequens.Api.Versioning;
 using System.Security.Claims;
 using Insequens.Api.RateLimiting;
 using Insequens.Application.Abstractions.Identity;
@@ -11,6 +13,7 @@ using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Api.Controllers;
 
+[ApiVersion(ApiVersions.V1)]
 [Route(Constants.BaseUrl)]
 [ApiController]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

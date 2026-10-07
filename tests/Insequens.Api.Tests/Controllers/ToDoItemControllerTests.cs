@@ -3,6 +3,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Insequens.Api.Controllers;
 using Insequens.Application.Commands.ToDoItem;
+using Insequens.Application.Queries;
 using Insequens.Application.Queries.ToDoItem;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -249,7 +250,7 @@ public class ToDoItemControllerTests
     }
 
     [Fact]
-    public async Task GetToDoItem_WhenCalled_SendsQueryAndCancellationToken()
+    public async Task GetToDoItem_WhenCalled_SendsQueryAndReturnsTheItemWithItsVersionAsETag()
     {
         var userId = Guid.NewGuid();
         var itemId = Guid.NewGuid();
@@ -265,13 +266,14 @@ public class ToDoItemControllerTests
         var mediator = Substitute.For<IMediator>();
         mediator
             .Send(Arg.Is<GetToDoItemQuery>(q => q.ItemId == itemId && q.UserId == userId), cancellationToken)
-            .Returns(expected);
+            .Returns(new Versioned<ToDoItemGetDetailsModel>(expected, [1, 2, 3, 4, 5, 6, 7, 8]));
         var controller = CreateController(userId, mediator);
 
         var result = await controller.GetToDoItem(itemId, cancellationToken);
 
         var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
         okResult.Value.Should().BeSameAs(expected);
+        controller.Response.Headers.ETag.ToString().Should().Be("\"AQIDBAUGBwg=\"");
         await mediator.Received(1)
             .Send(Arg.Is<GetToDoItemQuery>(q => q.ItemId == itemId && q.UserId == userId), cancellationToken);
     }
@@ -329,7 +331,7 @@ public class ToDoItemControllerTests
     public async Task GetToDoItem_WhenMediatorThrows_PropagatesException()
     {
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<GetToDoItemQuery>(), Arg.Any<CancellationToken>()).Returns<Task<ToDoItemGetDetailsModel>>(_ => throw new InvalidOperationException("boom"));
+        mediator.Send(Arg.Any<GetToDoItemQuery>(), Arg.Any<CancellationToken>()).Returns<Task<Versioned<ToDoItemGetDetailsModel>>>(_ => throw new InvalidOperationException("boom"));
         var controller = CreateController(Guid.NewGuid(), mediator);
 
         var act = () => controller.GetToDoItem(Guid.NewGuid(), CancellationToken.None);

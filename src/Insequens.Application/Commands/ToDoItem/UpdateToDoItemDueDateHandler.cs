@@ -15,6 +15,6 @@ public class UpdateToDoItemDueDateHandler(IResourceContext<ToDoItemEntity> toDoI
         var item = toDoItem.Resource;
 
         item.Reschedule(request.DueDate);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }

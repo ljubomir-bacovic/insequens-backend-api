@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.Json;
+using Insequens.Api.ErrorHandling;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Insequens.Api.RateLimiting;
@@ -21,8 +21,6 @@ public static class RateLimitRejection
             context.Request.Path.Value,
             RateLimitPartitionKey.Hash(partitionKey));
 
-        context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-        context.Response.ContentType = "application/problem+json";
 
         if (retryAfter is { } delay)
         {
@@ -30,14 +28,14 @@ public static class RateLimitRejection
             context.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
         }
 
-        var problemDetails = new ProblemDetails
+        var problem = new ProblemDetails
         {
             Status = StatusCodes.Status429TooManyRequests,
+            Type = ProblemTypes.RateLimited,
             Title = "Too many requests.",
             Detail = "Try again later.",
-            Type = "Error",
         };
 
-        await context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails), cancellationToken);
+        await ProblemResponses.WriteAsync(context, problem, exception: null, cancellationToken);
     }
 }

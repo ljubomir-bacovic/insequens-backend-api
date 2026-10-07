@@ -10,16 +10,16 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Queries.ToDoItem;
 
 public class GetToDoItemHandler(IApplicationDbContext dbContext, IMapper mapper)
-    : IRequestHandler<GetToDoItemQuery, ToDoItemGetDetailsModel>
+    : IRequestHandler<GetToDoItemQuery, Versioned<ToDoItemGetDetailsModel>>
 {
-    public async Task<ToDoItemGetDetailsModel> Handle(
+    public async Task<Versioned<ToDoItemGetDetailsModel>> Handle(
         GetToDoItemQuery request,
         CancellationToken cancellationToken)
     {
         return await dbContext.ToDoItems
             .AsNoTracking()
             .Where(item => item.Id == request.ItemId && item.UserId == request.UserId)
-            .ProjectTo<ToDoItemGetDetailsModel>(mapper.ConfigurationProvider)
+            .ProjectTo<Versioned<ToDoItemGetDetailsModel>>(mapper.ConfigurationProvider)
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(typeof(ToDoItemEntity).Name, request.ItemId);
     }

@@ -54,7 +54,7 @@ public sealed class DeleteAccountTests : IAsyncDisposable
 
         purged.Should().Be(1);
         (await RowsContainingAsync(Email)).Should().BeEmpty();
-        (await CountAsync("ToDoItem")).Should().Be(0);
+        (await CountAsync("Tasks")).Should().Be(0);
         (await RowsContainingAsync("other@example.com")).Should().NotBeEmpty("other accounts are untouched");
     }
 
@@ -128,7 +128,7 @@ public sealed class DeleteAccountTests : IAsyncDisposable
             }
         }
 
-        tables.Should().Contain(["AspNetUsers", "ToDoItem", "RefreshToken"]);
+        tables.Should().Contain(["AspNetUsers", "Tasks", "RefreshToken"]);
         var matches = new List<string>();
         foreach (var table in tables)
         {

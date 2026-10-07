@@ -98,7 +98,8 @@ namespace Insequens.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateOnly?>("DueDate")
                         .HasColumnType("date");
@@ -108,10 +109,17 @@ namespace Insequens.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int?>("Priority")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uniqueidentifier");
@@ -124,9 +132,14 @@ namespace Insequens.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "CreatedOn");
 
-                    b.ToTable("ToDoItem", (string)null);
+                    b.HasIndex("UserId", "IsCompleted", "DueDate");
+
+                    b.ToTable("Tasks", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Tasks_Priority", "[Priority] IN (0, 1, 2, 3)");
+                        });
                 });
 
             modelBuilder.Entity("Insequens.Infrastructure.Identity.ApplicationUser", b =>

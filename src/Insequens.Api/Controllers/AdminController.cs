@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Insequens.Api.Versioning;
 using Insequens.Api.Security;
 using Insequens.Application.Queries.Admin;
 using Insequens.Contracts.V1.Admin;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Insequens.Api.Controllers;
 
 [Authorize(Policy = AuthorizationPolicies.Admin)]
+[ApiVersion(ApiVersions.V1)]
 [Route(Constants.BaseUrl)]
 [ApiController]
 public class AdminController : ControllerBase

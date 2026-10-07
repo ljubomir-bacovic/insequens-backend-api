@@ -2,7 +2,6 @@ using FluentAssertions;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Exceptions;
 using Insequens.Application.Tests.Support;
-using Insequens.Domain.Exceptions;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Tests.Commands;
@@ -28,7 +27,7 @@ public sealed class UpdateToDoItemDescriptionHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_WithDescriptionOverMaximumLength_ThrowsDomainExceptionAndKeepsDescription()
+    public async Task Send_WithDescriptionOverMaximumLength_ThrowsValidationExceptionAndKeepsDescription()
     {
         var userId = Guid.NewGuid();
         var item = await _database.SeedItemAsync(userId, description: "Original task description");
@@ -36,7 +35,7 @@ public sealed class UpdateToDoItemDescriptionHandlerTests : IDisposable
 
         var action = () => _database.SendAsync(new UpdateToDoItemDescriptionCommand(item.Id, userId, description));
 
-        await action.Should().ThrowAsync<ToDoItemDescriptionTooLongException>();
+        await action.Should().ThrowAsync<FluentValidation.ValidationException>();
         (await _database.FindItemAsync(item.Id))!.Description.Should().Be("Original task description");
     }
 

@@ -15,7 +15,7 @@ dotnet build                                   # whole solution
 dotnet test                                    # all tests (xUnit); Docker must be running for the SQL Server migration tests
 dotnet test tests/Insequens.Domain.Tests       # fastest: entity rules only
 dotnet test tests/Insequens.Application.Tests  # handlers through the pipeline on SQLite in memory
-dotnet run --project src/Insequens.Api         # API on http://localhost:5008, Scalar UI at /scalar/v1 in Development
+dotnet run --project src/Insequens.Api         # API on http://localhost:5008; /openapi/v1.json and /openapi/v2.json; Scalar UI at /scalar/v1 in Development and Staging
 dotnet tool restore                            # once per clone: dotnet-ef pinned in .config/dotnet-tools.json
 dotnet ef migrations add <Name> --project src/Insequens.Infrastructure --startup-project src/Insequens.Api --output-dir Migrations
 dotnet ef database update     --project src/Insequens.Infrastructure --startup-project src/Insequens.Api
@@ -26,7 +26,7 @@ Local secrets go in User Secrets for `src/Insequens.Api` (`Jwt:Key` ≥ 32 chars
 ## Layout and dependency rule
 
 ```
-src/Insequens.Api                    Controllers, ExceptionMiddleware, Program.cs (DI root), Configuration/ (Cors, AllowedHosts, ReverseProxy options), Security/ (headers, JWT bearer setup, AuthorizationPolicies, HttpContextCurrentUser), RateLimiting/
+src/Insequens.Api                    Controllers (TasksControllerBase serves v1 ToDoItem and v2 Tasks), ErrorHandling/ (an IExceptionHandler per exception, ProblemTypes), Versioning/ (ApiVersions, build-time OpenAPI), Http/ (EntityTags), Program.cs (DI root), Configuration/ (Cors, AllowedHosts, ReverseProxy options), Security/ (headers, JWT bearer setup, AuthorizationPolicies, HttpContextCurrentUser), RateLimiting/
 src/Insequens.Contracts              HTTP request/response records shared with clients: V1/Tasks, V1/Auth, V1/Account, V1/Admin, V1/PaginatedResult. References nothing.
 src/Insequens.Application            Commands/, Queries/, Validators/, Behaviors/, Authorization/ (AuthorizationBehavior, IAuthorizationPolicy, role and ownership policies, IOwned<T>, [RequiresRole], Roles), Abstractions/ (IApplicationDbContext, ICurrentUser, Identity/, Email/), Profiles/, Exceptions/, Options/
 src/Insequens.Domain                 Entities/ (ToDoItem, RefreshToken: behaviour and invariants), Types/ (enums), Exceptions/ (DomainException), IOwnedEntity, AuditableEntity
@@ -34,8 +34,8 @@ src/Insequens.Infrastructure         Persistence/ (InsequensContext, Configurati
 tests/Insequens.Domain.Tests         Entity behaviour and invariants
 tests/Insequens.Application.Tests    Handlers, validators, behaviors and authorization through MediatR on SQLite in memory (Support/TestDbContextFactory)
 tests/Insequens.Infrastructure.Tests Audit interceptor, email sender, JWT options/key ring/token service, migrations on SQL Server in Testcontainers (Persistence/Migrations), source guard and project dependency tests
-tests/Insequens.Api.Tests            WebApplicationFactory tests (Support/InsequensApiFactory on EF InMemory, or SQLite to observe SQL), Auth/ flows, ToDoItems/, security and rate-limit tests
-docs/                                architecture guidelines, v1 plan, v2 assessment
+tests/Insequens.Api.Tests            WebApplicationFactory tests (Support/InsequensApiFactory on EF InMemory, SQLite to observe SQL, or SQL Server in Testcontainers for concurrency), Auth/ flows, ToDoItems/, security and rate-limit tests
+docs/                                architecture guidelines, v1 plan, v2 assessment, openapi/ (written by every build of the Api; commit it with the change that altered it)
 ```
 
 Domain and Contracts reference nothing. Application references Domain and Contracts (plus the EF Core package, by accepted exception). Infrastructure references Application and Domain, and implements Application's interfaces. Api references Application, Contracts and Infrastructure, and has no EF provider package. Never add a reference in the other direction; if an inner layer needs an outer type, define an interface in Application. `ProjectDependencyTests` guards the Contracts, Domain and Api rules until INS-062 adds architecture tests.
@@ -50,11 +50,15 @@ Controller extracts `UserId` from the `ClaimTypes.NameIdentifier` claim and call
    - `RoleAuthorizationPolicy`, for requests marked `[RequiresRole(Roles.Admin)]`: checks the role in the user store (so removing a role takes effect at once) and throws `ForbiddenException` (403).
    - `OwnershipAuthorizationPolicy`, for requests implementing `IOwned<TEntity>` (`UserId`, `ResourceId`): loads the entity once through `IOwnershipPolicy<TEntity>` (ID and owner in one query) into the scoped `IResourceContext<TEntity>`, or throws `NotFoundException`. A missing and a foreign resource both return 404, so IDs cannot be probed.
 
-Command handlers take the authorized entity from `IResourceContext<TEntity>`, call its methods, and save through `IApplicationDbContext`. `AuditableEntityInterceptor` stamps `CreatedOn/By` and `UpdatedOn/By` from `TimeProvider` and `ICurrentUser`. `ExceptionMiddleware` maps exceptions to RFC 7807 ProblemDetails. FluentValidation errors become 400 with grouped `errors`; a `DomainException` (violated entity invariant) becomes 400 with the rule as detail.
+Command handlers take the authorized entity from `IResourceContext<TEntity>`, call its methods, and save through `IApplicationDbContext`. `AuditableEntityInterceptor` stamps `CreatedOn/By` and `UpdatedOn/By` from `TimeProvider` and `ICurrentUser`. `UseExceptionHandler` (first in the pipeline) runs the `IExceptionHandler`s in `Api/ErrorHandling/`, which turn exceptions into RFC 7807 ProblemDetails with a stable `type` (`urn:insequens:error:*`, in `ProblemTypes`), `instance` and `traceId`; `UseStatusCodePages` does the same for framework 401/404. FluentValidation errors become 400 with grouped `errors`; a `DomainException` (violated entity invariant) becomes 400 with the rule as detail.
 
 Auth follows the same flow: `AuthController` injects only `IMediator` and sends the commands in `Application/Commands/Auth/`, whose handlers use `IIdentityService` and `ITokenService` (implemented in Infrastructure). Every failed login or refresh throws `AuthenticationFailedException`, which becomes one generic 401; register, forgot-password and reset-password return the same 202 body whether or not the email has an account. Keep it that way: no auth response may reveal whether an account exists. `tests/Insequens.Api.Tests/Auth/` covers every flow.
 
 Refresh tokens are `RefreshToken` rows holding only a SHA-256 hash. Each login starts a family (a session, carried in the access token as `sid`); a refresh rotates the token in its family, and presenting a rotated or revoked token revokes the whole family. Logout ends the current session, `logout-all` every session; a password reset, password change or email change ends every session. `AccountController` (`Application/Commands/Account/`) lets the signed-in user change password or email, export their data, or delete the account. Changes that need the current password throw `AccountUpdateFailedException` (400) when it is wrong. A deleted account is invisible to every `IIdentityService` lookup at once and purged with all its data by `PurgeDeletedAccountsCommand` after `AccountDeletion:GracePeriod`. INS-082 schedules that command; until then nothing runs it.
+
+Routes are `v{version:apiVersion}/[controller]`: every controller declares `[ApiVersion(ApiVersions.V1)]` (or `V2`, or `[ApiVersionNeutral]`), and `ApiVersioningTests` fails if one declares none. v1 is frozen; a breaking change goes into a v2 controller. The task endpoints live in `TasksControllerBase`, served as `/v1/ToDoItem` and, identically for now, `/v2/Tasks`.
+
+Tasks use optimistic concurrency: `GET /{id}` returns the `RowVersion` as a strong `ETag`, and every PATCH and DELETE passes `If-Match` to its command as `ExpectedVersion`. The handler saves through `SaveChangesAsync(item, request.ExpectedVersion, cancellationToken)`, which throws `PreconditionFailedException` (412) for a stale version and `ConcurrencyConflictException` (409) for a concurrent change when no version was sent.
 
 Every endpoint requires an authenticated user through the fallback authorization policy; an anonymous endpoint opts out with `[AllowAnonymous]` on the action. Rate limiting partitions by user ID, or by client IP when anonymous: a global limit on everything, `auth` on login, register, refresh and password reset (plus a per-email limit), `write` on POST/PATCH/DELETE.
 
@@ -65,8 +69,8 @@ Every endpoint requires an authenticated user through the fallback authorization
 3. Handler in the same folder, named `{Verb}{Entity}Handler`. Command handlers create entities with their factory (`ToDoItem.Create`), change them only through their methods, and call `SaveChangesAsync(cancellationToken)` once at the end; invariants live in the entity and throw a `DomainException`. Query handlers use `IApplicationDbContext` + LINQ, `AsNoTracking()`, `ProjectTo<TDto>()`, and pass the cancellation token to every EF call. Handler tests send the request through MediatR on `TestDbContextFactory` (SQLite), not mocks.
 4. User input → validator in `Application/Validators/{Entity}/` named `{Request}Validator`. Shape and range only; business rules live in the entity or handler. A request with no such rule needs no validator and no comment saying so (`docs/insequens-v1-architecture-and-guidelines.md` 12.2).
 5. New request or response shape → record in `Contracts/V1/{Area}/`; a wire enum is a Contracts type with the domain values. New read mapping → `Application/Profiles/`. Never use AutoMapper for writes.
-6. Controller action: inject only `IMediator`, return `IActionResult`. POST → `CreatedAtAction` 201. PATCH/DELETE → 204. GET → 200. Lists return `PaginatedResult<T>`, never a bare list. Add `[ProducesResponseType]` for every status. State-changing actions get `[EnableRateLimiting(RateLimitPolicies.Write)]`.
-7. New exception type → new catch block in `ExceptionMiddleware`. Resource failures derive from `ResourceException` (required `Id`); entity invariants from `DomainException`; a missing role is `ForbiddenException`.
+6. Controller action: inject only `IMediator`, return `IActionResult`. A new controller declares its `[ApiVersion]`. POST → `CreatedAtAction` 201. PATCH/DELETE → 204. GET → 200. Lists return `PaginatedResult<T>`, never a bare list. Add `[ProducesResponseType]` for every status. State-changing actions get `[EnableRateLimiting(RateLimitPolicies.Write)]`.
+7. New exception type → a handler in `Api/ErrorHandling/` derived from `ExceptionProblemHandler<TException>`, a `ProblemTypes` constant, and a line in `AddApiProblemDetails`; `ProblemDetailsTests` covers each one over HTTP. Resource failures derive from `ResourceException` (required `Id`); entity invariants from `DomainException`; a missing role is `ForbiddenException`.
 8. Tests: handler happy path + each error path; validator valid + each invalid field; one HTTP-level test per new endpoint. Name tests `Method_State_Expected`.
 
 ## Hard rules
