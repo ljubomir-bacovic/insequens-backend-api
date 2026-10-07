@@ -5,7 +5,7 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public record UpdateToDoItemNameCommand(Guid ItemId, Guid UserId, string Name)
-    : IRequest<Unit>, IOwned<ToDoItemEntity>
+    : IRequest, IOwned<ToDoItemEntity>
 {
     Guid IResourceRequest.ResourceId => ItemId;
 }

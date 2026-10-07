@@ -7,9 +7,9 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public class UpdateToDoItemPriorityHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
-    : IRequestHandler<UpdateToDoItemPriorityCommand, Unit>
+    : IRequestHandler<UpdateToDoItemPriorityCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemPriorityCommand request,
         CancellationToken cancellationToken)
     {
@@ -17,6 +17,5 @@ public class UpdateToDoItemPriorityHandler(IResourceContext<ToDoItemEntity> toDo
 
         item.ChangePriority(request.Priority.ToDomain());
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
     }
 }

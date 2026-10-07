@@ -51,6 +51,13 @@ public sealed class TestDbContextFactory : IDisposable
     }
 
     /// <summary>Sends the request through the full pipeline (logging, validation, authorization) to its handler.</summary>
+    public async Task SendAsync(IRequest request, Action<IServiceCollection>? configure = null)
+    {
+        await using var services = CreateServices(configure);
+        await services.GetRequiredService<IMediator>().Send(request);
+    }
+
+    /// <summary>Sends the request through the full pipeline (logging, validation, authorization) to its handler.</summary>
     public async Task<TResponse> SendAsync<TResponse>(
         IRequest<TResponse> request,
         Action<IServiceCollection>? configure = null)

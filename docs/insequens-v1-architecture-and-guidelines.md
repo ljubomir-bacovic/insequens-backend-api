@@ -2,6 +2,8 @@
 
 > This is the **authoritative reference** for the Insequens backend after the v1 modernisation.
 > Every contributor — human or AI agent — must follow these guidelines when writing, reviewing, or modifying code.
+>
+> **Partly superseded by E3 (INS-020 … INS-027).** The generic repository, `IDataContext`, `OwnershipBehavior`, the ToDoItem-only `IOwned`, `Domain/Models` and the two Infrastructure projects are gone. Where this document describes them, `CLAUDE.md` and the code are correct; INS-100 reconciles the rest of this file.
 
 ---
 
@@ -696,6 +698,8 @@ public class CreateToDoItemValidator : AbstractValidator<CreateToDoItemCommand>
 - Do not validate things the database will catch (e.g., unique constraints). Validate things the user controls.
 - Do not put business rules in validators. Validators check shape and range. Business rules live in handlers.
 - Pagination parameters are validated: `Page > 0`, `PageSize` between 1 and 100.
+- A request needs no validator when it has no user-controlled shape or range rule: it carries only route and JWT identifiers (route constraints enforce the `Guid` shape, and `IOwned<TEntity>` with the `AuthorizationBehavior` enforces existence and ownership), or its fields accept every value the model binder produces (for example a nullable description, or a `DateOnly`). Do not leave a comment in the request file saying so; this rule is the explanation.
+- `ValidationBehavior` runs a request's validators one after another, never concurrently, so a validator may use the scoped `DbContext`.
 
 ---
 

@@ -6,9 +6,9 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public class ToggleToDoItemCompleteHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
-    : IRequestHandler<ToggleToDoItemCompleteCommand, Unit>
+    : IRequestHandler<ToggleToDoItemCompleteCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         ToggleToDoItemCompleteCommand request,
         CancellationToken cancellationToken)
     {
@@ -24,6 +24,5 @@ public class ToggleToDoItemCompleteHandler(IResourceContext<ToDoItemEntity> toDo
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
     }
 }

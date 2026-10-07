@@ -6,9 +6,9 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public class UpdateToDoItemNameHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
-    : IRequestHandler<UpdateToDoItemNameCommand, Unit>
+    : IRequestHandler<UpdateToDoItemNameCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemNameCommand request,
         CancellationToken cancellationToken)
     {
@@ -16,6 +16,5 @@ public class UpdateToDoItemNameHandler(IResourceContext<ToDoItemEntity> toDoItem
 
         item.Rename(request.Name);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
     }
 }

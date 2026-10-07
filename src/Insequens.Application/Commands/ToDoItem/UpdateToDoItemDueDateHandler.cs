@@ -6,9 +6,9 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public class UpdateToDoItemDueDateHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
-    : IRequestHandler<UpdateToDoItemDueDateCommand, Unit>
+    : IRequestHandler<UpdateToDoItemDueDateCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemDueDateCommand request,
         CancellationToken cancellationToken)
     {
@@ -16,6 +16,5 @@ public class UpdateToDoItemDueDateHandler(IResourceContext<ToDoItemEntity> toDoI
 
         item.Reschedule(request.DueDate);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
     }
 }

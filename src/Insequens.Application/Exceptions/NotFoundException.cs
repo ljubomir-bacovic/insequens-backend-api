@@ -5,9 +5,7 @@ namespace Insequens.Application.Exceptions;
 /// resource IDs cannot be probed.
 /// </summary>
 public sealed class NotFoundException(string resourceName, Guid id)
-    : Exception($"{resourceName} {id} was not found.")
+    : ResourceException($"{resourceName} {id} was not found.", id)
 {
     public string ResourceName { get; } = resourceName;
-
-    public Guid Id { get; } = id;
 }

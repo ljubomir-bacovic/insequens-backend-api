@@ -15,6 +15,7 @@ public class ApplicationExceptionsTests
         exception.ResourceName.Should().Be("ToDoItem");
         exception.Id.Should().Be(itemId);
         exception.Message.Should().Be($"ToDoItem {itemId} was not found.");
+        exception.Should().BeAssignableTo<ResourceException>();
     }
 
     [Fact]
@@ -26,5 +27,6 @@ public class ApplicationExceptionsTests
 
         exception.Id.Should().Be(itemId);
         exception.Message.Should().Be($"Access denied for resource {itemId}.");
+        exception.Should().BeAssignableTo<ResourceException>();
     }
 }

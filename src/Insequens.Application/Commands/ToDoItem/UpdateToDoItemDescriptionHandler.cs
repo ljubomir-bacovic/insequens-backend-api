@@ -6,9 +6,9 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public class UpdateToDoItemDescriptionHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
-    : IRequestHandler<UpdateToDoItemDescriptionCommand, Unit>
+    : IRequestHandler<UpdateToDoItemDescriptionCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         UpdateToDoItemDescriptionCommand request,
         CancellationToken cancellationToken)
     {
@@ -16,6 +16,5 @@ public class UpdateToDoItemDescriptionHandler(IResourceContext<ToDoItemEntity> t
 
         item.UpdateDescription(request.Description);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
     }
 }

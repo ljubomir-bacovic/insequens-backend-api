@@ -163,7 +163,7 @@ public class ToDoItemControllerTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemPriorityCommand>(), cancellationToken).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemPriorityCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.UpdateToDoItemPriorityAsync(itemId, priority, cancellationToken);
@@ -182,7 +182,7 @@ public class ToDoItemControllerTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemNameCommand>(), cancellationToken).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemNameCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.UpdateToDoItemNameAsync(itemId, name, cancellationToken);
@@ -201,7 +201,7 @@ public class ToDoItemControllerTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemDescriptionCommand>(), cancellationToken).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemDescriptionCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.UpdateToDoItemDescriptionAsync(itemId, description, cancellationToken);
@@ -220,7 +220,7 @@ public class ToDoItemControllerTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<UpdateToDoItemDueDateCommand>(), cancellationToken).Returns(Unit.Value);
+        mediator.Send(Arg.Any<UpdateToDoItemDueDateCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.UpdateToDoItemDueDateAsync(itemId, dueDate, cancellationToken);
@@ -238,7 +238,7 @@ public class ToDoItemControllerTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<DeleteToDoItemCommand>(), cancellationToken).Returns(Unit.Value);
+        mediator.Send(Arg.Any<DeleteToDoItemCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.DeleteToDoItemAsync(itemId, cancellationToken);
@@ -284,7 +284,7 @@ public class ToDoItemControllerTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var mediator = Substitute.For<IMediator>();
-        mediator.Send(Arg.Any<ToggleToDoItemCompleteCommand>(), cancellationToken).Returns(Unit.Value);
+        mediator.Send(Arg.Any<ToggleToDoItemCompleteCommand>(), cancellationToken).Returns(Task.CompletedTask);
         var controller = CreateController(userId, mediator);
 
         var result = await controller.CompleteToDoItem(itemId, cancellationToken);

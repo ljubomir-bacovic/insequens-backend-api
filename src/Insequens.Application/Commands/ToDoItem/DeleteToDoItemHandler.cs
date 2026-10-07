@@ -6,9 +6,9 @@ using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 namespace Insequens.Application.Commands.ToDoItem;
 
 public class DeleteToDoItemHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
-    : IRequestHandler<DeleteToDoItemCommand, Unit>
+    : IRequestHandler<DeleteToDoItemCommand>
 {
-    public async Task<Unit> Handle(
+    public async Task Handle(
         DeleteToDoItemCommand request,
         CancellationToken cancellationToken)
     {
@@ -16,6 +16,5 @@ public class DeleteToDoItemHandler(IResourceContext<ToDoItemEntity> toDoItem, IA
 
         dbContext.ToDoItems.Remove(item);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return Unit.Value;
     }
 }

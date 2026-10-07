@@ -1,4 +1,5 @@
 using FluentValidation;
+using FluentValidation.Results;
 using MediatR;
 
 namespace Insequens.Application.Behaviors;
@@ -25,10 +26,13 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        var failures = (await Task.WhenAll(validators.Select(validator =>
-                validator.ValidateAsync(new ValidationContext<TRequest>(request), cancellationToken))))
-            .SelectMany(result => result.Errors)
-            .ToList();
+        // One at a time: a validator may use the scoped DbContext, which does not allow concurrent operations.
+        var failures = new List<ValidationFailure>();
+        foreach (var validator in validators)
+        {
+            var result = await validator.ValidateAsync(new ValidationContext<TRequest>(request), cancellationToken);
+            failures.AddRange(result.Errors);
+        }
 
         if (failures.Count > 0)
         {
