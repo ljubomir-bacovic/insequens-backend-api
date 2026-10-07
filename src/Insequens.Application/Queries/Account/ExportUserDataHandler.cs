@@ -4,7 +4,7 @@ using Insequens.Application.Exceptions;
 using Insequens.Contracts.V1.Account;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using TaskPriority = Insequens.Contracts.V1.Tasks.TaskPriority;
+using Insequens.Application.Profiles;
 
 namespace Insequens.Application.Queries.Account;
 
@@ -36,7 +36,7 @@ public class ExportUserDataHandler(
                     item.Id,
                     item.Name,
                     item.Description,
-                    (TaskPriority?)item.Priority,
+                    item.Priority.ToV1(),
                     item.DueDate,
                     item.IsCompleted,
                     Utc(item.CreatedOn),

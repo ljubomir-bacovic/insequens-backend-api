@@ -1,6 +1,7 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Insequens.Application.Abstractions;
+using Insequens.Application.Queries.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Insequens.Contracts.V1.Tasks;
@@ -15,15 +16,15 @@ public class GetUserToDoItemsHandler(IApplicationDbContext dbContext, IMapper ma
         GetUserToDoItemsQuery request,
         CancellationToken cancellationToken)
     {
+        var criteria = new TaskListCriteria(request.UserId, Completed: request.IsCompleted);
         var query = dbContext.ToDoItems
             .AsNoTracking()
-            .Where(x => x.UserId == request.UserId && x.IsCompleted == request.IsCompleted);
+            .Filter(criteria);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderBy(x => x.DueDate)
-            .ThenBy(x => x.Priority)
+            .Sort(criteria)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .ProjectTo<ToDoItemGetListModel>(mapper.ConfigurationProvider)

@@ -1,3 +1,4 @@
+using Insequens.Domain.Types;
 using FluentAssertions;
 using Insequens.Application.Abstractions;
 using Insequens.Domain.Entities;
@@ -102,7 +103,7 @@ public class AuditableEntityInterceptorTests
         item.CreatedBy.Should().Be(userId);
     }
 
-    private static ToDoItem NewItem() => ToDoItem.Create(Guid.NewGuid(), "Task", null, null, null);
+    private static ToDoItem NewItem() => ToDoItem.Create(Guid.NewGuid(), "Task", null, TaskPriority.None, null);
 
     private InsequensContext CreateContext() => new(
         new DbContextOptionsBuilder<InsequensContext>()

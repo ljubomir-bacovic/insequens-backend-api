@@ -76,7 +76,7 @@ public sealed class TestDbContextFactory : IDisposable
         Guid userId,
         string name = "Task",
         string? description = null,
-        Domain.Types.TaskPriority? priority = null,
+        Domain.Types.TaskPriority priority = Domain.Types.TaskPriority.None,
         DateOnly? dueDate = null,
         bool isCompleted = false)
     {

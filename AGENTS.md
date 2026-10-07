@@ -10,7 +10,7 @@ Insequens is a .NET 10 Web API for task management. It uses CQRS with MediatR, C
 
 ```
 src/Insequens.Api              → ASP.NET Core host, thin controllers, middleware, DI composition root
-src/Insequens.Contracts        → HTTP request/response records (V1/Tasks, V1/Auth) shared with clients (ZERO references)
+src/Insequens.Contracts        → HTTP request/response records (V1/*, frozen; V2/Tasks) shared with clients (ZERO references)
 src/Insequens.Application      → Commands, queries, handlers, validators, pipeline behaviors, authorization,
                                  interfaces (IApplicationDbContext, ICurrentUser, IIdentityService, ITokenService, IEmailSender)
 src/Insequens.Domain           → Entities with behaviour and invariants, enums, domain exceptions (ZERO references)

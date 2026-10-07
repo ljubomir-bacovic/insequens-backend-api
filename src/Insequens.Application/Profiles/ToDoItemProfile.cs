@@ -11,9 +11,9 @@ public class ToDoItemProfile : Profile
     public ToDoItemProfile()
     {
         CreateMap<ToDoItem, ToDoItemGetListModel>()
-            .ForCtorParam(nameof(ToDoItemGetListModel.Priority), options => options.MapFrom(item => (TaskPriority?)item.Priority));
+            .ForCtorParam(nameof(ToDoItemGetListModel.Priority), options => options.MapFrom(TaskPriorityConversions.ToV1Projection));
         CreateMap<ToDoItem, ToDoItemGetDetailsModel>()
-            .ForCtorParam(nameof(ToDoItemGetDetailsModel.Priority), options => options.MapFrom(item => (TaskPriority?)item.Priority));
+            .ForCtorParam(nameof(ToDoItemGetDetailsModel.Priority), options => options.MapFrom(TaskPriorityConversions.ToV1Projection));
         CreateMap<ToDoItem, Versioned<ToDoItemGetDetailsModel>>()
             .ForCtorParam(nameof(Versioned<ToDoItemGetDetailsModel>.Value), options => options.MapFrom(item => item))
             .ForCtorParam(nameof(Versioned<ToDoItemGetDetailsModel>.Version), options => options.MapFrom(item => item.RowVersion));

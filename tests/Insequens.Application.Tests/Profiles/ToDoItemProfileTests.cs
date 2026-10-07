@@ -60,12 +60,12 @@ public class ToDoItemProfileTests
     [Fact]
     public void ToDoItem_WithoutPriority_MapsToNullPriority()
     {
-        var entity = NewEntity(priority: null, dueDate: null, isCompleted: false);
+        var entity = NewEntity(priority: DomainPriority.None, dueDate: null, isCompleted: false);
 
         CreateMapper().Map<ToDoItemGetDetailsModel>(entity).Priority.Should().BeNull();
     }
 
-    private static ToDoItem NewEntity(DomainPriority? priority, DateOnly? dueDate, bool isCompleted)
+    private static ToDoItem NewEntity(DomainPriority priority, DateOnly? dueDate, bool isCompleted)
     {
         var entity = ToDoItem.Create(Guid.NewGuid(), "Item", "Description", priority, dueDate);
         if (isCompleted)

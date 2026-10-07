@@ -143,7 +143,22 @@ A task that does not exist and a task owned by another user both return `404`. A
 
 `GET /v1/todoitem/{id}` returns an `ETag`. Send it back as `If-Match` on a PATCH or DELETE to change the task only if nobody else has: a stale one returns `412`. Without `If-Match`, a change that collides with a concurrent one returns `409`.
 
-The same endpoints are also served under `/v2/tasks`. v2 is where breaking changes (string priorities, a single PATCH) will land; v1 stays as it is.
+`PATCH /v1/todoitem/{id}/togglecomplete` is deprecated: a retried toggle flips the task back. Use `PUT /v2/tasks/{id}/completion`.
+
+### Tasks, v2 (auth required)
+
+v2 is the task contract for new clients. Priorities are strings (`"none"`, `"low"`, `"medium"`, `"high"`); numbers are rejected. Every task has a priority, `"none"` when not given.
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/v2/tasks` | List tasks (paginated). Filters: `completed`, `priority`, `dueFrom`, `dueTo` (inclusive), `search` (name or description, up to 100 characters). `sortBy`: `dueDate` (default, tasks without one last), `priority` (high first), `createdOn` (newest first) or `name`; `sortDirection` `asc` or `desc` overrides the default. Paging is stable: no task appears on two pages |
+| POST | `/v2/tasks` | Create a task: `name`, optional `description`, `priority`, `dueDate` |
+| GET | `/v2/tasks/{id}` | Get a task, with its `ETag` |
+| PATCH | `/v2/tasks/{id}` | Change only the fields in the body. `"description": null` or `"dueDate": null` clears them; `{}` changes nothing |
+| PUT | `/v2/tasks/{id}/completion` | Set `{ "completed": true }` or `false`; sending it twice leaves the same state |
+| DELETE | `/v2/tasks/{id}` | Delete a task |
+
+PATCH, PUT and DELETE honour `If-Match` as in v1.
 
 ### Account (auth required)
 

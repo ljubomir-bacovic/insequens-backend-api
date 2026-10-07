@@ -99,6 +99,18 @@ public sealed class GetUserToDoItemsHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Send_WithItemsWithAndWithoutDueDate_PutsThoseWithoutLast()
+    {
+        var userId = Guid.NewGuid();
+        await _database.SeedItemAsync(userId, "No due date", priority: TaskPriority.High);
+        await _database.SeedItemAsync(userId, "Due", dueDate: new DateOnly(2026, 2, 1));
+
+        var result = await _database.SendAsync(new GetUserToDoItemsQuery(userId, false, 1, 10));
+
+        result.Items.Select(item => item.Name).Should().Equal("Due", "No due date");
+    }
+
+    [Fact]
     public async Task Send_WhenRequestedPageIsBeyondAvailableRange_ReturnsEmptyItems()
     {
         var userId = Guid.NewGuid();

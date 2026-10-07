@@ -1607,6 +1607,7 @@
         "tags": [
           "ToDoItem"
         ],
+        "description": "Deprecated: A retried toggle flips the task back. Use PUT /v2/Tasks/{id}/completion.",
         "parameters": [
           {
             "name": "id",
@@ -1653,6 +1654,7 @@
             }
           }
         },
+        "deprecated": true,
         "security": [
           {
             "Bearer": [ ]

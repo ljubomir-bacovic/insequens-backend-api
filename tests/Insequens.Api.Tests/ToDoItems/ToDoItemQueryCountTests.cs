@@ -1,3 +1,4 @@
+using Insequens.Domain.Types;
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
@@ -91,7 +92,7 @@ public sealed class ToDoItemQueryCountTests : IAsyncDisposable
         using (var scope = _factory.Services.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<InsequensContext>();
-            var item = ToDoItem.Create(ownerId, "Task", null, null, null);
+            var item = ToDoItem.Create(ownerId, "Task", null, TaskPriority.None, null);
             context.Users.Add(new ApplicationUser { Id = ownerId, UserName = $"{ownerId}@example.com" });
             context.ToDoItems.Add(item);
             await context.SaveChangesAsync();

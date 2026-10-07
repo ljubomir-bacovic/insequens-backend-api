@@ -2,7 +2,6 @@ using Insequens.Application.Abstractions;
 using Insequens.Application.Profiles;
 using Insequens.Contracts.V1.Tasks;
 using MediatR;
-using DomainPriority = Insequens.Domain.Types.TaskPriority;
 using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
@@ -18,7 +17,7 @@ public class CreateToDoItemHandler(IApplicationDbContext dbContext)
             request.UserId,
             request.Name,
             request.Description,
-            (DomainPriority?)request.Priority,
+            TaskPriorityConversions.FromV1Value(request.Priority),
             request.DueDate);
 
         dbContext.ToDoItems.Add(item);
@@ -28,7 +27,7 @@ public class CreateToDoItemHandler(IApplicationDbContext dbContext)
             item.Id,
             item.Name,
             item.Description,
-            item.Priority.ToContract(),
+            item.Priority.ToV1(),
             item.DueDate,
             item.IsCompleted);
     }

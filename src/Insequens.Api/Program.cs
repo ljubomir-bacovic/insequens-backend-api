@@ -47,7 +47,9 @@ foreach (var documentName in ApiVersions.DocumentNames)
         options.AddDocumentTransformer<JwtBearerSecurityDocumentTransformer>();
         options.AddOperationTransformer<JwtBearerSecurityDocumentTransformer>();
         options.AddOperationTransformer<ProblemDetailsOpenApiTransformer>();
+        options.AddOperationTransformer<ObsoleteOperationTransformer>();
         options.AddSchemaTransformer<ProblemDetailsOpenApiTransformer>();
+        options.AddSchemaTransformer<OptionalSchemaTransformer>();
     });
 }
 

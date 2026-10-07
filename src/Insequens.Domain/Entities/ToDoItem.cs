@@ -15,14 +15,14 @@ public class ToDoItem : AuditableEntity, IOwnedEntity
     public Guid UserId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
-    public TaskPriority? Priority { get; private set; }
+    public TaskPriority Priority { get; private set; }
     public DateOnly? DueDate { get; private set; }
     public bool IsCompleted { get; private set; }
 
     /// <summary>Changes on every save; the API exposes it as the ETag for optimistic concurrency.</summary>
     public byte[] RowVersion { get; private set; } = [];
 
-    public static ToDoItem Create(Guid userId, string name, string? description, TaskPriority? priority, DateOnly? dueDate)
+    public static ToDoItem Create(Guid userId, string name, string? description, TaskPriority priority, DateOnly? dueDate)
     {
         var item = new ToDoItem
         {
@@ -63,7 +63,7 @@ public class ToDoItem : AuditableEntity, IOwnedEntity
         Description = description;
     }
 
-    public void ChangePriority(TaskPriority? priority) => Priority = priority;
+    public void ChangePriority(TaskPriority priority) => Priority = priority;
 
     public void Reschedule(DateOnly? dueDate) => DueDate = dueDate;
 
