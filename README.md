@@ -16,7 +16,9 @@ A task management Web API built with .NET 10, CQRS with MediatR, and Clean Archi
 - AutoMapper (query projections)
 - MailKit (transactional email)
 - Serilog (structured logging)
-- Scalar (OpenAPI documentation)
+- API versioning (Asp.Versioning, URL segment), an OpenAPI document per version written to `docs/openapi/` on build, Scalar UI
+- ProblemDetails (RFC 7807) for every error, with a stable `type` and a `traceId`
+- Optimistic concurrency on tasks with `ETag` and `If-Match`
 - xUnit + FluentAssertions + NSubstitute, SQLite in memory for handler tests (testing)
 
 ## Solution Structure
@@ -86,7 +88,7 @@ See [docs/insequens-v1-architecture-and-guidelines.md](docs/insequens-v1-archite
    dotnet run --project src/Insequens.Api
    ```
 
-5. Open the API docs at `http://localhost:5000/scalar/v1` (Development mode only).
+5. Open the API docs at `http://localhost:5008/scalar/v1` (Development and Staging only). The OpenAPI documents are at `/openapi/v1.json` and `/openapi/v2.json` in every environment, and in `docs/openapi/`.
 
 ### Running Tests
 
@@ -106,7 +108,7 @@ Never commit real credentials, hostnames or IP addresses to configuration files.
 
 ## API Endpoints
 
-All endpoints are under `/v1/` and require JWT authentication unless noted.
+All endpoints are under `/v1/` and require JWT authentication unless noted. Responses carry `api-supported-versions`. Errors are `application/problem+json` with a stable `type` (`urn:insequens:error:...`) and a `traceId`.
 
 ### Auth (no auth required)
 
@@ -137,7 +139,11 @@ Five failed logins lock the account for five minutes. Auth endpoints are rate-li
 | PATCH | `/v1/todoitem/{id}/description` | Update description |
 | PATCH | `/v1/todoitem/{id}/duedate` | Update due date |
 
-A task that does not exist and a task owned by another user both return `404`. A name over 200 characters or a description over 4000 characters returns `400`.
+A task that does not exist and a task owned by another user both return `404`. A name over 200 characters, a description over 4000 characters or a due date more than ten years from today returns `400`. A due-date body of `null` clears the date.
+
+`GET /v1/todoitem/{id}` returns an `ETag`. Send it back as `If-Match` on a PATCH or DELETE to change the task only if nobody else has: a stale one returns `412`. Without `If-Match`, a change that collides with a concurrent one returns `409`.
+
+The same endpoints are also served under `/v2/tasks`. v2 is where breaking changes (string priorities, a single PATCH) will land; v1 stays as it is.
 
 ### Account (auth required)
 
