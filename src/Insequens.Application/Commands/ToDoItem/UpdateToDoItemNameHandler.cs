@@ -1,20 +1,18 @@
 using Insequens.Application.Abstractions;
-using Insequens.Application.Exceptions;
+using Insequens.Application.Authorization;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class UpdateToDoItemNameHandler(IApplicationDbContext dbContext)
+public class UpdateToDoItemNameHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
     : IRequestHandler<UpdateToDoItemNameCommand, Unit>
 {
     public async Task<Unit> Handle(
         UpdateToDoItemNameCommand request,
         CancellationToken cancellationToken)
     {
-        var item = await dbContext.ToDoItems
-            .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
-            ?? throw new ToDoItemNotFoundException(request.ItemId);
+        var item = toDoItem.Resource;
 
         item.Rename(request.Name);
         await dbContext.SaveChangesAsync(cancellationToken);

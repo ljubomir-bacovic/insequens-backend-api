@@ -1,4 +1,5 @@
 using FluentValidation;
+using Insequens.Application.Authorization;
 using Insequens.Application.Behaviors;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +17,9 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(OwnershipBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>));
+        services.AddScoped(typeof(IOwnershipPolicy<>), typeof(OwnershipPolicy<>));
+        services.AddScoped(typeof(IResourceContext<>), typeof(ResourceContext<>));
 
         return services;
     }

@@ -41,23 +41,23 @@ public sealed class UpdateToDoItemDescriptionHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_WithNonexistentItem_ThrowsToDoItemNotFoundException()
+    public async Task Send_WithNonexistentItem_ThrowsNotFoundException()
     {
         var itemId = Guid.NewGuid();
 
         var action = () => _database.SendAsync(new UpdateToDoItemDescriptionCommand(itemId, Guid.NewGuid(), "Description"));
 
-        (await action.Should().ThrowAsync<ToDoItemNotFoundException>()).Which.Id.Should().Be(itemId);
+        (await action.Should().ThrowAsync<NotFoundException>()).Which.Id.Should().Be(itemId);
     }
 
     [Fact]
-    public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenExceptionAndKeepsDescription()
+    public async Task Send_WithOtherUsersItem_ThrowsNotFoundExceptionAndKeepsDescription()
     {
         var item = await _database.SeedItemAsync(Guid.NewGuid(), description: "Original task description");
 
         var action = () => _database.SendAsync(new UpdateToDoItemDescriptionCommand(item.Id, Guid.NewGuid(), "Changed"));
 
-        (await action.Should().ThrowAsync<ResourceForbiddenException>()).Which.Id.Should().Be(item.Id);
+        (await action.Should().ThrowAsync<NotFoundException>()).Which.Id.Should().Be(item.Id);
         (await _database.FindItemAsync(item.Id))!.Description.Should().Be("Original task description");
     }
 }

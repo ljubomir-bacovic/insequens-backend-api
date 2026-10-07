@@ -34,10 +34,10 @@ public class ExceptionMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WhenToDoItemNotFoundExceptionIsThrown_Returns404ProblemDetails()
+    public async Task Invoke_WhenNotFoundExceptionIsThrown_Returns404ProblemDetails()
     {
         var itemId = Guid.NewGuid();
-        var exception = new ToDoItemNotFoundException(itemId);
+        var exception = new NotFoundException("ToDoItem", itemId);
         var context = await InvokeMiddlewareAsync(_ => throw exception);
         var responseBody = await ReadResponseBodyAsync(context);
         using var json = JsonDocument.Parse(responseBody);
@@ -45,7 +45,7 @@ public class ExceptionMiddlewareTests
         context.Response.StatusCode.Should().Be(StatusCodes.Status404NotFound);
         context.Response.ContentType.Should().Be("application/problem+json");
         json.RootElement.GetProperty("status").GetInt32().Should().Be(StatusCodes.Status404NotFound);
-        json.RootElement.GetProperty("title").GetString().Should().Be($"To Do item for id {itemId} not found.");
+        json.RootElement.GetProperty("title").GetString().Should().Be($"ToDoItem for id {itemId} not found.");
         json.RootElement.GetProperty("type").GetString().Should().Be("Error");
         responseBody.Should().NotContain("StackTrace");
     }

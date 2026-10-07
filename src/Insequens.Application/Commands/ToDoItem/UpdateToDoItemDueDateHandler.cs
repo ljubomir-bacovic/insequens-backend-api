@@ -1,20 +1,18 @@
 using Insequens.Application.Abstractions;
-using Insequens.Application.Exceptions;
+using Insequens.Application.Authorization;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class UpdateToDoItemDueDateHandler(IApplicationDbContext dbContext)
+public class UpdateToDoItemDueDateHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
     : IRequestHandler<UpdateToDoItemDueDateCommand, Unit>
 {
     public async Task<Unit> Handle(
         UpdateToDoItemDueDateCommand request,
         CancellationToken cancellationToken)
     {
-        var item = await dbContext.ToDoItems
-            .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
-            ?? throw new ToDoItemNotFoundException(request.ItemId);
+        var item = toDoItem.Resource;
 
         item.Reschedule(request.DueDate);
         await dbContext.SaveChangesAsync(cancellationToken);

@@ -4,7 +4,7 @@ using FluentValidation;
 using Insequens.Api.Tests.Support;
 using Insequens.Application.Abstractions;
 using Insequens.Application.Behaviors;
-using Insequens.Application.Commands;
+using Insequens.Application.Authorization;
 using Insequens.Application.Exceptions;
 using Insequens.Domain.Entities;
 using Insequens.Infrastructure.Identity;
@@ -243,7 +243,7 @@ public class ProgramStartupTests
         var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
         dbContext.Should().BeSameAs(scope.ServiceProvider.GetRequiredService<InsequensContext>());
-        scope.ServiceProvider.GetServices<ISaveChangesInterceptor>()
+        scope.ServiceProvider.GetServices<IInterceptor>()
             .Should().ContainSingle().Which.Should().BeOfType<AuditableEntityInterceptor>();
     }
 
@@ -276,7 +276,7 @@ public class ProgramStartupTests
         behaviors.Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
-            typeof(OwnershipBehavior<,>));
+            typeof(AuthorizationBehavior<,>));
 
         var mediator = serviceProvider.GetRequiredService<IMediator>();
         var response = await mediator.Send(new TestOwnedRequest(item.UserId, item.Id, "example"));
@@ -284,7 +284,7 @@ public class ProgramStartupTests
 
         response.Should().Be("handled:example");
         trace.Steps.Should().Equal("validation", "handler");
-        await otherUsersRequest.Should().ThrowAsync<ResourceForbiddenException>();
+        await otherUsersRequest.Should().ThrowAsync<NotFoundException>();
     }
 
     private sealed class ExecutionTrace
@@ -292,7 +292,7 @@ public class ProgramStartupTests
         public List<string> Steps { get; } = [];
     }
 
-    private sealed record TestOwnedRequest(Guid UserId, Guid ItemId, string Name) : IRequest<string>, IOwned;
+    private sealed record TestOwnedRequest(Guid UserId, Guid ResourceId, string Name) : IRequest<string>, IOwned<ToDoItem>;
 
     private sealed class TestOwnedRequestHandler(ExecutionTrace trace) : IRequestHandler<TestOwnedRequest, string>
     {

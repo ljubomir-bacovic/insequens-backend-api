@@ -5,11 +5,13 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
 using Insequens.Application.Abstractions.Identity;
 using Insequens.Application.Abstractions.Email;
@@ -32,15 +34,18 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
     private readonly string _environment;
     private readonly Action<IServiceCollection>? _configureServices;
     private readonly bool _captureEmails;
+    private readonly SqliteConnection? _sqliteConnection;
 
     /// <param name="startTime">Start of the fake clock; defaults to the real current time so tokens it issues also pass the JWT bearer handler.</param>
     /// <param name="captureEmails">Replace the MailKit sender with <see cref="EmailSender"/>.</param>
+    /// <param name="relationalDatabase">Use SQLite in memory instead of the EF InMemory provider, so SQL commands can be observed.</param>
     public InsequensApiFactory(
         IReadOnlyDictionary<string, string?>? settings = null,
         string environment = "Development",
         Action<IServiceCollection>? configureServices = null,
         DateTimeOffset? startTime = null,
-        bool captureEmails = true)
+        bool captureEmails = true,
+        bool relationalDatabase = false)
     {
         _settings = new Dictionary<string, string?>
         {
@@ -59,6 +64,12 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
         _configureServices = configureServices;
         _captureEmails = captureEmails;
         Clock = new FakeTimeProvider(startTime ?? DateTimeOffset.UtcNow);
+
+        if (relationalDatabase)
+        {
+            _sqliteConnection = new SqliteConnection("DataSource=:memory:");
+            _sqliteConnection.Open();
+        }
     }
 
     /// <summary>Settings a Production host needs on top of <c>appsettings.json</c>.</summary>
@@ -120,7 +131,17 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<InsequensContext>>();
             services.RemoveAll<InsequensContext>();
             services.RemoveAll<IApplicationDbContext>();
-            services.AddInsequensContext(options => options.UseInMemoryDatabase(_databaseName));
+            services.AddInsequensContext(options =>
+            {
+                if (_sqliteConnection is null)
+                {
+                    options.UseInMemoryDatabase(_databaseName);
+                }
+                else
+                {
+                    options.UseSqlite(_sqliteConnection);
+                }
+            });
 
             if (_captureEmails)
             {
@@ -133,5 +154,28 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
 
             _configureServices?.Invoke(services);
         });
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+
+        if (_sqliteConnection is not null)
+        {
+            using var scope = host.Services.CreateScope();
+            scope.ServiceProvider.GetRequiredService<InsequensContext>().Database.EnsureCreated();
+        }
+
+        return host;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (disposing)
+        {
+            _sqliteConnection?.Dispose();
+        }
     }
 }

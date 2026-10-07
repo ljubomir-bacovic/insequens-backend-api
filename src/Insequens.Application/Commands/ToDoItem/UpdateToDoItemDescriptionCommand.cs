@@ -1,5 +1,6 @@
-using Insequens.Application.Commands;
+using Insequens.Application.Authorization;
 using MediatR;
+using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
@@ -8,4 +9,7 @@ namespace Insequens.Application.Commands.ToDoItem;
 // docs/insequens-v1-architecture-and-guidelines.md sections 12 and 17, and
 // docs/insequens-v1-modernisation-plan.md Task 3.9).
 public record UpdateToDoItemDescriptionCommand(Guid ItemId, Guid UserId, string? Description)
-    : IRequest<Unit>, IOwned;
+    : IRequest<Unit>, IOwned<ToDoItemEntity>
+{
+    Guid IResourceRequest.ResourceId => ItemId;
+}

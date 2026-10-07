@@ -36,22 +36,24 @@ public sealed class GetToDoItemHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_WithNonexistentItem_ThrowsToDoItemNotFoundException()
+    public async Task Send_WithNonexistentItem_ThrowsNotFoundException()
     {
         var itemId = Guid.NewGuid();
 
         var action = () => _database.SendAsync(new GetToDoItemQuery(itemId, Guid.NewGuid()));
 
-        (await action.Should().ThrowAsync<ToDoItemNotFoundException>()).Which.Id.Should().Be(itemId);
+        var exception = await action.Should().ThrowAsync<NotFoundException>();
+        exception.Which.Id.Should().Be(itemId);
+        exception.Which.ResourceName.Should().Be("ToDoItem");
     }
 
     [Fact]
-    public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenException()
+    public async Task Send_WithOtherUsersItem_ThrowsNotFoundException()
     {
         var item = await _database.SeedItemAsync(Guid.NewGuid());
 
         var action = () => _database.SendAsync(new GetToDoItemQuery(item.Id, Guid.NewGuid()));
 
-        (await action.Should().ThrowAsync<ResourceForbiddenException>()).Which.Id.Should().Be(item.Id);
+        (await action.Should().ThrowAsync<NotFoundException>()).Which.Id.Should().Be(item.Id);
     }
 }

@@ -1,21 +1,19 @@
 using Insequens.Application.Abstractions;
-using Insequens.Application.Exceptions;
+using Insequens.Application.Authorization;
 using Insequens.Application.Profiles;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
+using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
-public class UpdateToDoItemPriorityHandler(IApplicationDbContext dbContext)
+public class UpdateToDoItemPriorityHandler(IResourceContext<ToDoItemEntity> toDoItem, IApplicationDbContext dbContext)
     : IRequestHandler<UpdateToDoItemPriorityCommand, Unit>
 {
     public async Task<Unit> Handle(
         UpdateToDoItemPriorityCommand request,
         CancellationToken cancellationToken)
     {
-        var item = await dbContext.ToDoItems
-            .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
-            ?? throw new ToDoItemNotFoundException(request.ItemId);
+        var item = toDoItem.Resource;
 
         item.ChangePriority(request.Priority.ToDomain());
         await dbContext.SaveChangesAsync(cancellationToken);

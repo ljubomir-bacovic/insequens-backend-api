@@ -11,5 +11,9 @@ public interface IApplicationDbContext
 {
     DbSet<ToDoItem> ToDoItems { get; }
 
+    /// <summary>The set for any entity, for generic code such as ownership policies.</summary>
+    DbSet<TEntity> Set<TEntity>()
+        where TEntity : class;
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

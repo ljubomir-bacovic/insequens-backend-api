@@ -44,23 +44,23 @@ public sealed class UpdateToDoItemPriorityHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_WithNonexistentItem_ThrowsToDoItemNotFoundException()
+    public async Task Send_WithNonexistentItem_ThrowsNotFoundException()
     {
         var itemId = Guid.NewGuid();
 
         var action = () => _database.SendAsync(new UpdateToDoItemPriorityCommand(itemId, Guid.NewGuid(), TaskPriority.High));
 
-        (await action.Should().ThrowAsync<ToDoItemNotFoundException>()).Which.Id.Should().Be(itemId);
+        (await action.Should().ThrowAsync<NotFoundException>()).Which.Id.Should().Be(itemId);
     }
 
     [Fact]
-    public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenExceptionAndKeepsPriority()
+    public async Task Send_WithOtherUsersItem_ThrowsNotFoundExceptionAndKeepsPriority()
     {
         var item = await _database.SeedItemAsync(Guid.NewGuid(), priority: DomainPriority.Low);
 
         var action = () => _database.SendAsync(new UpdateToDoItemPriorityCommand(item.Id, Guid.NewGuid(), TaskPriority.High));
 
-        (await action.Should().ThrowAsync<ResourceForbiddenException>()).Which.Id.Should().Be(item.Id);
+        (await action.Should().ThrowAsync<NotFoundException>()).Which.Id.Should().Be(item.Id);
         (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(DomainPriority.Low);
     }
 }

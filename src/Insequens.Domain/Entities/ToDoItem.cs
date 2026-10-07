@@ -3,7 +3,7 @@ using Insequens.Domain.Types;
 
 namespace Insequens.Domain.Entities;
 
-public class ToDoItem : AuditableEntity
+public class ToDoItem : AuditableEntity, IOwnedEntity
 {
     public const int NameMaxLength = 200;
     public const int DescriptionMaxLength = 4000;

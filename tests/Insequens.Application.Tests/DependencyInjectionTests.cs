@@ -3,9 +3,10 @@ using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Behaviors;
-using Insequens.Application.Commands;
+using Insequens.Application.Authorization;
 using Insequens.Application.Abstractions;
 using Insequens.Application.Tests.Support;
+using Insequens.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,7 +48,7 @@ public class DependencyInjectionTests
         behaviorRegistrations.Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
-            typeof(OwnershipBehavior<,>));
+            typeof(AuthorizationBehavior<,>));
     }
 
     [Fact]
@@ -77,7 +78,7 @@ public class DependencyInjectionTests
         behaviors.Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
-            typeof(OwnershipBehavior<,>));
+            typeof(AuthorizationBehavior<,>));
 
         var mediator = serviceProvider.GetRequiredService<IMediator>();
 
@@ -106,7 +107,7 @@ public class DependencyInjectionTests
         public List<string> Steps { get; } = [];
     }
 
-    private sealed record TestOwnedRequest(Guid UserId, Guid ItemId, string Name) : IRequest<string>, IOwned;
+    private sealed record TestOwnedRequest(Guid UserId, Guid ResourceId, string Name) : IRequest<string>, IOwned<ToDoItem>;
 
     private sealed class TestOwnedRequestHandler(ExecutionTrace trace) : IRequestHandler<TestOwnedRequest, string>
     {

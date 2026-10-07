@@ -26,9 +26,10 @@ public class ExceptionMiddleware
         {
             await Next(context);
         }
-        catch (ToDoItemNotFoundException ex)
+        catch (NotFoundException ex)
         {
-            _logger.LogWarning("To Do item not found. Id: {ItemId}", ex.Id);
+            // Covers both a missing resource and one the caller does not own, so IDs cannot be probed.
+            _logger.LogWarning("Resource not found. Resource: {ResourceName}, Id: {ResourceId}", ex.ResourceName, ex.Id);
 
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -38,7 +39,7 @@ public class ExceptionMiddleware
                 Status = StatusCodes.Status404NotFound,
                 Detail = string.Empty,
                 Instance = "",
-                Title = $"To Do item for id {ex.Id} not found.",
+                Title = $"{ex.ResourceName} for id {ex.Id} not found.",
                 Type = "Error"
             };
 

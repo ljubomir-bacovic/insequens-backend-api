@@ -61,7 +61,6 @@ public class ToDoItemController : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority, CancellationToken cancellationToken)
     {
@@ -78,7 +77,6 @@ public class ToDoItemController : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name, CancellationToken cancellationToken)
     {
@@ -95,7 +93,6 @@ public class ToDoItemController : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description, CancellationToken cancellationToken)
     {
@@ -112,7 +109,6 @@ public class ToDoItemController : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly date, CancellationToken cancellationToken)
     {
@@ -128,7 +124,6 @@ public class ToDoItemController : ControllerBase
     [HttpDelete("{id:guid}")]
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteToDoItemAsync(Guid id, CancellationToken cancellationToken)
     {
@@ -143,7 +138,6 @@ public class ToDoItemController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetToDoItem(Guid id, CancellationToken cancellationToken)
     {
@@ -159,7 +153,6 @@ public class ToDoItemController : ControllerBase
     [HttpPatch("{id:guid}/togglecomplete")]
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CompleteToDoItem(Guid id, CancellationToken cancellationToken)
     {

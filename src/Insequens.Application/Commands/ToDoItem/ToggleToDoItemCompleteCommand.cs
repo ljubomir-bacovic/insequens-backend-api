@@ -1,5 +1,6 @@
-using Insequens.Application.Commands;
+using Insequens.Application.Authorization;
 using MediatR;
+using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Commands.ToDoItem;
 
@@ -7,4 +8,7 @@ namespace Insequens.Application.Commands.ToDoItem;
 // shape, and IOwned + OwnershipBehavior enforce existence/authorization for specific-resource requests (see
 // docs/insequens-v1-architecture-and-guidelines.md sections 8.2, 10.3, and 12).
 public record ToggleToDoItemCompleteCommand(Guid ItemId, Guid UserId)
-    : IRequest<Unit>, IOwned;
+    : IRequest<Unit>, IOwned<ToDoItemEntity>
+{
+    Guid IResourceRequest.ResourceId => ItemId;
+}
