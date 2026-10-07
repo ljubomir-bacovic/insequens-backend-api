@@ -17,7 +17,7 @@ public class UpdateToDoItemPriorityHandler(IApplicationDbContext dbContext)
             .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
-        item.Priority = request.Priority.ToDomain();
+        item.ChangePriority(request.Priority.ToDomain());
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

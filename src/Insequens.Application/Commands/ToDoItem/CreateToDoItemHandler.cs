@@ -14,16 +14,12 @@ public class CreateToDoItemHandler(IApplicationDbContext dbContext)
         CreateToDoItemCommand request,
         CancellationToken cancellationToken)
     {
-        var item = new ToDoItemEntity
-        {
-            Id = Guid.NewGuid(),
-            UserId = request.UserId,
-            Name = request.Name,
-            Description = request.Description,
-            Priority = (DomainPriority?)request.Priority,
-            DueDate = request.DueDate,
-            IsCompleted = false,
-        };
+        var item = ToDoItemEntity.Create(
+            request.UserId,
+            request.Name,
+            request.Description,
+            (DomainPriority?)request.Priority,
+            request.DueDate);
 
         dbContext.ToDoItems.Add(item);
         await dbContext.SaveChangesAsync(cancellationToken);

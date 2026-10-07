@@ -1,4 +1,5 @@
 using Insequens.Application.Exceptions;
+using Insequens.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -97,6 +98,25 @@ public class ExceptionMiddleware
                 Detail = string.Empty,
                 Instance = "",
                 Title = "Email confirmation failed.",
+                Type = "Error"
+            };
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
+        catch (DomainException ex)
+        {
+            _logger.LogWarning("Domain rule violated. Rule: {DomainRule}", ex.GetType().Name);
+
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message,
+                Instance = "",
+                Title = "Domain rule violated.",
                 Type = "Error"
             };
 

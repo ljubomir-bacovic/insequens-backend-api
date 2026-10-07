@@ -264,7 +264,7 @@ public class ProgramStartupTests
         using var scope = factory.Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
         var dbContext = serviceProvider.GetRequiredService<IApplicationDbContext>();
-        var item = new ToDoItem { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Name = "Task" };
+        var item = ToDoItem.Create(Guid.NewGuid(), "Task", null, null, null);
         dbContext.ToDoItems.Add(item);
         await dbContext.SaveChangesAsync(CancellationToken.None);
 

@@ -18,6 +18,7 @@ public sealed class CreateToDoItemHandlerTests : IDisposable
     public async Task Send_WithValidCommand_PersistsItemAndReturnsDetails()
     {
         var userId = Guid.NewGuid();
+        _database.CurrentUser.UserId = userId;
         var request = new CreateToDoItemCommand("Task", "Description", 2, new DateOnly(2026, 1, 1), userId);
 
         var result = await _database.SendAsync(request);
@@ -31,6 +32,7 @@ public sealed class CreateToDoItemHandlerTests : IDisposable
         item.Priority.Should().Be(DomainPriority.Medium);
         item.IsCompleted.Should().BeFalse();
         item.CreatedOn.Should().Be(TestDbContextFactory.StartTime.UtcDateTime);
+        item.CreatedBy.Should().Be(userId);
         result.Should().Be(new ToDoItemGetDetailsModel(
             item.Id,
             request.Name,

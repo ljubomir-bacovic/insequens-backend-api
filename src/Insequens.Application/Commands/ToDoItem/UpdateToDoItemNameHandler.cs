@@ -16,7 +16,7 @@ public class UpdateToDoItemNameHandler(IApplicationDbContext dbContext)
             .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
-        item.Name = request.Name;
+        item.Rename(request.Name);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

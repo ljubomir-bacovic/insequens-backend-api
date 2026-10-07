@@ -1,5 +1,6 @@
 using FluentValidation;
 using Insequens.Application.Commands.ToDoItem;
+using ToDoItemEntity = Insequens.Domain.Entities.ToDoItem;
 
 namespace Insequens.Application.Validators.ToDoItem;
 
@@ -9,7 +10,8 @@ public class CreateToDoItemValidator : AbstractValidator<CreateToDoItemCommand>
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Task name is required.")
-            .MaximumLength(200).WithMessage("Task name must not exceed 200 characters.");
+            .MaximumLength(ToDoItemEntity.NameMaxLength)
+            .WithMessage($"Task name must not exceed {ToDoItemEntity.NameMaxLength} characters.");
 
         RuleFor(x => x.Priority)
             .InclusiveBetween(0, 3)

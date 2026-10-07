@@ -65,16 +65,16 @@ public class ToDoItemProfileTests
         CreateMapper().Map<ToDoItemGetDetailsModel>(entity).Priority.Should().BeNull();
     }
 
-    private static ToDoItem NewEntity(DomainPriority? priority, DateOnly? dueDate, bool isCompleted) => new()
+    private static ToDoItem NewEntity(DomainPriority? priority, DateOnly? dueDate, bool isCompleted)
     {
-        Id = Guid.NewGuid(),
-        UserId = Guid.NewGuid(),
-        Name = "Item",
-        Description = "Description",
-        Priority = priority,
-        DueDate = dueDate,
-        IsCompleted = isCompleted,
-    };
+        var entity = ToDoItem.Create(Guid.NewGuid(), "Item", "Description", priority, dueDate);
+        if (isCompleted)
+        {
+            entity.MarkCompleted();
+        }
+
+        return entity;
+    }
 
     private static IMapper CreateMapper()
     {

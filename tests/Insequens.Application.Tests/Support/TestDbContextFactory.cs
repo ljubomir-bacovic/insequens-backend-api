@@ -30,9 +30,11 @@ public sealed class TestDbContextFactory : IDisposable
 
     public FakeTimeProvider Clock { get; } = new(StartTime);
 
+    public TestCurrentUser CurrentUser { get; } = new();
+
     public InsequensContext CreateContext(params IInterceptor[] interceptors) => new(new DbContextOptionsBuilder<InsequensContext>()
         .UseSqlite(_connection)
-        .AddInterceptors(new AuditableEntityInterceptor(Clock))
+        .AddInterceptors(new AuditableEntityInterceptor(Clock, CurrentUser))
         .AddInterceptors(interceptors)
         .Options);
 
@@ -63,16 +65,11 @@ public sealed class TestDbContextFactory : IDisposable
         DateOnly? dueDate = null,
         bool isCompleted = false)
     {
-        var item = new ToDoItem
+        var item = ToDoItem.Create(userId, name, description, priority, dueDate);
+        if (isCompleted)
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Name = name,
-            Description = description,
-            Priority = priority,
-            DueDate = dueDate,
-            IsCompleted = isCompleted,
-        };
+            item.MarkCompleted();
+        }
 
         await using var context = CreateContext();
         context.ToDoItems.Add(item);

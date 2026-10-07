@@ -16,7 +16,15 @@ public class ToggleToDoItemCompleteHandler(IApplicationDbContext dbContext)
             .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
-        item.IsCompleted = !item.IsCompleted;
+        if (item.IsCompleted)
+        {
+            item.Reopen();
+        }
+        else
+        {
+            item.MarkCompleted();
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

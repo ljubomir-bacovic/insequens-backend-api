@@ -1,5 +1,6 @@
 using System.Net;
 using Insequens.Api.Security;
+using Insequens.Application.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HostFiltering;
@@ -14,6 +15,8 @@ public static class ApiSecurityServiceCollectionExtensions
     {
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
         services.ConfigureOptions<ConfigureJwtBearerOptions>();
+        services.AddHttpContextAccessor();
+        services.AddSingleton<ICurrentUser, HttpContextCurrentUser>();
 
         // Every endpoint requires an authenticated user unless it opts out with [AllowAnonymous].
         services.AddAuthorizationBuilder()

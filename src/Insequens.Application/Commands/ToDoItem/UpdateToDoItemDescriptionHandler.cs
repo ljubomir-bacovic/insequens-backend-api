@@ -16,7 +16,7 @@ public class UpdateToDoItemDescriptionHandler(IApplicationDbContext dbContext)
             .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
-        item.Description = request.Description;
+        item.UpdateDescription(request.Description);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

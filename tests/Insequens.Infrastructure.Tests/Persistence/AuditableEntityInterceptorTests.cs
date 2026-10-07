@@ -1,9 +1,11 @@
 using FluentAssertions;
+using Insequens.Application.Abstractions;
 using Insequens.Domain.Entities;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Infrastructure.Persistence.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Time.Testing;
+using NSubstitute;
 
 namespace Insequens.Infrastructure.Tests.Persistence;
 
@@ -11,11 +13,15 @@ public class AuditableEntityInterceptorTests
 {
     private static readonly DateTimeOffset StartTime = new(2026, 3, 1, 10, 0, 0, TimeSpan.Zero);
 
+    private readonly FakeTimeProvider _timeProvider = new(StartTime);
+    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
+
     [Fact]
-    public async Task SaveChangesAsync_WhenEntityAdded_SetsCreatedOnAndUpdatedOnFromTimeProvider()
+    public async Task SaveChangesAsync_WhenEntityAdded_SetsCreatedAndUpdatedFields()
     {
-        var timeProvider = new FakeTimeProvider(StartTime);
-        await using var context = CreateContext(timeProvider);
+        var userId = Guid.NewGuid();
+        _currentUser.UserId.Returns(userId);
+        await using var context = CreateContext();
         var item = NewItem();
 
         context.ToDoItems.Add(item);
@@ -25,45 +31,67 @@ public class AuditableEntityInterceptorTests
         item.UpdatedOn.Should().Be(StartTime.UtcDateTime);
         item.CreatedOn.Kind.Should().Be(DateTimeKind.Utc);
         item.UpdatedOn.Kind.Should().Be(DateTimeKind.Utc);
+        item.CreatedBy.Should().Be(userId);
+        item.UpdatedBy.Should().Be(userId);
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenEntityModified_UpdatesOnlyUpdatedOn()
+    public async Task SaveChangesAsync_WhenEntityModified_UpdatesOnlyUpdatedFields()
     {
-        var timeProvider = new FakeTimeProvider(StartTime);
-        await using var context = CreateContext(timeProvider);
+        var creator = Guid.NewGuid();
+        var editor = Guid.NewGuid();
+        _currentUser.UserId.Returns(creator);
+        await using var context = CreateContext();
         var item = NewItem();
         context.ToDoItems.Add(item);
         await context.SaveChangesAsync(CancellationToken.None);
 
-        timeProvider.Advance(TimeSpan.FromHours(2));
-        item.Name = "Renamed";
+        _timeProvider.Advance(TimeSpan.FromHours(2));
+        _currentUser.UserId.Returns(editor);
+        item.Rename("Renamed");
         await context.SaveChangesAsync(CancellationToken.None);
 
         item.CreatedOn.Should().Be(StartTime.UtcDateTime);
+        item.CreatedBy.Should().Be(creator);
         item.UpdatedOn.Should().Be(StartTime.AddHours(2).UtcDateTime);
+        item.UpdatedBy.Should().Be(editor);
     }
 
     [Fact]
-    public async Task SaveChangesAsync_WhenEntityUnchanged_LeavesTimestamps()
+    public async Task SaveChangesAsync_WhenEntityUnchanged_LeavesAuditFields()
     {
-        var timeProvider = new FakeTimeProvider(StartTime);
-        await using var context = CreateContext(timeProvider);
+        await using var context = CreateContext();
         var item = NewItem();
         context.ToDoItems.Add(item);
         await context.SaveChangesAsync(CancellationToken.None);
 
-        timeProvider.Advance(TimeSpan.FromHours(2));
+        _timeProvider.Advance(TimeSpan.FromHours(2));
         await context.SaveChangesAsync(CancellationToken.None);
 
         item.UpdatedOn.Should().Be(StartTime.UtcDateTime);
     }
 
     [Fact]
-    public void SaveChanges_WhenEntityAdded_SetsAuditTimestampsFromTimeProvider()
+    public async Task SaveChangesAsync_WithoutCurrentUser_LeavesActorsEmpty()
     {
-        var timeProvider = new FakeTimeProvider(StartTime);
-        using var context = CreateContext(timeProvider);
+        _currentUser.UserId.Returns((Guid?)null);
+        await using var context = CreateContext();
+        var item = NewItem();
+
+        context.ToDoItems.Add(item);
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        item.CreatedBy.Should().BeNull();
+        item.UpdatedBy.Should().BeNull();
+        item.CreatedOn.Should().Be(StartTime.UtcDateTime);
+    }
+
+    [Fact]
+    public void SaveChanges_WhenEntityAdded_SetsAuditFields()
+    {
+        var userId = Guid.NewGuid();
+        _currentUser.UserId.Returns(userId);
+        using var context = CreateContext();
         var item = NewItem();
 
         context.ToDoItems.Add(item);
@@ -71,13 +99,14 @@ public class AuditableEntityInterceptorTests
 
         item.CreatedOn.Should().Be(StartTime.UtcDateTime);
         item.UpdatedOn.Should().Be(StartTime.UtcDateTime);
+        item.CreatedBy.Should().Be(userId);
     }
 
-    private static ToDoItem NewItem() => new() { Id = Guid.NewGuid(), UserId = Guid.NewGuid(), Name = "Task" };
+    private static ToDoItem NewItem() => ToDoItem.Create(Guid.NewGuid(), "Task", null, null, null);
 
-    private static InsequensContext CreateContext(TimeProvider timeProvider) => new(
+    private InsequensContext CreateContext() => new(
         new DbContextOptionsBuilder<InsequensContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .AddInterceptors(new AuditableEntityInterceptor(timeProvider))
+            .AddInterceptors(new AuditableEntityInterceptor(_timeProvider, _currentUser))
             .Options);
 }

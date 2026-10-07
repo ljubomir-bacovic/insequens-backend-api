@@ -16,7 +16,7 @@ public class UpdateToDoItemDueDateHandler(IApplicationDbContext dbContext)
             .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
-        item.DueDate = request.DueDate;
+        item.Reschedule(request.DueDate);
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

@@ -1,11 +1,11 @@
-using FluentAssertions;
-using Insequens.Api.Tests.Support;
-using Insequens.Infrastructure.Persistence;
-using Insequens.Domain.Entities;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using FluentAssertions;
+using Insequens.Api.Tests.Support;
 using Insequens.Contracts.V1.Tasks;
+using Insequens.Domain.Entities;
+using Insequens.Infrastructure.Persistence;
+using Microsoft.Extensions.DependencyInjection;
 using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Api.Tests.Queries;
@@ -16,9 +16,8 @@ public class GetToDoItemEndpointTests
     public async Task GetToDoItem_WhenCalledByOwner_ReturnsItemDetails()
     {
         var userId = Guid.NewGuid();
-        var itemId = Guid.NewGuid();
         await using var factory = new InsequensApiFactory();
-        await SeedItemAsync(factory, userId, itemId);
+        var itemId = await SeedItemAsync(factory, userId);
         using var client = factory.CreateHttpsClient();
         client.UseBearer(factory.CreateAccessToken(userId));
 
@@ -35,23 +34,16 @@ public class GetToDoItemEndpointTests
             true));
     }
 
-    private static async Task SeedItemAsync(InsequensApiFactory factory, Guid userId, Guid itemId)
+    private static async Task<Guid> SeedItemAsync(InsequensApiFactory factory, Guid userId)
     {
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<InsequensContext>();
-        await context.Database.EnsureDeletedAsync();
-        await context.Database.EnsureCreatedAsync();
-        context.ToDoItems.Add(new ToDoItem
-        {
-            Id = itemId,
-            UserId = userId,
-            Name = "Projected item",
-            Description = "Projected description",
-            Priority = DomainPriority.Medium,
-            DueDate = new DateOnly(2026, 7, 3),
-            IsCompleted = true,
-        });
+        var item = ToDoItem.Create(userId, "Projected item", "Projected description", DomainPriority.Medium, new DateOnly(2026, 7, 3));
+        item.MarkCompleted();
+        context.ToDoItems.Add(item);
 
         await context.SaveChangesAsync();
+
+        return item.Id;
     }
 }
