@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Insequens.Domain.ServiceContracts;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Api.Tests.Support;
 

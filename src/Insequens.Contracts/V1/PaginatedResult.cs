@@ -1,4 +1,4 @@
-namespace Insequens.Application.Models;
+namespace Insequens.Contracts.V1;
 
 public record PaginatedResult<T>(
     List<T> Items,

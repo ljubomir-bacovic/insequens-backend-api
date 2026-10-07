@@ -1,15 +1,14 @@
 using Insequens.Api.RateLimiting;
 using Insequens.Application.Commands.ToDoItem;
-using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
-using Insequens.Domain.Model.ToDoItem;
-using Insequens.Domain.Types;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
+using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V1;
 
 namespace Insequens.Api.Controllers;
 

@@ -1,6 +1,5 @@
 using Insequens.Application.Abstractions;
 using Insequens.Infrastructure.Persistence;
-using Insequens.Domain.ServiceContracts;
 using Insequens.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +11,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
+using Insequens.Application.Abstractions.Identity;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Api.Tests.Support;
 

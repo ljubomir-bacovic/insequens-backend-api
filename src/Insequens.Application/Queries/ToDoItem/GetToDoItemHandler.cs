@@ -1,9 +1,9 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Insequens.Application.Abstractions;
-using Insequens.Domain.Model.ToDoItem;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Insequens.Contracts.V1.Tasks;
 
 namespace Insequens.Application.Queries.ToDoItem;
 

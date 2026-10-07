@@ -1,11 +1,11 @@
 using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Behaviors;
-using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
 using Insequens.Application.Validators.ToDoItem;
-using Insequens.Domain.Model.ToDoItem;
 using MediatR;
+using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V1;
 
 namespace Insequens.Application.Tests.Behaviors;
 

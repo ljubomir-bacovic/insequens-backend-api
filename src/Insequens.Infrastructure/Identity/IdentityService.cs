@@ -1,8 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
 using Microsoft.AspNetCore.Identity;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Infrastructure.Identity;
 

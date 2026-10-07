@@ -2,11 +2,11 @@ using FluentAssertions;
 using Insequens.Api.Tests.Support;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Domain.Entities;
-using Insequens.Domain.Model.ToDoItem;
-using Insequens.Domain.Types;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using Insequens.Contracts.V1.Tasks;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Api.Tests.Queries;
 
@@ -47,7 +47,7 @@ public class GetToDoItemEndpointTests
             UserId = userId,
             Name = "Projected item",
             Description = "Projected description",
-            Priority = TaskPriority.Medium,
+            Priority = DomainPriority.Medium,
             DueDate = new DateOnly(2026, 7, 3),
             IsCompleted = true,
         });

@@ -1,6 +1,6 @@
-using Insequens.Domain.ServiceContracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Infrastructure.Email;
 

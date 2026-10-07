@@ -3,7 +3,8 @@ using FluentValidation;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Exceptions;
 using Insequens.Application.Tests.Support;
-using Insequens.Domain.Types;
+using Insequens.Contracts.V1.Tasks;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Application.Tests.Commands;
 
@@ -24,14 +25,14 @@ public sealed class UpdateToDoItemPriorityHandlerTests : IDisposable
 
         await _database.SendAsync(new UpdateToDoItemPriorityCommand(item.Id, userId, priority));
 
-        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(priority);
+        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be((DomainPriority)priority);
     }
 
     [Fact]
     public async Task Send_WithInvalidPriority_ThrowsValidationExceptionAndKeepsPriority()
     {
         var userId = Guid.NewGuid();
-        var item = await _database.SeedItemAsync(userId, priority: TaskPriority.Low);
+        var item = await _database.SeedItemAsync(userId, priority: DomainPriority.Low);
 
         var action = () => _database.SendAsync(new UpdateToDoItemPriorityCommand(item.Id, userId, (TaskPriority)99));
 
@@ -39,7 +40,7 @@ public sealed class UpdateToDoItemPriorityHandlerTests : IDisposable
         exception.Which.Errors.Should().ContainSingle(error =>
             error.PropertyName == "Priority" &&
             error.ErrorMessage == "Priority must be one of: 1 (high), 2 (medium), or 3 (low).");
-        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(TaskPriority.Low);
+        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(DomainPriority.Low);
     }
 
     [Fact]
@@ -55,11 +56,11 @@ public sealed class UpdateToDoItemPriorityHandlerTests : IDisposable
     [Fact]
     public async Task Send_WithOtherUsersItem_ThrowsResourceForbiddenExceptionAndKeepsPriority()
     {
-        var item = await _database.SeedItemAsync(Guid.NewGuid(), priority: TaskPriority.Low);
+        var item = await _database.SeedItemAsync(Guid.NewGuid(), priority: DomainPriority.Low);
 
         var action = () => _database.SendAsync(new UpdateToDoItemPriorityCommand(item.Id, Guid.NewGuid(), TaskPriority.High));
 
         (await action.Should().ThrowAsync<ResourceForbiddenException>()).Which.Id.Should().Be(item.Id);
-        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(TaskPriority.Low);
+        (await _database.FindItemAsync(item.Id))!.Priority.Should().Be(DomainPriority.Low);
     }
 }

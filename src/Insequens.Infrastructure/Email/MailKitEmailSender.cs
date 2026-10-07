@@ -1,8 +1,8 @@
-using Insequens.Domain.ServiceContracts;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Infrastructure.Email;
 

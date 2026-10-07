@@ -1,7 +1,7 @@
 using FluentAssertions;
-using Insequens.Application.Models;
+using Insequens.Contracts.V1;
 
-namespace Insequens.Application.Tests.Models;
+namespace Insequens.Application.Tests;
 
 public class PaginatedResultTests
 {

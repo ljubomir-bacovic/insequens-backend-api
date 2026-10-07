@@ -2,9 +2,9 @@ using FluentAssertions;
 using FluentValidation;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Tests.Support;
-using Insequens.Domain.Model.ToDoItem;
-using Insequens.Domain.Types;
+using Insequens.Contracts.V1.Tasks;
 using Microsoft.EntityFrameworkCore;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Application.Tests.Commands;
 
@@ -28,7 +28,7 @@ public sealed class CreateToDoItemHandlerTests : IDisposable
         item.Name.Should().Be(request.Name);
         item.Description.Should().Be(request.Description);
         item.DueDate.Should().Be(request.DueDate);
-        item.Priority.Should().Be(TaskPriority.Medium);
+        item.Priority.Should().Be(DomainPriority.Medium);
         item.IsCompleted.Should().BeFalse();
         item.CreatedOn.Should().Be(TestDbContextFactory.StartTime.UtcDateTime);
         result.Should().Be(new ToDoItemGetDetailsModel(

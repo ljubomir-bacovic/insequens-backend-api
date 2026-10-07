@@ -1,11 +1,10 @@
 using Insequens.Infrastructure.Persistence;
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Infrastructure.Identity;
 

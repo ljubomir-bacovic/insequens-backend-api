@@ -26,6 +26,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Insequens.Infrastructure\Insequens.Infrastructure.csproj" />
     <ProjectReference Include="..\Insequens.Application\Insequens.Application.csproj" />
+    <ProjectReference Include="..\Insequens.Contracts\Insequens.Contracts.csproj" />
   </ItemGroup>
 
   <ProjectExtensions><VisualStudio><UserProperties properties_4launchsettings_1json__JsonSchema="https://json.schemastore.org/language-configuration.json" /></VisualStudio></ProjectExtensions>

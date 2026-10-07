@@ -21,12 +21,40 @@ public class ProjectDependencyTests
             "EF providers, Identity stores and AutoMapper belong to Infrastructure, Application or the tests");
     }
 
-    private static IReadOnlyList<string> PackageReferences(string relativeProjectPath)
+    [Fact]
+    public void ContractsProject_ReferencesNothing()
     {
-        var project = XDocument.Load(Path.Combine(RepositoryPaths.FindRepositoryRoot(), relativeProjectPath));
+        var project = LoadProject(Path.Combine("src", "Insequens.Contracts", "Insequens.Contracts.csproj"));
 
-        return project.Descendants("PackageReference")
+        project.Descendants("ProjectReference").Should().BeEmpty("clients consume the contract without the server");
+        project.Descendants("PackageReference").Should().BeEmpty("clients consume the contract without the server");
+        project.Descendants("FrameworkReference").Should().BeEmpty("clients consume the contract without the server");
+    }
+
+    [Fact]
+    public void ContractsAssembly_ReferencesOnlyTheRuntime()
+    {
+        var references = typeof(Contracts.V1.PaginatedResult<>).Assembly
+            .GetReferencedAssemblies()
+            .Select(reference => reference.Name ?? string.Empty);
+
+        references.Should().OnlyContain(name => name == "netstandard" || name == "System" || name.StartsWith("System.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DomainProject_ReferencesNothing()
+    {
+        var project = LoadProject(Path.Combine("src", "Insequens.Domain", "Insequens.Domain.csproj"));
+
+        project.Descendants("ProjectReference").Should().BeEmpty();
+        project.Descendants("PackageReference").Should().BeEmpty();
+    }
+
+    private static IReadOnlyList<string> PackageReferences(string relativeProjectPath) =>
+        LoadProject(relativeProjectPath).Descendants("PackageReference")
             .Select(reference => (string?)reference.Attribute("Include") ?? string.Empty)
             .ToList();
-    }
+
+    private static XDocument LoadProject(string relativeProjectPath) =>
+        XDocument.Load(Path.Combine(RepositoryPaths.FindRepositoryRoot(), relativeProjectPath));
 }

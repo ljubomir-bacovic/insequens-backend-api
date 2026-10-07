@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Insequens.Domain.ServiceContracts;
 using Insequens.Infrastructure.Email;
 using MailKit;
 using MailKit.Net.Smtp;
@@ -8,6 +7,7 @@ using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using NSubstitute;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Infrastructure.Tests.Email;
 

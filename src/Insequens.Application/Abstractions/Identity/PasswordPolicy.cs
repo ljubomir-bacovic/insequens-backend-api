@@ -1,4 +1,4 @@
-namespace Insequens.Domain.Models.Auth;
+namespace Insequens.Application.Abstractions.Identity;
 
 /// <summary>
 /// The password rules shared by ASP.NET Core Identity and the request validators, so a password

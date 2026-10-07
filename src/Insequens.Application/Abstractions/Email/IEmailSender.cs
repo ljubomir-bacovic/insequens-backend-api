@@ -1,4 +1,4 @@
-namespace Insequens.Domain.ServiceContracts;
+namespace Insequens.Application.Abstractions.Email;
 
 public interface IEmailSender
 {

@@ -1,10 +1,11 @@
 using System.Net;
 using Insequens.Application.Options;
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Insequens.Contracts.V1.Auth;
+using Insequens.Application.Abstractions.Identity;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Application.Commands.Auth;
 

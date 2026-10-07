@@ -2,8 +2,8 @@ using FluentAssertions;
 using Insequens.Application.Exceptions;
 using Insequens.Application.Queries.ToDoItem;
 using Insequens.Application.Tests.Support;
-using Insequens.Domain.Model.ToDoItem;
-using Insequens.Domain.Types;
+using Insequens.Contracts.V1.Tasks;
+using DomainPriority = Insequens.Domain.Types.TaskPriority;
 
 namespace Insequens.Application.Tests.Queries;
 
@@ -21,7 +21,7 @@ public sealed class GetToDoItemHandlerTests : IDisposable
             userId,
             name: "Task",
             description: "Description",
-            priority: TaskPriority.High,
+            priority: DomainPriority.High,
             dueDate: new DateOnly(2026, 2, 1));
 
         var result = await _database.SendAsync(new GetToDoItemQuery(item.Id, userId));

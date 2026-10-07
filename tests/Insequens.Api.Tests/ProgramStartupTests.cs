@@ -7,7 +7,6 @@ using Insequens.Application.Behaviors;
 using Insequens.Application.Commands;
 using Insequens.Application.Exceptions;
 using Insequens.Domain.Entities;
-using Insequens.Domain.ServiceContracts;
 using Insequens.Infrastructure.Identity;
 using Insequens.Infrastructure.Email;
 using Insequens.Infrastructure.Persistence;
@@ -23,6 +22,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Insequens.Application.Abstractions.Email;
 
 namespace Insequens.Api.Tests;
 

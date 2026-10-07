@@ -1,5 +1,6 @@
 using Insequens.Application.Abstractions;
 using Insequens.Application.Exceptions;
+using Insequens.Application.Profiles;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +17,7 @@ public class UpdateToDoItemPriorityHandler(IApplicationDbContext dbContext)
             .SingleOrDefaultAsync(toDoItem => toDoItem.Id == request.ItemId, cancellationToken)
             ?? throw new ToDoItemNotFoundException(request.ItemId);
 
-        item.Priority = request.Priority;
+        item.Priority = request.Priority.ToDomain();
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
     }

@@ -1,8 +1,8 @@
 using FluentAssertions;
 using Insequens.Application.Commands.Auth;
 using Insequens.Application.Exceptions;
-using Insequens.Domain.ServiceContracts;
 using NSubstitute;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Application.Tests.Commands.Auth;
 

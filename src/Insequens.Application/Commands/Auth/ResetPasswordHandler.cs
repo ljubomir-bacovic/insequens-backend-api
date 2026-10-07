@@ -1,7 +1,7 @@
-using Insequens.Domain.Models.Auth;
-using Insequens.Domain.ServiceContracts;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Insequens.Contracts.V1.Auth;
+using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Application.Commands.Auth;
 

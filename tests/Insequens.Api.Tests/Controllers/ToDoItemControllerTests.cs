@@ -3,10 +3,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using Insequens.Api.Controllers;
 using Insequens.Application.Commands.ToDoItem;
-using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
-using Insequens.Domain.Model.ToDoItem;
-using Insequens.Domain.Types;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -17,6 +14,8 @@ using NSubstitute;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
+using Insequens.Contracts.V1.Tasks;
+using Insequens.Contracts.V1;
 
 namespace Insequens.Api.Tests.Controllers;
 

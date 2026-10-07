@@ -1,6 +1,5 @@
-using Insequens.Domain.Models.Auth;
 
-namespace Insequens.Domain.ServiceContracts;
+namespace Insequens.Application.Abstractions.Identity;
 
 public interface IIdentityService
 {

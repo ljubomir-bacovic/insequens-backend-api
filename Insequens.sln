@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Infrastructure.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Infrastructure", "src\Insequens.Infrastructure\Insequens.Infrastructure.csproj", "{F97ADD11-55B3-4FA6-ADD1-A90CCCF54735}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Insequens.Contracts", "src\Insequens.Contracts\Insequens.Contracts.csproj", "{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -160,6 +162,24 @@ Global
 		{F97ADD11-55B3-4FA6-ADD1-A90CCCF54735}.Staging|x64.Build.0 = Staging|Any CPU
 		{F97ADD11-55B3-4FA6-ADD1-A90CCCF54735}.Staging|x86.ActiveCfg = Staging|Any CPU
 		{F97ADD11-55B3-4FA6-ADD1-A90CCCF54735}.Staging|x86.Build.0 = Staging|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Debug|x64.Build.0 = Debug|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Debug|x86.Build.0 = Debug|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Release|x64.ActiveCfg = Release|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Release|x64.Build.0 = Release|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Release|x86.ActiveCfg = Release|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Release|x86.Build.0 = Release|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Staging|Any CPU.ActiveCfg = Staging|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Staging|Any CPU.Build.0 = Staging|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Staging|x64.ActiveCfg = Staging|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Staging|x64.Build.0 = Staging|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Staging|x86.ActiveCfg = Staging|Any CPU
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4}.Staging|x86.Build.0 = Staging|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -172,5 +192,6 @@ Global
 		{7EF49F4B-42B3-489E-BF5C-C5E561D70D09} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{4AA4ECEE-2866-4ECE-8857-4BD9FF8C4954} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{F97ADD11-55B3-4FA6-ADD1-A90CCCF54735} = {CEAA1C59-F4BB-4B7A-8632-2B0B7298A84E}
+		{C46660BA-5EF7-4BA6-AD08-17FC81DA68E4} = {CEAA1C59-F4BB-4B7A-8632-2B0B7298A84E}
 	EndGlobalSection
 EndGlobal

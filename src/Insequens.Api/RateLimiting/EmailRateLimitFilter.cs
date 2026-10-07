@@ -1,7 +1,7 @@
 using System.Threading.RateLimiting;
-using Insequens.Domain.Models.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Api.RateLimiting;
 
