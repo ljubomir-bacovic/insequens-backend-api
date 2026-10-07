@@ -18,6 +18,9 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>));
+        // Policies run in registration order: a missing role is a 403 before any resource is loaded.
+        services.AddTransient(typeof(IAuthorizationPolicy<>), typeof(RoleAuthorizationPolicy<>));
+        services.AddTransient(typeof(IAuthorizationPolicy<>), typeof(OwnershipAuthorizationPolicy<>));
         services.AddScoped(typeof(IOwnershipPolicy<>), typeof(OwnershipPolicy<>));
         services.AddScoped(typeof(IResourceContext<>), typeof(ResourceContext<>));
 

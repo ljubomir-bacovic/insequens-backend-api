@@ -19,14 +19,12 @@ public class ApplicationExceptionsTests
     }
 
     [Fact]
-    public void ResourceForbiddenException_WithId_SetsIdAndMessage()
+    public void ForbiddenException_WithRole_NamesTheRole()
     {
-        var itemId = Guid.NewGuid();
+        var exception = new ForbiddenException("Admin");
 
-        var exception = new ResourceForbiddenException(itemId);
-
-        exception.Id.Should().Be(itemId);
-        exception.Message.Should().Be($"Access denied for resource {itemId}.");
-        exception.Should().BeAssignableTo<ResourceException>();
+        exception.RequiredRole.Should().Be("Admin");
+        exception.Message.Should().Be("The Admin role is required.");
+        exception.Should().NotBeAssignableTo<ResourceException>();
     }
 }

@@ -97,6 +97,20 @@ public sealed class IdentityService(
         return user is not null && (await userManager.ResetPasswordAsync(user, token, newPassword)).Succeeded;
     }
 
+    public async Task<IReadOnlyList<string>> GetRolesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+
+        return user is null ? [] : [.. await userManager.GetRolesAsync(user)];
+    }
+
+    public async Task<bool> IsInRoleAsync(Guid userId, string role, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+
+        return user is not null && await userManager.IsInRoleAsync(user, role);
+    }
+
     private static AuthUser ToAuthUser(ApplicationUser user) =>
         new(user.Id, user.Email ?? string.Empty);
 
@@ -110,5 +124,4 @@ public sealed class IdentityService(
     private async Task<ApplicationUser> RequireUserAsync(Guid userId, CancellationToken cancellationToken) =>
         await FindUserAsync(userId, cancellationToken)
         ?? throw new InvalidOperationException($"User {userId} does not exist.");
-
 }

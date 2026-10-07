@@ -75,6 +75,7 @@ public class RefreshTokenHandler(
             throw new AuthenticationFailedException();
         }
 
-        return AuthTokenIssuer.CreateResponse(tokenService, user, replacement.FamilyId, refreshToken);
+        return await AuthTokenIssuer.CreateResponseAsync(
+            tokenService, identityService, user, replacement.FamilyId, refreshToken, cancellationToken);
     }
 }

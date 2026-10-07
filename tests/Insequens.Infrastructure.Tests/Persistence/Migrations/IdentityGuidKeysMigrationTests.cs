@@ -115,6 +115,7 @@ public sealed class IdentityGuidKeysMigrationTests(SqlServerFixture sqlServer)
 
         (await context.Database.GetPendingMigrationsAsync()).Should().BeEmpty();
         context.Database.HasPendingModelChanges().Should().BeFalse();
+        (await CountAsync(context, "AspNetRoles WHERE NormalizedName IN ('ADMIN', 'SUPPORT')")).Should().Be(2);
     }
 
     private static async Task SeedV1DataAsync(InsequensContext context, string userId, string? taskOwner = null)

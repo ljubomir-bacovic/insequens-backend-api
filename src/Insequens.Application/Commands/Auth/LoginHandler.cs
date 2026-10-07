@@ -42,6 +42,7 @@ public class LoginHandler(
         dbContext.RefreshTokens.Add(storedToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return AuthTokenIssuer.CreateResponse(tokenService, user, storedToken.FamilyId, refreshToken);
+        return await AuthTokenIssuer.CreateResponseAsync(
+            tokenService, identityService, user, storedToken.FamilyId, refreshToken, cancellationToken);
     }
 }

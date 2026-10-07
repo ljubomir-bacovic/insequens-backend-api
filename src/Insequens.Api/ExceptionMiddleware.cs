@@ -46,9 +46,9 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
-        catch (ResourceForbiddenException ex)
+        catch (ForbiddenException ex)
         {
-            _logger.LogWarning("Forbidden access attempt. ResourceId: {ResourceId}", ex.Id);
+            _logger.LogWarning("Forbidden: the {RequiredRole} role is required", ex.RequiredRole);
 
             context.Response.ContentType = "application/problem+json";
             context.Response.StatusCode = StatusCodes.Status403Forbidden;

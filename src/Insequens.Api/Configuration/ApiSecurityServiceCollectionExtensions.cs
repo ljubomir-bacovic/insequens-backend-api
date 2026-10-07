@@ -1,6 +1,7 @@
 using System.Net;
 using Insequens.Api.Security;
 using Insequens.Application.Abstractions;
+using Insequens.Application.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HostFiltering;
@@ -22,7 +23,11 @@ public static class ApiSecurityServiceCollectionExtensions
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
                 .RequireAuthenticatedUser()
-                .Build());
+                .Build())
+            .AddPolicy(AuthorizationPolicies.Admin, policy => policy
+                .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser()
+                .RequireRole(Roles.Admin));
 
         services.AddOptions<CorsOptions>()
             .Bind(configuration.GetSection(CorsOptions.SectionName))

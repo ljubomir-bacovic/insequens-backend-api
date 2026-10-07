@@ -65,10 +65,9 @@ public class ExceptionMiddlewareTests
     }
 
     [Fact]
-    public async Task Invoke_WhenResourceForbiddenExceptionIsThrown_Returns403ProblemDetails()
+    public async Task Invoke_WhenForbiddenExceptionIsThrown_Returns403ProblemDetails()
     {
-        var itemId = Guid.NewGuid();
-        var exception = new ResourceForbiddenException(itemId);
+        var exception = new ForbiddenException("Admin");
         var context = await InvokeMiddlewareAsync(_ => throw exception);
         var responseBody = await ReadResponseBodyAsync(context);
         using var json = JsonDocument.Parse(responseBody);

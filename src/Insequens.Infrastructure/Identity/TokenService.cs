@@ -15,6 +15,7 @@ public sealed class TokenService(
     ILogger<TokenService> logger) : ITokenService
 {
     private const int RefreshTokenByteLength = 64;
+    private const string RoleClaimType = "role";
 
     // MapInboundClaims = false keeps the short JWT claim names (nameid) when reading a token back.
     private readonly JsonWebTokenHandler _handler = new() { MapInboundClaims = false };
@@ -72,7 +73,11 @@ public sealed class TokenService(
             : ExpiredAccessTokenResult.Invalid;
     }
 
-    private static Claim ToJwtClaim(Claim claim) => claim.Type == ClaimTypes.Name
-        ? new Claim(JwtRegisteredClaimNames.UniqueName, claim.Value)
-        : claim;
+    // The short JWT names, which the JWT bearer handler maps back to ClaimTypes.Name and ClaimTypes.Role.
+    private static Claim ToJwtClaim(Claim claim) => claim.Type switch
+    {
+        ClaimTypes.Name => new Claim(JwtRegisteredClaimNames.UniqueName, claim.Value),
+        ClaimTypes.Role => new Claim(RoleClaimType, claim.Value),
+        _ => claim,
+    };
 }
