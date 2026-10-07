@@ -23,6 +23,6 @@ public class ToggleToDoItemCompleteHandler(IResourceContext<ToDoItemEntity> toDo
             item.MarkCompleted();
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }

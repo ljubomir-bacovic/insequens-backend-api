@@ -21,6 +21,8 @@ public static class ProblemDetailsServiceCollectionExtensions
         // Handlers run in registration order and the first that handles the exception wins.
         services.AddExceptionHandler<NotFoundExceptionHandler>();
         services.AddExceptionHandler<ForbiddenExceptionHandler>();
+        services.AddExceptionHandler<PreconditionFailedExceptionHandler>();
+        services.AddExceptionHandler<ConcurrencyConflictExceptionHandler>();
         services.AddExceptionHandler<AuthenticationFailedExceptionHandler>();
         services.AddExceptionHandler<EmailConfirmationFailedExceptionHandler>();
         services.AddExceptionHandler<AccountUpdateFailedExceptionHandler>();

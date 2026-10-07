@@ -19,6 +19,9 @@ public class ToDoItem : AuditableEntity, IOwnedEntity
     public DateOnly? DueDate { get; private set; }
     public bool IsCompleted { get; private set; }
 
+    /// <summary>Changes on every save; the API exposes it as the ETag for optimistic concurrency.</summary>
+    public byte[] RowVersion { get; private set; } = [];
+
     public static ToDoItem Create(Guid userId, string name, string? description, TaskPriority? priority, DateOnly? dueDate)
     {
         var item = new ToDoItem

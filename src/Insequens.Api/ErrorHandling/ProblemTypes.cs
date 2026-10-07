@@ -15,6 +15,8 @@ public static class ProblemTypes
     public const string AccountUpdateFailed = Prefix + "account-update-failed";
     public const string DomainRuleViolated = Prefix + "domain-rule-violated";
     public const string Validation = Prefix + "validation";
+    public const string PreconditionFailed = Prefix + "precondition-failed";
+    public const string ConcurrencyConflict = Prefix + "concurrency-conflict";
     public const string RateLimited = Prefix + "rate-limited";
     public const string Internal = Prefix + "internal";
 }

@@ -15,6 +15,6 @@ public class UpdateToDoItemDescriptionHandler(IResourceContext<ToDoItemEntity> t
         var item = toDoItem.Resource;
 
         item.UpdateDescription(request.Description);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }

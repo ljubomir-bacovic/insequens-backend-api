@@ -16,6 +16,6 @@ public class UpdateToDoItemPriorityHandler(IResourceContext<ToDoItemEntity> toDo
         var item = toDoItem.Resource;
 
         item.ChangePriority(request.Priority.ToDomain());
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }

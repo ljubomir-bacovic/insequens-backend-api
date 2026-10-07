@@ -19,6 +19,7 @@
     <PackageReference Include="NSubstitute" Version="5.3.0" />
     <!-- Replaces the native SQLite 2.1.11 that EF Core Sqlite 10.0.4 brings in (GHSA-2m69-gcr7-jv3q). -->
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
+    <PackageReference Include="Testcontainers.MsSql" Version="4.15.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -29,6 +30,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Insequens.Api\Insequens.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shared with the Application tests until INS-070 adds a test-support project. -->
+    <Compile Include="..\Insequens.Application.Tests\Support\SqliteRowVersionModelCustomizer.cs" Link="Support\SqliteRowVersionModelCustomizer.cs" />
   </ItemGroup>
 
 </Project>

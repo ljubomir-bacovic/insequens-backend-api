@@ -26,7 +26,8 @@ public sealed class GetToDoItemHandlerTests : IDisposable
 
         var result = await _database.SendAsync(new GetToDoItemQuery(item.Id, userId));
 
-        result.Should().Be(new ToDoItemGetDetailsModel(
+        result.Version.Should().NotBeEmpty();
+        result.Value.Should().Be(new ToDoItemGetDetailsModel(
             item.Id,
             "Task",
             "Description",

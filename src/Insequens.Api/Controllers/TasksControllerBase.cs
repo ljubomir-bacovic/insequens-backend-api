@@ -1,3 +1,5 @@
+using Insequens.Api.ErrorHandling;
+using Insequens.Api.Http;
 using Insequens.Api.RateLimiting;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Queries.ToDoItem;
@@ -62,6 +64,8 @@ public abstract class TasksControllerBase : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> UpdateToDoItemPriorityAsync(Guid id, [FromBody] TaskPriority priority, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -69,7 +73,12 @@ public abstract class TasksControllerBase : ControllerBase
             return Unauthorized();
         }
 
-        await _mediator.Send(new UpdateToDoItemPriorityCommand(id, userId, priority), cancellationToken);
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await _mediator.Send(new UpdateToDoItemPriorityCommand(id, userId, priority, expectedVersion), cancellationToken);
         return NoContent();
     }
 
@@ -78,6 +87,8 @@ public abstract class TasksControllerBase : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> UpdateToDoItemNameAsync(Guid id, [FromBody] string name, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -85,7 +96,12 @@ public abstract class TasksControllerBase : ControllerBase
             return Unauthorized();
         }
 
-        await _mediator.Send(new UpdateToDoItemNameCommand(id, userId, name), cancellationToken);
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await _mediator.Send(new UpdateToDoItemNameCommand(id, userId, name, expectedVersion), cancellationToken);
         return NoContent();
     }
 
@@ -94,6 +110,8 @@ public abstract class TasksControllerBase : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> UpdateToDoItemDescriptionAsync(Guid id, [FromBody] string? description, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -101,7 +119,12 @@ public abstract class TasksControllerBase : ControllerBase
             return Unauthorized();
         }
 
-        await _mediator.Send(new UpdateToDoItemDescriptionCommand(id, userId, description), cancellationToken);
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await _mediator.Send(new UpdateToDoItemDescriptionCommand(id, userId, description, expectedVersion), cancellationToken);
         return NoContent();
     }
 
@@ -110,6 +133,8 @@ public abstract class TasksControllerBase : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> UpdateToDoItemDueDateAsync(Guid id, [FromBody] DateOnly? date, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -117,7 +142,12 @@ public abstract class TasksControllerBase : ControllerBase
             return Unauthorized();
         }
 
-        await _mediator.Send(new UpdateToDoItemDueDateCommand(id, userId, date), cancellationToken);
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await _mediator.Send(new UpdateToDoItemDueDateCommand(id, userId, date, expectedVersion), cancellationToken);
         return NoContent();
     }
 
@@ -125,6 +155,8 @@ public abstract class TasksControllerBase : ControllerBase
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> DeleteToDoItemAsync(Guid id, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -132,7 +164,12 @@ public abstract class TasksControllerBase : ControllerBase
             return Unauthorized();
         }
 
-        await _mediator.Send(new DeleteToDoItemCommand(id, userId), cancellationToken);
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await _mediator.Send(new DeleteToDoItemCommand(id, userId, expectedVersion), cancellationToken);
         return NoContent();
     }
 
@@ -147,13 +184,16 @@ public abstract class TasksControllerBase : ControllerBase
         }
 
         var toDoItem = await _mediator.Send(new GetToDoItemQuery(id, userId), cancellationToken);
-        return Ok(toDoItem);
+        Response.Headers.ETag = EntityTags.Format(toDoItem.Version);
+        return Ok(toDoItem.Value);
     }
 
     [HttpPatch("{id:guid}/togglecomplete")]
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> CompleteToDoItem(Guid id, CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
@@ -161,9 +201,21 @@ public abstract class TasksControllerBase : ControllerBase
             return Unauthorized();
         }
 
-        await _mediator.Send(new ToggleToDoItemCompleteCommand(id, userId), cancellationToken);
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await _mediator.Send(new ToggleToDoItemCompleteCommand(id, userId, expectedVersion), cancellationToken);
         return NoContent();
     }
+
+    /// <summary>An If-Match that names no version of ours (malformed, weak or several tags) can never match.</summary>
+    private ObjectResult UnmatchableIfMatch() => Problem(
+        statusCode: StatusCodes.Status412PreconditionFailed,
+        type: ProblemTypes.PreconditionFailed,
+        title: PreconditionFailedExceptionHandler.Title,
+        detail: "If-Match must be one ETag returned by this API, or *.");
 
     private bool TryGetUserId(out Guid userId)
     {
