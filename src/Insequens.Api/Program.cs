@@ -3,6 +3,7 @@ using Insequens.Api.Configuration;
 using Insequens.Api.ErrorHandling;
 using Insequens.Api.RateLimiting;
 using Insequens.Api.Security;
+using Insequens.Api.Versioning;
 using Insequens.Application;
 using Insequens.Application.Options;
 using Insequens.Infrastructure.Email;
@@ -11,7 +12,7 @@ using Insequens.Infrastructure.Persistence;
 using Scalar.AspNetCore;
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(OpenApiBuildTimeGeneration.CreateOptions(args));
 
 Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode.");
 
@@ -37,12 +38,16 @@ builder.Services.AddApiSecurity(builder.Configuration);
 builder.Services.AddApiRateLimiting(builder.Configuration);
 
 builder.Services.AddControllers();
+builder.Services.AddApiVersions();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi(options =>
+foreach (var documentName in ApiVersions.DocumentNames)
 {
-    options.AddDocumentTransformer<JwtBearerSecurityDocumentTransformer>();
-});
+    builder.Services.AddOpenApi(documentName, options =>
+    {
+        options.AddDocumentTransformer<JwtBearerSecurityDocumentTransformer>();
+        options.AddOperationTransformer<JwtBearerSecurityDocumentTransformer>();
+    });
+}
 
 builder.Services.AddApplication();
 
@@ -52,6 +57,8 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+builder.Services.SkipStartupValidationWhenGenerating();
 
 var app = builder.Build();
 
@@ -76,9 +83,12 @@ app.UseRouting();
 
 app.UseCors(ConfigureCorsPolicy.PolicyName);
 
-if (app.Environment.IsDevelopment())
+// The OpenAPI documents are public in every environment, as the clients are generated from them (INS-076);
+// the interactive UI is only for Development and Staging.
+app.MapOpenApi().AllowAnonymous();
+
+if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
 {
-    app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference(options =>
     {
         options

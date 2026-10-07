@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Insequens.Infrastructure.Persistence;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Insequens.Api.Controllers;
 
 [AllowAnonymous]
+[ApiVersionNeutral]
 [ApiController]
 [Route("warmup")]
 public class WarmupController : ControllerBase

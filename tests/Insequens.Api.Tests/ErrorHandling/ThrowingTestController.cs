@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using FluentValidation;
 using FluentValidation.Results;
 using Insequens.Application.Exceptions;
@@ -9,6 +10,7 @@ namespace Insequens.Api.Tests.ErrorHandling;
 
 /// <summary>Throws the exception named in the route, so the exception handlers can be tested over HTTP.</summary>
 [ApiController]
+[ApiVersionNeutral]
 [AllowAnonymous]
 [Route("test/throw")]
 public class ThrowingTestController : ControllerBase

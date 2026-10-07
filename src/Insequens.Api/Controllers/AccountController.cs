@@ -1,3 +1,5 @@
+using Asp.Versioning;
+using Insequens.Api.Versioning;
 using System.Security.Claims;
 using Insequens.Api.RateLimiting;
 using Insequens.Application.Commands.Account;
@@ -14,6 +16,7 @@ namespace Insequens.Api.Controllers;
 
 /// <summary>The signed-in user's own account. Actions that need the current password use the stricter auth limit.</summary>
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[ApiVersion(ApiVersions.V1)]
 [Route(Constants.BaseUrl)]
 [ApiController]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
