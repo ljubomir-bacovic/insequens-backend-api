@@ -4,6 +4,8 @@
 @token = paste-the-access-token-from-login
 @refreshToken = paste-the-refresh-token-from-login
 @itemId = 00000000-0000-0000-0000-000000000000
+@userId = paste-the-userId-from-the-confirmation-link
+@emailToken = paste-the-token-from-the-email-link
 
 ### Register
 POST {{Insequens.Api_HostAddress}}/v1/Auth/register
@@ -13,6 +15,9 @@ Content-Type: application/json
   "email": "{{email}}",
   "password": "{{password}}"
 }
+
+### Confirm the email address
+GET {{Insequens.Api_HostAddress}}/v1/Auth/confirm-email?userId={{userId}}&token={{emailToken}}
 
 ### Log in
 POST {{Insequens.Api_HostAddress}}/v1/Auth/login
@@ -38,6 +43,16 @@ Content-Type: application/json
 
 {
   "email": "{{email}}"
+}
+
+### Reset the password
+POST {{Insequens.Api_HostAddress}}/v1/Auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "token": "{{emailToken}}",
+  "newPassword": "N3w-Passw0rd!"
 }
 
 ### Log out

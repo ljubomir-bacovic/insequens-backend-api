@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
+using Insequens.Api.Tests.Support;
 using Insequens.Application.Behaviors;
 using Insequens.Application.Commands;
 using Insequens.Domain;
@@ -13,9 +14,8 @@ using Insequens.Infrastructure.DataAccess.Email;
 using MediatR;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
@@ -106,7 +106,7 @@ public class ProgramStartupTests
     [Fact]
     public void Startup_RegistersMailKitEmailSender()
     {
-        using var factory = new InsequensApiFactory();
+        using var factory = new InsequensApiFactory(captureEmails: false);
         using var scope = factory.Services.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IEmailSender>().Should().BeOfType<MailKitEmailSender>();
@@ -130,6 +130,106 @@ public class ProgramStartupTests
         var action = () => factory.Services;
 
         action.Should().Throw<OptionsValidationException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("too-short-for-hmac-sha256")]
+    public void Startup_InvalidJwtKey_FailsOnStartNamingTheSetting(string key)
+    {
+        using var factory = new InsequensApiFactory(new Dictionary<string, string?> { ["Jwt:Key"] = key });
+
+        var action = () => factory.Services;
+
+        action.Should().Throw<OptionsValidationException>().WithMessage("*Jwt:Key*");
+    }
+
+    [Theory]
+    [InlineData("Jwt:Issuer", "", "Issuer")]
+    [InlineData("Jwt:Audience", "", "Audience")]
+    [InlineData("Jwt:AccessTokenLifetime", "00:00:00", "AccessTokenLifetime")]
+    [InlineData("Frontend:BaseUrl", "", "BaseUrl")]
+    [InlineData("Frontend:BaseUrl", "not-a-url", "BaseUrl")]
+    [InlineData("RateLimiting:Auth:PermitLimit", "0", "PermitLimit")]
+    [InlineData("RateLimiting:Write:ReplenishmentPeriod", "00:00:00", "ReplenishmentPeriod")]
+    [InlineData("ReverseProxy:KnownProxies:0", "not-an-ip", "KnownProxies")]
+    [InlineData("ReverseProxy:KnownNetworks:0", "192.0.2.0/99", "KnownNetworks")]
+    public void Startup_InvalidSetting_FailsOnStartNamingTheSetting(string key, string value, string expectedName)
+    {
+        using var factory = new InsequensApiFactory(new Dictionary<string, string?> { [key] = value });
+
+        var action = () => factory.Services;
+
+        action.Should().Throw<OptionsValidationException>().WithMessage($"*{expectedName}*");
+    }
+
+    [Fact]
+    public void Startup_JwtKeyAndKeysBothSet_FailsOnStart()
+    {
+        using var factory = new InsequensApiFactory(new Dictionary<string, string?>
+        {
+            ["Jwt:Keys:0:Id"] = "a",
+            ["Jwt:Keys:0:Secret"] = InsequensApiFactory.JwtKey,
+        });
+
+        var action = () => factory.Services;
+
+        action.Should().Throw<OptionsValidationException>().WithMessage("*either Jwt:Key or Jwt:Keys*");
+    }
+
+    [Fact]
+    public void Startup_JwtKeysAllInTheFuture_FailsOnStart()
+    {
+        using var factory = new InsequensApiFactory(new Dictionary<string, string?>
+        {
+            ["Jwt:Key"] = string.Empty,
+            ["Jwt:Keys:0:Id"] = "a",
+            ["Jwt:Keys:0:Secret"] = InsequensApiFactory.JwtKey,
+            ["Jwt:Keys:0:ActiveFrom"] = DateTimeOffset.UtcNow.AddDays(1).ToString("O"),
+        });
+
+        var action = () => factory.Services;
+
+        action.Should().Throw<OptionsValidationException>().WithMessage("*ActiveFrom*");
+    }
+
+    [Fact]
+    public void Startup_InProductionWithRequiredSettings_Starts()
+    {
+        using var factory = new InsequensApiFactory(InsequensApiFactory.ProductionSettings, environment: "Production");
+
+        var action = () => factory.Services;
+
+        action.Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData("Cors:AllowedOrigins:0", "", "Cors:AllowedOrigins")]
+    [InlineData("Cors:AllowedOrigins:0", "app.insequens.test", "Cors:AllowedOrigins")]
+    [InlineData("AllowedHosts", "*", "AllowedHosts")]
+    [InlineData("AllowedHosts", "", "AllowedHosts")]
+    public void Startup_InProductionWithUnsafeSetting_FailsOnStart(string key, string value, string expectedName)
+    {
+        var settings = new Dictionary<string, string?>(InsequensApiFactory.ProductionSettings) { [key] = value };
+        using var factory = new InsequensApiFactory(settings, environment: "Production");
+
+        var action = () => factory.Services;
+
+        action.Should().Throw<OptionsValidationException>().WithMessage($"*{expectedName}*");
+    }
+
+    [Fact]
+    public void Startup_InDevelopmentWithoutCorsOrigins_Starts()
+    {
+        using var factory = new InsequensApiFactory(new Dictionary<string, string?>
+        {
+            ["Cors:AllowedOrigins:0"] = string.Empty,
+            ["Cors:AllowedOrigins:1"] = string.Empty,
+        });
+
+        var action = () => factory.Services;
+
+        action.Should().NotThrow();
     }
 
     [Fact]
@@ -166,15 +266,6 @@ public class ProgramStartupTests
 
         response.Should().Be("handled:example");
         trace.Steps.Should().Equal("validation", "ownership", "handler");
-    }
-
-    private sealed class InsequensApiFactory : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
-            builder.UseEnvironment("Development");
-        }
     }
 
     private sealed class ExecutionTrace

@@ -1,3 +1,4 @@
+using Insequens.Api.RateLimiting;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Models;
 using Insequens.Application.Queries.ToDoItem;
@@ -7,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace Insequens.Api.Controllers;
@@ -38,6 +40,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType<ToDoItemGetDetailsModel>(StatusCodes.Status201Created)]
     public async Task<IActionResult> AddToDoItemAsync([FromBody] ToDoItemCreateModel toDoItemCreate, CancellationToken cancellationToken)
     {
@@ -56,6 +59,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/priority")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -72,6 +76,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/name")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -88,6 +93,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/description")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -104,6 +110,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/duedate")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -120,6 +127,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -150,6 +158,7 @@ public class ToDoItemController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/togglecomplete")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

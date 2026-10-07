@@ -9,7 +9,8 @@ A task management Web API built with .NET 10, CQRS with MediatR, and Clean Archi
 - MediatR 12 (CQRS command/query pipeline)
 - FluentValidation (automatic input validation via pipeline behavior)
 - ASP.NET Core Identity (user management)
-- JWT Bearer authentication (15-min access tokens, 7-day refresh tokens with rotation)
+- JWT Bearer authentication (15-min access tokens, 7-day hashed refresh tokens with rotation, signing key rotation)
+- ASP.NET Core rate limiting, security headers, fallback authorization policy
 - AutoMapper (query projections)
 - MailKit (transactional email)
 - Serilog (structured logging)
@@ -26,9 +27,10 @@ Insequens.sln
 │   ├── Insequens.Domain                 → Entities, enums, DTOs, data access interfaces
 │   └── Infrastructure/
 │       ├── Insequens.Infrastructure.Data         → EF Core DbContext, Identity, migrations
-│       └── Insequens.Infrastructure.DataAccess   → Generic Repository<T>, DataContext (UoW)
+│       └── Insequens.Infrastructure.DataAccess   → Generic Repository<T>, DataContext (UoW), email, identity and tokens
 ├── tests/
 │   ├── Insequens.Application.Tests      → Handler + validator + behavior unit tests
+│   ├── Insequens.Infrastructure.Tests   → DataContext, email, JWT unit tests
 │   └── Insequens.Api.Tests              → Integration tests (WebApplicationFactory)
 └── docs/
     ├── insequens-v1-architecture-and-guidelines.md          → Full architecture & coding guidelines reference
@@ -106,13 +108,15 @@ All endpoints are under `/v1/` and require JWT authentication unless noted.
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| POST | `/v1/auth/register` | Register a new user |
+| POST | `/v1/auth/register` | Register a new user. Always `202` with the same body, whether or not the email is already registered |
 | GET | `/v1/auth/confirm-email` | Confirm email address |
-| POST | `/v1/auth/login` | Login, returns JWT + refresh token |
-| POST | `/v1/auth/refresh-token` | Refresh an expired access token |
-| POST | `/v1/auth/forgot-password` | Request a password reset email |
-| POST | `/v1/auth/reset-password` | Reset password with token |
+| POST | `/v1/auth/login` | Login, returns JWT + refresh token. Every failure is the same `401` |
+| POST | `/v1/auth/refresh-token` | Rotate an expired access token and its refresh token. Every failure is the same `401` |
+| POST | `/v1/auth/forgot-password` | Request a password reset email. Always `202` with the same body |
+| POST | `/v1/auth/reset-password` | Reset password with token. Always `202` with the same body |
 | POST | `/v1/auth/logout` | Invalidate refresh token (auth required) |
+
+Five failed logins lock the account for five minutes. Auth endpoints are rate-limited per client and per email address; any endpoint can return `429` with `Retry-After`.
 
 ### ToDoItem (auth required)
 

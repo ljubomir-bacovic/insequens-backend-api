@@ -1,110 +1,41 @@
-﻿using Insequens.Application;
-using Insequens.Domain.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Insequens.Domain.DataAccess;
 using Insequens.Api;
+using Insequens.Api.Configuration;
+using Insequens.Api.RateLimiting;
+using Insequens.Api.Security;
+using Insequens.Application;
+using Insequens.Application.Options;
+using Insequens.Domain.Data;
+using Insequens.Domain.DataAccess;
 using Insequens.Infrastructure.DataAccess;
 using Insequens.Infrastructure.DataAccess.Email;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Insequens.Infrastructure.Data.Models;
-using Serilog;
+using Insequens.Infrastructure.DataAccess.Identity;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
-using Microsoft.AspNetCore.OpenApi;
-using Microsoft.OpenApi;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
 Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode.");
 
-// Add services to the container.
-
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>()?
-    .Where(origin => !string.IsNullOrWhiteSpace(origin))
-    .Distinct(StringComparer.OrdinalIgnoreCase)
-    .ToArray() ?? [];
-
-var useDevelopmentCorsFallback = builder.Environment.IsDevelopment() && allowedOrigins.Length == 0;
-const string corsPolicyName = "InsequensPolicy";
-
-if (!builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
-{
-    throw new InvalidOperationException("Cors:AllowedOrigins must be configured outside Development.");
-}
-
-if (useDevelopmentCorsFallback)
-{
-    Console.WriteLine("Cors:AllowedOrigins is empty in Development. Falling back to open CORS for local testing only.");
-}
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(corsPolicyName, policy =>
-    {
-        if (allowedOrigins.Length > 0)
-        {
-            policy.WithOrigins(allowedOrigins)
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials();
-        }
-        else if (useDevelopmentCorsFallback)
-        {
-            policy.AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
-        }
-    });
-});
-var dataConnectionString = builder.Configuration["ConnectionStrings:InsequensConnection"];
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = RequestLimits.MaxRequestBodySize);
+builder.Services.Configure<IISServerOptions>(options => options.MaxRequestBodySize = RequestLimits.MaxRequestBodySize);
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IDataContext, DataContext>();
 
 builder.Services.AddDbContextPool<InsequensContext>(options =>
-    options.UseSqlServer(dataConnectionString,
+    options.UseSqlServer(builder.Configuration.GetConnectionString("InsequensConnection"),
             providerOptions => providerOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null)));
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        ClockSkew = TimeSpan.Zero
-    };
-});
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
-{
-    options.Password.RequiredLength = 8;
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Lockout.AllowedForNewUsers = true;
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    options.SignIn.RequireConfirmedEmail = true;
-    options.User.RequireUniqueEmail = true;
-})
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<InsequensContext>()
-.AddDefaultTokenProviders()
-.AddSignInManager();
-
+builder.Services.AddIdentityServices(builder.Configuration);
 builder.Services.AddEmailSender(builder.Configuration);
+builder.Services.AddOptions<FrontendOptions>()
+    .Bind(builder.Configuration.GetSection(FrontendOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddApiSecurity(builder.Configuration);
+builder.Services.AddApiRateLimiting(builder.Configuration);
 
 builder.Services.AddControllers();
 
@@ -127,30 +58,41 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
+app.UseForwardedHeaders();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 app.UseHttpsRedirection();
 
 app.UseRouting();
 
-app.UseCors(corsPolicyName);
+app.UseCors(ConfigureCorsPolicy.PolicyName);
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
     app.MapScalarApiReference(options =>
     {
         options
             .WithTitle("Insequens API")
             .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
-    
+    }).AllowAnonymous();
+
     // Redirect root path to Scalar API documentation in development
     app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+        .AllowAnonymous()
         .ExcludeFromDescription();
 }
 
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
