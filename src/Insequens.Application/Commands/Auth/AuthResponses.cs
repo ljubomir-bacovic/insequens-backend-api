@@ -21,4 +21,6 @@ public static class AuthResponses
     public static AuthMessageResponse EmailConfirmed { get; } = new("Email confirmed successfully!");
 
     public static AuthMessageResponse LoggedOut { get; } = new("User logged out successfully.");
+
+    public static AuthMessageResponse LoggedOutEverywhere { get; } = new("User logged out of every session.");
 }

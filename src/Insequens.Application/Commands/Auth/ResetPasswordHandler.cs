@@ -1,3 +1,4 @@
+using Insequens.Application.Abstractions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Insequens.Contracts.V1.Auth;
@@ -5,7 +6,11 @@ using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Application.Commands.Auth;
 
-public class ResetPasswordHandler(IIdentityService identityService, ILogger<ResetPasswordHandler> logger)
+public class ResetPasswordHandler(
+    IIdentityService identityService,
+    IApplicationDbContext dbContext,
+    TimeProvider timeProvider,
+    ILogger<ResetPasswordHandler> logger)
     : IRequestHandler<ResetPasswordCommand, AuthMessageResponse>
 {
     public async Task<AuthMessageResponse> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
@@ -23,7 +28,9 @@ public class ResetPasswordHandler(IIdentityService identityService, ILogger<Rese
             return AuthResponses.PasswordResetAccepted;
         }
 
-        await identityService.RevokeRefreshTokenAsync(user.Id, cancellationToken);
+        // A new password ends every session, including one an attacker may hold.
+        await dbContext.RevokeRefreshTokensAsync(user.Id, familyId: null, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Password reset for user {UserId}", user.Id);
 
         return AuthResponses.PasswordResetAccepted;

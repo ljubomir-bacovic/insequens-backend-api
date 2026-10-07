@@ -1,4 +1,3 @@
-
 namespace Insequens.Application.Abstractions.Identity;
 
 public interface IIdentityService
@@ -18,10 +17,4 @@ public interface IIdentityService
     Task<string> GeneratePasswordResetTokenAsync(Guid userId, CancellationToken cancellationToken);
 
     Task<bool> ResetPasswordAsync(Guid userId, string token, string newPassword, CancellationToken cancellationToken);
-
-    Task StoreRefreshTokenAsync(Guid userId, IssuedRefreshToken refreshToken, CancellationToken cancellationToken);
-
-    Task<bool> ValidateRefreshTokenAsync(Guid userId, string refreshToken, CancellationToken cancellationToken);
-
-    Task RevokeRefreshTokenAsync(Guid userId, CancellationToken cancellationToken);
 }

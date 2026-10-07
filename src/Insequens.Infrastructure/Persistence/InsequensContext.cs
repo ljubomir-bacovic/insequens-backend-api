@@ -12,6 +12,8 @@ public class InsequensContext(DbContextOptions<InsequensContext> options)
 {
     public DbSet<ToDoItem> ToDoItems => Set<ToDoItem>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

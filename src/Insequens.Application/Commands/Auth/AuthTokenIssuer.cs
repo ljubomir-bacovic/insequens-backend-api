@@ -1,21 +1,24 @@
 using System.Security.Claims;
-using Insequens.Contracts.V1.Auth;
 using Insequens.Application.Abstractions.Identity;
+using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Application.Commands.Auth;
 
 internal static class AuthTokenIssuer
 {
-    public static async Task<AuthTokensResponse> IssueAsync(
+    /// <summary>An access token for <paramref name="user"/> in session <paramref name="sessionId"/>, paired with its refresh token.</summary>
+    public static AuthTokensResponse CreateResponse(
         ITokenService tokenService,
-        IIdentityService identityService,
         AuthUser user,
-        CancellationToken cancellationToken)
+        Guid sessionId,
+        IssuedRefreshToken refreshToken)
     {
-        var accessToken = tokenService.CreateAccessToken(user.Id, [new Claim(ClaimTypes.Name, user.Email)]);
-        var refreshToken = tokenService.CreateRefreshToken();
-
-        await identityService.StoreRefreshTokenAsync(user.Id, refreshToken, cancellationToken);
+        var accessToken = tokenService.CreateAccessToken(
+            user.Id,
+            [
+                new Claim(ClaimTypes.Name, user.Email),
+                new Claim(AuthClaimTypes.SessionId, sessionId.ToString()),
+            ]);
 
         return new AuthTokensResponse(accessToken.Value, refreshToken.Value);
     }

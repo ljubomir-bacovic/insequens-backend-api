@@ -1,4 +1,5 @@
 using Insequens.Application.Abstractions;
+using Insequens.Domain.Entities;
 using Insequens.Infrastructure.Persistence;
 using Insequens.Infrastructure.Identity;
 using Microsoft.AspNetCore.Hosting;
@@ -116,6 +117,14 @@ public sealed class InsequensApiFactory : WebApplicationFactory<Program>
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         return await userManager.FindByEmailAsync(email);
+    }
+
+    public async Task<List<RefreshToken>> RefreshTokensAsync(Guid userId)
+    {
+        using var scope = Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<InsequensContext>();
+
+        return await context.RefreshTokens.AsNoTracking().Where(token => token.UserId == userId).ToListAsync();
     }
 
     public string CreateAccessToken(Guid userId) =>

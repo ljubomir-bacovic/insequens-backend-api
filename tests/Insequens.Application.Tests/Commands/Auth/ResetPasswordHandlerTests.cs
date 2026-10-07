@@ -1,50 +1,60 @@
 using FluentAssertions;
 using Insequens.Application.Commands.Auth;
-using Microsoft.Extensions.Logging.Abstractions;
+using Insequens.Application.Tests.Support;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Insequens.Application.Abstractions.Identity;
+using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Application.Tests.Commands.Auth;
 
-public class ResetPasswordHandlerTests
+public sealed class ResetPasswordHandlerTests : IDisposable
 {
     private const string Email = "user@example.com";
+    private const string NewPassword = "N3w-Passw0rd!";
 
+    private readonly TestDbContextFactory _database = new();
     private readonly IIdentityService _identityService = Substitute.For<IIdentityService>();
     private readonly AuthUser _user = new(Guid.NewGuid(), Email);
 
-    [Fact]
-    public async Task Handle_WithValidToken_ResetsPasswordAndRevokesRefreshToken()
-    {
-        _identityService.FindByEmailAsync(Email, Arg.Any<CancellationToken>()).Returns(_user);
-        _identityService.ResetPasswordAsync(_user.Id, "token", "N3w-Passw0rd!", Arg.Any<CancellationToken>()).Returns(true);
+    public void Dispose() => _database.Dispose();
 
-        var response = await CreateHandler().Handle(new ResetPasswordCommand(Email, "token", "N3w-Passw0rd!"), CancellationToken.None);
+    [Fact]
+    public async Task Send_WithValidToken_ResetsPasswordAndRevokesEverySession()
+    {
+        await _database.SeedRefreshTokenAsync(_user.Id, "phone");
+        await _database.SeedRefreshTokenAsync(_user.Id, "laptop");
+        _identityService.FindByEmailAsync(Email, Arg.Any<CancellationToken>()).Returns(_user);
+        _identityService.ResetPasswordAsync(_user.Id, "token", NewPassword, Arg.Any<CancellationToken>()).Returns(true);
+
+        var response = await SendAsync(new ResetPasswordCommand(Email, "token", NewPassword));
 
         response.Should().Be(AuthResponses.PasswordResetAccepted);
-        await _identityService.Received(1).RevokeRefreshTokenAsync(_user.Id, Arg.Any<CancellationToken>());
+        (await _database.RefreshTokensAsync(_user.Id)).Should().OnlyContain(token => token.RevokedAt != null);
     }
 
     [Fact]
-    public async Task Handle_WithInvalidToken_ReturnsSameResponseWithoutRevoking()
+    public async Task Send_WithInvalidToken_ReturnsSameResponseWithoutRevoking()
     {
+        await _database.SeedRefreshTokenAsync(_user.Id, "phone");
         _identityService.FindByEmailAsync(Email, Arg.Any<CancellationToken>()).Returns(_user);
-        _identityService.ResetPasswordAsync(_user.Id, "token", "N3w-Passw0rd!", Arg.Any<CancellationToken>()).Returns(false);
+        _identityService.ResetPasswordAsync(_user.Id, "token", NewPassword, Arg.Any<CancellationToken>()).Returns(false);
 
-        var response = await CreateHandler().Handle(new ResetPasswordCommand(Email, "token", "N3w-Passw0rd!"), CancellationToken.None);
+        var response = await SendAsync(new ResetPasswordCommand(Email, "token", NewPassword));
 
         response.Should().BeSameAs(AuthResponses.PasswordResetAccepted);
-        await _identityService.DidNotReceive().RevokeRefreshTokenAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        (await _database.RefreshTokensAsync(_user.Id)).Single().RevokedAt.Should().BeNull();
     }
 
     [Fact]
-    public async Task Handle_WithUnknownEmail_ReturnsSameResponseWithoutResetting()
+    public async Task Send_WithUnknownEmail_ReturnsSameResponseWithoutResetting()
     {
-        var response = await CreateHandler().Handle(new ResetPasswordCommand(Email, "token", "N3w-Passw0rd!"), CancellationToken.None);
+        var response = await SendAsync(new ResetPasswordCommand(Email, "token", NewPassword));
 
         response.Should().BeSameAs(AuthResponses.PasswordResetAccepted);
         await _identityService.DidNotReceive().ResetPasswordAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
-    private ResetPasswordHandler CreateHandler() => new(_identityService, NullLogger<ResetPasswordHandler>.Instance);
+    private Task<AuthMessageResponse> SendAsync(ResetPasswordCommand command) =>
+        _database.SendAsync(command, services => services.AddSingleton(_identityService));
 }

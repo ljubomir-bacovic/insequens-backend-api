@@ -4,18 +4,18 @@ using Insequens.Contracts.V1.Auth;
 
 namespace Insequens.Application.Commands.Auth;
 
-public class LogoutHandler(IApplicationDbContext dbContext, TimeProvider timeProvider)
-    : IRequestHandler<LogoutCommand, AuthMessageResponse>
+public class LogoutEverywhereHandler(IApplicationDbContext dbContext, TimeProvider timeProvider)
+    : IRequestHandler<LogoutEverywhereCommand, AuthMessageResponse>
 {
-    public async Task<AuthMessageResponse> Handle(LogoutCommand request, CancellationToken cancellationToken)
+    public async Task<AuthMessageResponse> Handle(LogoutEverywhereCommand request, CancellationToken cancellationToken)
     {
         await dbContext.RevokeRefreshTokensAsync(
             request.UserId,
-            request.SessionId,
+            familyId: null,
             timeProvider.GetUtcNow().UtcDateTime,
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return AuthResponses.LoggedOut;
+        return AuthResponses.LoggedOutEverywhere;
     }
 }

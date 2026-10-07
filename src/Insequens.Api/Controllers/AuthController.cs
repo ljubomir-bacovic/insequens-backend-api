@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Insequens.Api.RateLimiting;
+using Insequens.Application.Abstractions.Identity;
 using Insequens.Application.Commands.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -56,7 +57,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
+        var response = await _mediator.Send(new LoginCommand(request.Email, request.Password, request.DeviceName, ClientIpAddress), cancellationToken);
         return Ok(response);
     }
 
@@ -69,7 +70,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new RefreshTokenCommand(request.Token, request.RefreshToken), cancellationToken);
+        var response = await _mediator.Send(new RefreshTokenCommand(request.Token, request.RefreshToken, ClientIpAddress), cancellationToken);
         return Ok(response);
     }
 
@@ -114,7 +115,29 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        var response = await _mediator.Send(new LogoutCommand(userId), cancellationToken);
+        // The JWT handler has no inbound mapping for "sid", so the claim keeps its short name.
+        var sessionId = Guid.TryParse(User.FindFirst(AuthClaimTypes.SessionId)?.Value, out var sid) ? sid : (Guid?)null;
+        var response = await _mediator.Send(new LogoutCommand(userId, sessionId), cancellationToken);
         return Ok(response);
     }
+
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpPost("logout-all")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
+    [ProducesResponseType<AuthMessageResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> LogOutEverywhere(CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var response = await _mediator.Send(new LogoutEverywhereCommand(userId), cancellationToken);
+        return Ok(response);
+    }
+
+    // Already resolved through the trusted forwarded headers; stored on the refresh token, never logged.
+    private string? ClientIpAddress => HttpContext.Connection.RemoteIpAddress?.ToString();
 }
