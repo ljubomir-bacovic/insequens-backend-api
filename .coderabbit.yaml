@@ -13,14 +13,15 @@ reviews:
   poem: false
 
   instructions: |
-    This is a .NET 10 Web API using CQRS with MediatR, Clean Architecture, Entity Framework Core, 
-    FluentValidation, and a generic repository pattern. Review every PR against the full coding 
+    This is a .NET 10 Web API using CQRS with MediatR, Clean Architecture, Entity Framework Core behind
+    IApplicationDbContext, and FluentValidation. Review every PR against the full coding
     guidelines in AGENTS.md at the repo root. Pay special attention to:
 
     CRITICAL checks (block the PR if violated):
-    - Every command/query that accesses a specific resource by ID MUST implement IOwned. Missing IOwned is a security vulnerability.
+    - Every command that acts on a specific resource by ID MUST implement IOwned<TEntity>, and every query by ID MUST filter by UserId. Missing either is a security vulnerability.
+    - A resource the caller does not own must return 404 (NotFoundException), never 403.
     - DateTime.Now is forbidden. Only DateTime.UtcNow is allowed.
-    - The Domain project must have ZERO project references. If Domain imports Application, Api, or Infrastructure, flag immediately.
+    - The Domain and Contracts projects must have ZERO references. If Domain imports Application, Api, or Infrastructure, flag immediately.
     - No secrets (connection strings, JWT keys, passwords) in committed configuration files.
     - CORS must never use AllowAnyOrigin() in production configuration.
 
@@ -30,7 +31,7 @@ reviews:
     - All list endpoints must return PaginatedResult<T>, never bare List<T>.
     - All dependencies must be injected via interfaces, not concrete classes.
     - No empty catch blocks. Always log or rethrow.
-    - Command handlers must construct entities explicitly. Do not use AutoMapper for writes.
+    - Command handlers create entities with their factory and change them only through entity methods. Do not use AutoMapper for writes.
 
     MEDIUM checks:
     - Every command/query accepting user input should have a FluentValidation validator.
@@ -59,38 +60,40 @@ reviews:
         2. Extract UserId from JWT claims.
         3. Call _mediator.Send() with a command or query.
         4. Return the appropriate IActionResult (not IResult).
-        
-        Flag if: controller contains business logic, injects services/repositories, 
+
+        Flag if: controller contains business logic, injects services/repositories,
         performs data transformation, does manual validation, or returns IResult.
-        
+
         Every action must pass UserId from JWT claims into the command/query.
         POST create → 201 Created. PATCH → 204 NoContent. DELETE → 204 NoContent.
 
     - path: "src/Insequens.Application/Commands/**"
       instructions: |
-        Commands must be immutable record types implementing IRequest<T>.
+        Commands must be immutable record types implementing IRequest (void) or IRequest<T>.
         Named {Verb}{Entity}Command (e.g., CreateToDoItemCommand).
-        
-        CRITICAL: Commands that modify an existing user-owned resource MUST implement IOwned
-        (provides Guid ItemId + Guid UserId). Missing IOwned is a security vulnerability.
-        
+
+        CRITICAL: Commands that act on an existing user-owned resource MUST implement IOwned<TEntity>
+        (Guid UserId + Guid ResourceId). Missing IOwned is a security vulnerability.
+
         Commands that CREATE new resources include UserId but do NOT implement IOwned.
-        
-        Handlers must construct entities explicitly — do NOT use AutoMapper for writes.
-        Handlers should call SaveChangesAsync() once at the end.
-        For IOwned requests, the handler can use null-forgiving operator on FindAsync 
-        since OwnershipBehavior already validated existence and ownership.
+
+        Handlers create entities with their factory (ToDoItem.Create) and change them only through
+        entity methods — never assign entity properties, never use AutoMapper for writes.
+        For IOwned<TEntity> commands, the handler takes the entity from IResourceContext<TEntity>;
+        AuthorizationBehavior already loaded it. Flag a second load or a null-forgiving `!`.
+        Handlers call SaveChangesAsync(cancellationToken) once at the end.
 
     - path: "src/Insequens.Application/Queries/**"
       instructions: |
         Queries must be immutable record types implementing IRequest<T>.
         Named Get{What}Query (e.g., GetUserToDoItemsQuery).
-        
-        Queries reading a specific resource by ID MUST implement IOwned.
+
+        Queries reading a specific resource by ID filter by Id AND UserId in one projected query and
+        throw NotFoundException when it is empty; they do not implement IOwned.
         List queries filter by UserId in the handler and do NOT implement IOwned.
-        
+
         List queries MUST return PaginatedResult<T> — never bare List<T>.
-        
+
         Query handlers should use AsNoTracking() and ProjectTo<TDto>() for efficient SQL.
         Always pass CancellationToken to async EF Core methods.
         Pagination: execute CountAsync for total count, then Skip/Take for the page.
@@ -100,8 +103,8 @@ reviews:
         Validators use FluentValidation AbstractValidator<T>.
         Named {CommandOrQuery}Validator.
         Auto-discovered — no manual DI registration needed.
-        
-        Validate shape and range only. Business rules belong in handlers.
+
+        Validate shape and range only. Invariants belong in the entity, other business rules in handlers.
         Pagination: Page > 0, PageSize between 1 and 100.
         String fields: check NotEmpty and MaximumLength.
         Include clear .WithMessage() text for every rule.
@@ -109,52 +112,56 @@ reviews:
     - path: "src/Insequens.Application/Behaviors/**"
       instructions: |
         Pipeline behaviors implement IPipelineBehavior<TRequest, TResponse>.
-        Execution order: Logging → Validation → Ownership → Handler.
-        
-        OwnershipBehavior only runs for requests implementing IOwned.
-        ValidationBehavior only runs for requests with registered validators.
+        Execution order: Logging → Validation → Authorization → Handler.
+
+        AuthorizationBehavior (in Application/Authorization) only acts on requests implementing IOwned<TEntity>.
+        ValidationBehavior only runs for requests with registered validators, one validator at a time.
         LoggingBehavior runs for all requests.
-        
+
         Changes to behaviors affect ALL operations. Review with extreme care.
 
     - path: "src/Insequens.Domain/**"
       instructions: |
         The Domain project MUST have zero project references. It references NOTHING.
         This is the innermost layer of Clean Architecture.
-        
-        Entities inherit from AuditableEntity (Id: Guid, CreatedOn, UpdatedOn).
-        No data annotations on entities — use Fluent API in DbContext.
-        Every entity holding user data must have Guid UserId.
-        
-        DTOs are immutable records. They are the API contract.
-        Interfaces (IRepository<T>, IDataContext, IEmailSender) live here.
-        
-        Flag if: any using statement references Application, Api, or Infrastructure namespaces.
 
-    - path: "src/Infrastructure/**"
+        Entities inherit from AuditableEntity (Id: Guid, CreatedOn/By, UpdatedOn/By).
+        Entities have private setters, a private parameterless constructor for EF, a static factory and
+        intention-revealing methods. Invariants are checked in the entity and throw DomainException subclasses.
+        No data annotations on entities — use Fluent API configuration in Infrastructure.
+        Every entity holding user data must have Guid UserId and implement IOwnedEntity.
+
+        Flag if: any using statement references Application, Api, Contracts, or Infrastructure namespaces.
+
+    - path: "src/Insequens.Contracts/**"
       instructions: |
-        Infrastructure implements Domain interfaces.
-        References only Domain — never Application or Api.
-        
-        Repository: never add query-specific methods. Use AsQueryable() + LINQ in handlers.
-        Repository: never call SaveChanges. That's DataContext's responsibility.
-        DataContext: audit timestamps must use DateTime.UtcNow, never DateTime.Now.
-        DbContext: all entity config via Fluent API in OnModelCreating.
+        The HTTP contract shared with clients. Immutable records and enums only, under V1/{Area}/.
+        The project references NOTHING. Changing a property is a breaking change for v1 clients.
+
+    - path: "src/Insequens.Infrastructure/**"
+      instructions: |
+        Infrastructure implements Application interfaces (IApplicationDbContext, IIdentityService,
+        ITokenService, IEmailSender). It references Application and Domain — never Api.
+
+        No repository or unit-of-work layer: InsequensContext implements IApplicationDbContext.
+        Entity configuration is an IEntityTypeConfiguration<T> in Persistence/Configurations/.
+        Audit fields are set by AuditableEntityInterceptor from TimeProvider and ICurrentUser.
+        Migrations are generated with dotnet ef, never hand-written.
 
     - path: "src/Insequens.Api/ExceptionMiddleware.cs"
       instructions: |
         Exception-to-HTTP mapping. Every application exception gets its own catch block.
-        
+
         CRITICAL: The generic Exception catch must NEVER expose ex.Message or ex.InnerException
         in non-Development environments. Only return generic message in production.
-        
+
         Error responses must use RFC 7807 ProblemDetails format.
         If a new exception type is introduced, this file must be updated.
 
     - path: "src/Insequens.Api/Program.cs"
       instructions: |
         DI composition root. This is the only place that knows about concrete implementations.
-        
+
         Check for:
         - Only one Identity registration: AddIdentityCore<ApplicationUser> (JWT-only API, no cookie schemes). Never AddIdentity.
         - CORS uses WithOrigins(configuredOrigins), never AllowAnyOrigin in production.
@@ -164,14 +171,15 @@ reviews:
 
     - path: "tests/**"
       instructions: |
-        xUnit + FluentAssertions + NSubstitute for unit tests.
-        WebApplicationFactory + InMemory DB for integration tests.
-        
+        xUnit + FluentAssertions + NSubstitute.
+        Handler tests send requests through MediatR on SQLite in memory (TestDbContextFactory), not mocks.
+        WebApplicationFactory (InsequensApiFactory) with EF InMemory, or SQLite to assert SQL round trips.
+
         Test naming: MethodName_StateUnderTest_ExpectedBehavior.
-        
+
         Every handler needs tests: happy path + error paths.
         Every validator needs tests: valid input passes, each invalid field fails.
-        OwnershipBehavior tests: owned passes, non-existent throws 404, other user throws 403.
+        Authorization tests: owned passes, non-existent and other user's both throw NotFoundException (404).
         Integration tests: full HTTP cycle including auth, ownership enforcement, validation errors.
 
     - path: "**/*.json"
