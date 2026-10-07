@@ -105,6 +105,25 @@ public class ExceptionMiddleware
             var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
             await context.Response.WriteAsync(problemDetailsJson);
         }
+        catch (AccountUpdateFailedException ex)
+        {
+            _logger.LogInformation("Account update refused: {Reason}", ex.Message);
+
+            context.Response.ContentType = "application/problem+json";
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+            var problemDetails = new ProblemDetails()
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message,
+                Instance = "",
+                Title = "Account update failed.",
+                Type = "Error"
+            };
+
+            var problemDetailsJson = JsonSerializer.Serialize(problemDetails);
+            await context.Response.WriteAsync(problemDetailsJson);
+        }
         catch (DomainException ex)
         {
             _logger.LogWarning("Domain rule violated. Rule: {DomainRule}", ex.GetType().Name);

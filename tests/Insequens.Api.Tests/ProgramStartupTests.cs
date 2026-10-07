@@ -152,6 +152,7 @@ public class ProgramStartupTests
     [InlineData("Jwt:AccessTokenLifetime", "00:00:00", "AccessTokenLifetime")]
     [InlineData("Frontend:BaseUrl", "", "BaseUrl")]
     [InlineData("Frontend:BaseUrl", "not-a-url", "BaseUrl")]
+    [InlineData("AccountDeletion:GracePeriod", "366.00:00:00", "GracePeriod")]
     [InlineData("RateLimiting:Auth:PermitLimit", "0", "PermitLimit")]
     [InlineData("RateLimiting:Write:ReplenishmentPeriod", "00:00:00", "ReplenishmentPeriod")]
     [InlineData("ReverseProxy:KnownProxies:0", "not-an-ip", "KnownProxies")]

@@ -111,6 +111,12 @@ public sealed class TestDbContextFactory : IDisposable
         return await context.ToDoItems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == itemId);
     }
 
+    public async Task<List<ToDoItem>> ItemsAsync(Guid userId)
+    {
+        await using var context = CreateContext();
+        return await context.ToDoItems.AsNoTracking().Where(item => item.UserId == userId).ToListAsync();
+    }
+
     /// <summary>Stores a refresh token the way login does: only its SHA-256 hash.</summary>
     public async Task<RefreshToken> SeedRefreshTokenAsync(Guid userId, string value, TimeSpan? lifetime = null)
     {

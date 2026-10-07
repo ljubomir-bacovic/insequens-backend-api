@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Insequens.Application.Abstractions.Identity;
 
 namespace Insequens.Infrastructure.Identity;
@@ -29,7 +30,7 @@ public sealed class IdentityService(
 
         var user = await userManager.FindByEmailAsync(email);
 
-        return user is null ? null : ToAuthUser(user);
+        return user is null || IsDeleted(user) ? null : ToAuthUser(user);
     }
 
     public async Task<AuthUser?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
@@ -114,11 +115,112 @@ public sealed class IdentityService(
     private static AuthUser ToAuthUser(ApplicationUser user) =>
         new(user.Id, user.Email ?? string.Empty);
 
+    public async Task<AccountDetails?> GetAccountAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return null;
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+
+        return new AccountDetails(user.Id, user.Email ?? string.Empty, user.EmailConfirmed, [.. roles]);
+    }
+
+    public async Task<bool> ChangePasswordAsync(
+        Guid userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+
+        return user is not null && (await userManager.ChangePasswordAsync(user, currentPassword, newPassword)).Succeeded;
+    }
+
+    public async Task<string> GenerateChangeEmailTokenAsync(Guid userId, string newEmail, CancellationToken cancellationToken)
+    {
+        var user = await RequireUserAsync(userId, cancellationToken);
+
+        return await userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+    }
+
+    public async Task<bool> ChangeEmailAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        // Users sign in with their email, so the user name follows it; ChangeEmailAsync saves both.
+        var previousUserName = user.UserName;
+        user.UserName = newEmail;
+        var result = await userManager.ChangeEmailAsync(user, newEmail, token);
+        if (!result.Succeeded)
+        {
+            user.UserName = previousUserName;
+        }
+
+        return result.Succeeded;
+    }
+
+    public async Task<bool> MarkForDeletionAsync(Guid userId, DateTime requestedAt, CancellationToken cancellationToken)
+    {
+        var user = await FindUserAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.DeletionRequestedAt = requestedAt;
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+
+        // A new security stamp invalidates outstanding email-confirmation and password-reset tokens.
+        await EnsureSucceededAsync(user, userManager.UpdateSecurityStampAsync(user));
+        return true;
+    }
+
+    public async Task<IReadOnlyList<Guid>> FindAccountsDueForPurgeAsync(
+        DateTime deletionRequestedBefore,
+        CancellationToken cancellationToken) =>
+        await userManager.Users
+            .Where(user => user.DeletionRequestedAt != null && user.DeletionRequestedAt <= deletionRequestedBefore)
+            .Select(user => user.Id)
+            .ToListAsync(cancellationToken);
+
+    public async Task DeleteUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is not null)
+        {
+            await EnsureSucceededAsync(user, userManager.DeleteAsync(user));
+        }
+    }
+
+    private static bool IsDeleted(ApplicationUser user) => user.DeletionRequestedAt is not null;
+
+    private static async Task EnsureSucceededAsync(ApplicationUser user, Task<IdentityResult> operation)
+    {
+        var result = await operation;
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Updating user {user.Id} failed: {string.Join(", ", result.Errors.Select(error => error.Code))}");
+        }
+    }
+
     private async Task<ApplicationUser?> FindUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        return await userManager.FindByIdAsync(userId.ToString());
+        var user = await userManager.FindByIdAsync(userId.ToString());
+
+        return user is null || IsDeleted(user) ? null : user;
     }
 
     private async Task<ApplicationUser> RequireUserAsync(Guid userId, CancellationToken cancellationToken) =>
