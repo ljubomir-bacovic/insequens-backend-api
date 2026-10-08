@@ -35,6 +35,7 @@ namespace Insequens.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ExpiresAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Key")

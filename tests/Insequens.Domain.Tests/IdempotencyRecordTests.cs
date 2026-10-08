@@ -8,13 +8,13 @@ public class IdempotencyRecordTests
     private static readonly DateTime Now = new(2026, 3, 1, 10, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void Begin_ClaimsTheKeyForTheRetentionWithoutAResponse()
+    public void Begin_ClaimsTheKeyForTheLeaseWithoutAResponse()
     {
         var userId = Guid.NewGuid();
 
         var record = IdempotencyRecord.Begin(userId, "key", "HASH", Now);
 
-        record.Should().BeEquivalentTo(new { UserId = userId, Key = "key", RequestHash = "HASH", ResponseBody = (string?)null, ExpiresAt = Now.AddHours(24) });
+        record.Should().BeEquivalentTo(new { UserId = userId, Key = "key", RequestHash = "HASH", ResponseBody = (string?)null, ExpiresAt = Now.AddMinutes(1) });
         record.IsCompleted.Should().BeFalse();
     }
 
@@ -22,6 +22,7 @@ public class IdempotencyRecordTests
     public void IsExpired_IsTrueFromTheExpiryOn()
     {
         var record = IdempotencyRecord.Begin(Guid.NewGuid(), "key", "HASH", Now);
+        record.Complete("{}", Now);
 
         record.IsExpired(Now.AddHours(24).AddTicks(-1)).Should().BeFalse();
         record.IsExpired(Now.AddHours(24)).Should().BeTrue();
@@ -37,14 +38,15 @@ public class IdempotencyRecordTests
     }
 
     [Fact]
-    public void Complete_StoresTheResponseAndRestartClearsIt()
+    public void Complete_StoresTheResponseForTheRetentionAndRestartClearsIt()
     {
         var record = IdempotencyRecord.Begin(Guid.NewGuid(), "key", "HASH", Now);
 
-        record.Complete("{}");
+        record.Complete("{}", Now.AddSeconds(5));
         record.IsCompleted.Should().BeTrue();
+        record.ExpiresAt.Should().Be(Now.AddSeconds(5).AddHours(24));
 
         record.Restart("OTHER", Now.AddDays(2));
-        record.Should().BeEquivalentTo(new { RequestHash = "OTHER", ResponseBody = (string?)null, ExpiresAt = Now.AddDays(3) });
+        record.Should().BeEquivalentTo(new { RequestHash = "OTHER", ResponseBody = (string?)null, ExpiresAt = Now.AddDays(2).AddMinutes(1) });
     }
 }

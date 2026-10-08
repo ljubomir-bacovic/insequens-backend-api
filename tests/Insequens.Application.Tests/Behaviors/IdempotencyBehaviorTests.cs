@@ -88,7 +88,7 @@ public sealed class IdempotencyBehaviorTests : IDisposable
     }
 
     [Fact]
-    public async Task Send_WhileTheSameRequestIsInProgress_ThrowsInProgress()
+    public async Task Send_AfterAnInterruptedRequest_IsInProgressOnlyUntilTheLeaseEnds()
     {
         await _database.SeedUserAsync(_userId);
         var interrupted = new FailAfterSaveInterceptor();
@@ -97,9 +97,29 @@ public sealed class IdempotencyBehaviorTests : IDisposable
         await first.Should().ThrowAsync<InvalidOperationException>();
 
         var retry = () => _database.SendAsync(Create("key-1"));
-
         await retry.Should().ThrowAsync<IdempotentRequestInProgressException>();
         (await _database.ItemsAsync(_userId)).Should().ContainSingle("the first request created its task before failing");
+
+        _database.Clock.Advance(IdempotencyRecord.InProgressLease);
+        var afterLease = await _database.SendAsync(Create("key-1"));
+
+        (await _database.IdempotencyRecordsAsync(_userId)).Should().ContainSingle().Which.IsCompleted.Should().BeTrue();
+        (await _database.SendAsync(Create("key-1"))).Should().Be(afterLease);
+    }
+
+    [Fact]
+    public async Task Send_WhenAConcurrentRequestRestartsTheExpiredKeyFirst_ReplaysItsResponseAndCreatesNothing()
+    {
+        await _database.SeedUserAsync(_userId);
+        await _database.SendAsync(Create("key-1"));
+        _database.Clock.Advance(IdempotencyRecord.Retention);
+        var winnerResponse = new TaskResponse(Guid.NewGuid(), "Task", null, TaskPriority.None, null, false);
+        var race = new RestartKeyFirstInterceptor(_database, JsonSerializer.Serialize(winnerResponse));
+
+        var response = await _database.SendAsync(Create("key-1"), UseContextWith(race));
+
+        response.Should().Be(winnerResponse);
+        (await _database.ItemsAsync(_userId)).Should().ContainSingle("only the first request's task exists");
     }
 
     [Fact]
@@ -165,10 +185,38 @@ public sealed class IdempotencyBehaviorTests : IDisposable
             {
                 _claimed = true;
                 var winner = IdempotencyRecord.Begin(claim.UserId, claim.Key, claim.RequestHash, TestDbContextFactory.StartTime.UtcDateTime);
-                winner.Complete(responseBody);
+                winner.Complete(responseBody, TestDbContextFactory.StartTime.UtcDateTime);
 
                 await using var other = database.CreateContext();
                 other.IdempotencyRecords.Add(winner);
+                await other.SaveChangesAsync(cancellationToken);
+            }
+
+            return await base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    /// <summary>Before the first save, restarts and completes the same expired key from "another request".</summary>
+    private sealed class RestartKeyFirstInterceptor(TestDbContextFactory database, string responseBody) : SaveChangesInterceptor
+    {
+        private bool _restarted;
+
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            var restart = eventData.Context!.ChangeTracker.Entries<IdempotencyRecord>()
+                .SingleOrDefault(entry => entry.State == EntityState.Modified)?.Entity;
+            if (!_restarted && restart is not null)
+            {
+                _restarted = true;
+                var now = database.Clock.GetUtcNow().UtcDateTime.AddSeconds(-1);
+
+                await using var other = database.CreateContext();
+                var winner = await other.IdempotencyRecords.SingleAsync(record => record.Id == restart.Id, cancellationToken);
+                winner.Restart(restart.RequestHash, now);
+                winner.Complete(responseBody, now);
                 await other.SaveChangesAsync(cancellationToken);
             }
 

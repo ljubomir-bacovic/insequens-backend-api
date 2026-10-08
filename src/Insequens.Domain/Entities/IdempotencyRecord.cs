@@ -11,8 +11,14 @@ public sealed class IdempotencyRecord : AuditableEntity
     /// <summary>Hex of a SHA-256 hash.</summary>
     public const int RequestHashLength = 64;
 
-    /// <summary>How long a key is remembered.</summary>
+    /// <summary>How long a key is remembered once its response is stored.</summary>
     public static readonly TimeSpan Retention = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// How long a claimed key without a response blocks retries. A request that dies after creating its resource but
+    /// before storing the response would otherwise block its key for the whole retention.
+    /// </summary>
+    public static readonly TimeSpan InProgressLease = TimeSpan.FromMinutes(1);
 
     private IdempotencyRecord()
     {
@@ -25,6 +31,7 @@ public sealed class IdempotencyRecord : AuditableEntity
     /// <summary>The JSON of the response; null while the first request is still running.</summary>
     public string? ResponseBody { get; private set; }
 
+    /// <summary>The end of the in-progress lease, then of the retention once completed. Also the concurrency token.</summary>
     public DateTime ExpiresAt { get; private set; }
 
     public bool IsCompleted => ResponseBody is not null;
@@ -48,13 +55,18 @@ public sealed class IdempotencyRecord : AuditableEntity
     /// <summary>Whether a request with this hash is the same request the key was first sent with.</summary>
     public bool Matches(string requestHash) => string.Equals(RequestHash, requestHash, StringComparison.Ordinal);
 
-    /// <summary>Reuses an expired key for a new request.</summary>
+    /// <summary>Reuses an expired key, or a claim whose lease ran out, for a new request.</summary>
     public void Restart(string requestHash, DateTime now)
     {
         RequestHash = requestHash;
         ResponseBody = null;
-        ExpiresAt = now + Retention;
+        ExpiresAt = now + InProgressLease;
     }
 
-    public void Complete(string responseBody) => ResponseBody = responseBody;
+    /// <summary>Stores the response, which retries get for the retention from now.</summary>
+    public void Complete(string responseBody, DateTime now)
+    {
+        ResponseBody = responseBody;
+        ExpiresAt = now + Retention;
+    }
 }

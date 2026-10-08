@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Insequens.Infrastructure.Migrations
 {
     [DbContext(typeof(InsequensContext))]
-    [Migration("20261008075905_IdempotencyKeys")]
+    [Migration("20261008082554_IdempotencyKeys")]
     partial class IdempotencyKeys
     {
         /// <inheritdoc />
@@ -38,6 +38,7 @@ namespace Insequens.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("ExpiresAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Key")

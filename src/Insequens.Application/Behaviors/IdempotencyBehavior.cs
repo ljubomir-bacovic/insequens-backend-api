@@ -11,8 +11,10 @@ namespace Insequens.Application.Behaviors;
 /// <summary>
 /// Runs an <see cref="IIdempotentRequest"/> with a key at most once per user and key, and replays its stored response
 /// to every retry within <see cref="IdempotencyRecord.Retention"/>. The key is claimed in the same save as the
-/// handler's changes, so of two concurrent requests with one key only one commits; the other replays its response.
-/// A failed request stores nothing, so the client can retry it with the same key. The type constraint means the
+/// handler's changes, so of two concurrent requests with one key only one commits; the other replays its response,
+/// or gets a 409 while the first is still running. A failed request stores nothing, so the client can retry it with
+/// the same key. A claim whose response was never stored (the process died between the two saves) blocks retries
+/// only for <see cref="IdempotencyRecord.InProgressLease"/>; after that a retry runs again. The type constraint means the
 /// container builds this behavior only for idempotent requests.
 /// </summary>
 public class IdempotencyBehavior<TRequest, TResponse>(IApplicationDbContext dbContext, TimeProvider timeProvider)
@@ -53,12 +55,13 @@ public class IdempotencyBehavior<TRequest, TResponse>(IApplicationDbContext dbCo
         {
             response = await next(cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException exception)
         {
-            // Another request claimed the key between our read and our save; nothing of ours was saved.
+            // Another request claimed the key between our read and our save: a new key fails on the unique index, a
+            // restarted one on the ExpiresAt concurrency token. Nothing of ours was saved.
             var winner = await dbContext.IdempotencyRecords.AsNoTracking()
                 .SingleOrDefaultAsync(other => other.UserId == request.UserId && other.Key == key, cancellationToken);
-            if (winner is null || winner.Id == record.Id)
+            if (winner is null || (winner.Id == record.Id && exception is not DbUpdateConcurrencyException))
             {
                 throw;
             }
@@ -66,7 +69,7 @@ public class IdempotencyBehavior<TRequest, TResponse>(IApplicationDbContext dbCo
             return Replay(winner, requestHash);
         }
 
-        record.Complete(JsonSerializer.Serialize(response));
+        record.Complete(JsonSerializer.Serialize(response), timeProvider.GetUtcNow().UtcDateTime);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return response;

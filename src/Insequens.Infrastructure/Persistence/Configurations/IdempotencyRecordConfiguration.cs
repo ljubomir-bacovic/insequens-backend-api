@@ -20,8 +20,10 @@ public sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<Id
             .IsUnicode(false)
             .IsRequired();
 
-        // Two concurrent requests with the same key: the second INSERT fails, so the request runs once.
+        // Two concurrent requests with the same key: the second INSERT fails, so the request runs once. Two concurrent
+        // restarts of an expired key: every change moves ExpiresAt, so the second UPDATE matches no row and fails.
         builder.HasIndex(record => new { record.UserId, record.Key }).IsUnique();
+        builder.Property(record => record.ExpiresAt).IsConcurrencyToken();
         builder.HasIndex(record => record.ExpiresAt);
 
         builder.HasOne<ApplicationUser>()

@@ -7,7 +7,7 @@ namespace Insequens.Infrastructure.Tests.Persistence.Migrations;
 [Collection(SqlServerCollection.Name)]
 public sealed class IdempotencyKeysMigrationTests(SqlServerFixture sqlServer)
 {
-    private const string Migration = "20261008075905_IdempotencyKeys";
+    private const string Migration = "20261008082554_IdempotencyKeys";
 
     private static readonly Guid UserId = Guid.Parse("4d0b2e3f-6a7c-4d8e-9f0a-3b4c5d6e7f80");
 
