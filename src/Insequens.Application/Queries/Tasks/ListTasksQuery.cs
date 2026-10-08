@@ -6,6 +6,7 @@ using MediatR;
 namespace Insequens.Application.Queries.Tasks;
 
 /// <param name="SortDirection">Null uses the field's natural order (see <see cref="TaskListQueryable.DefaultDirection"/>).</param>
+/// <param name="Deleted">True lists the trash instead of the live tasks.</param>
 public record ListTasksQuery(
     Guid UserId,
     bool? Completed = null,
@@ -16,4 +17,5 @@ public record ListTasksQuery(
     TaskSortField SortBy = TaskSortField.DueDate,
     SortDirection? SortDirection = null,
     int Page = 1,
-    int PageSize = 20) : IRequest<PaginatedResult<TaskResponse>>;
+    int PageSize = 20,
+    bool Deleted = false) : IRequest<PaginatedResult<TaskResponse>>;

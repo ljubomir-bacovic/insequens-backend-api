@@ -19,7 +19,9 @@ public class ExportUserDataHandler(
         var account = await identityService.GetAccountAsync(request.UserId, cancellationToken)
             ?? throw new NotFoundException("Account", request.UserId);
 
+        // The export holds every task the account stores, including those in the trash.
         var tasks = await dbContext.ToDoItems.AsNoTracking()
+            .IgnoreQueryFilters()
             .Where(item => item.UserId == request.UserId)
             .OrderBy(item => item.CreatedOn)
             .ToListAsync(cancellationToken);
@@ -40,7 +42,8 @@ public class ExportUserDataHandler(
                     item.DueDate,
                     item.IsCompleted,
                     Utc(item.CreatedOn),
-                    Utc(item.UpdatedOn))),
+                    Utc(item.UpdatedOn),
+                    item.DeletedOn is { } deletedOn ? Utc(deletedOn) : null)),
             ],
             [
                 .. sessions.Select(token => new ExportedSession(

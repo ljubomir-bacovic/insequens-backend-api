@@ -15,7 +15,7 @@ public class DeleteToDoItemHandler(IResourceContext<ToDoItemEntity> toDoItem, IA
     {
         var item = toDoItem.Resource;
 
-        dbContext.ToDoItems.Remove(item);
+        item.Delete();
         await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }

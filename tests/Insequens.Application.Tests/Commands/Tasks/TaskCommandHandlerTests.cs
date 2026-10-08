@@ -121,13 +121,87 @@ public sealed class TaskCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_WithTheCurrentVersion_RemovesTheTask()
+    public async Task Delete_WithTheCurrentVersion_MovesTheTaskToTheTrashStampingWhenAndWho()
     {
         var item = await SeedFullTaskAsync();
+        _database.Clock.Advance(TimeSpan.FromHours(1));
+        _database.CurrentUser.UserId = _userId;
 
         await _database.SendAsync(new DeleteTaskCommand(item.Id, _userId, item.RowVersion));
 
-        (await _database.FindItemAsync(item.Id)).Should().BeNull();
+        var deleted = (await _database.FindItemAsync(item.Id))!;
+        deleted.IsDeleted.Should().BeTrue();
+        deleted.DeletedOn.Should().Be(TestDbContextFactory.StartTime.AddHours(1).UtcDateTime);
+        deleted.DeletedBy.Should().Be(_userId);
+    }
+
+    [Fact]
+    public async Task DeletedTask_IsNotFoundByGetUpdateCompletionOrDelete()
+    {
+        var item = await SeedFullTaskAsync();
+        await _database.SendAsync(new DeleteTaskCommand(item.Id, _userId));
+
+        var get = () => _database.SendAsync(new GetTaskQuery(item.Id, _userId));
+        var update = () => _database.SendAsync(new UpdateTaskCommand(item.Id, _userId, "Renamed", default, null, default));
+        var complete = () => _database.SendAsync(new SetTaskCompletionCommand(item.Id, _userId, true));
+        var delete = () => _database.SendAsync(new DeleteTaskCommand(item.Id, _userId));
+
+        await get.Should().ThrowAsync<NotFoundException>();
+        await update.Should().ThrowAsync<NotFoundException>();
+        await complete.Should().ThrowAsync<NotFoundException>();
+        await delete.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task Restore_ADeletedTask_BringsItBackUnchangedAndClearsTheDeletion()
+    {
+        var item = await SeedFullTaskAsync();
+        await _database.SendAsync(new DeleteTaskCommand(item.Id, _userId));
+
+        await _database.SendAsync(new RestoreTaskCommand(item.Id, _userId));
+
+        var restored = await _database.SendAsync(new GetTaskQuery(item.Id, _userId));
+        restored.Value.Should().BeEquivalentTo(new { Name = "Task", Description = "Details", Priority = TaskPriority.High });
+        var stored = (await _database.FindItemAsync(item.Id))!;
+        stored.IsDeleted.Should().BeFalse();
+        stored.DeletedOn.Should().BeNull();
+        stored.DeletedBy.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Restore_ATaskThatIsNotDeleted_ChangesNothing()
+    {
+        var item = await SeedFullTaskAsync();
+
+        await _database.SendAsync(new RestoreTaskCommand(item.Id, _userId));
+
+        (await _database.FindItemAsync(item.Id)).Should().BeEquivalentTo(item, options => options.Excluding(task => task.UpdatedOn));
+    }
+
+    [Fact]
+    public async Task Restore_AnotherUsersOrAnUnknownTask_ThrowsNotFound()
+    {
+        var item = await _database.SeedItemAsync(Guid.NewGuid());
+        await _database.SendAsync(new DeleteTaskCommand(item.Id, item.UserId));
+
+        var foreign = () => _database.SendAsync(new RestoreTaskCommand(item.Id, _userId));
+        var unknown = () => _database.SendAsync(new RestoreTaskCommand(Guid.NewGuid(), _userId));
+
+        await foreign.Should().ThrowAsync<NotFoundException>();
+        await unknown.Should().ThrowAsync<NotFoundException>();
+        (await _database.FindItemAsync(item.Id))!.IsDeleted.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Restore_WithAStaleVersion_ThrowsPreconditionFailedAndKeepsItDeleted()
+    {
+        var item = await SeedFullTaskAsync();
+        await _database.SendAsync(new DeleteTaskCommand(item.Id, _userId));
+
+        var action = () => _database.SendAsync(new RestoreTaskCommand(item.Id, _userId, [1, 2, 3]));
+
+        await action.Should().ThrowAsync<PreconditionFailedException>();
+        (await _database.FindItemAsync(item.Id))!.IsDeleted.Should().BeTrue();
     }
 
     [Fact]
@@ -140,7 +214,7 @@ public sealed class TaskCommandHandlerTests : IDisposable
 
         await stale.Should().ThrowAsync<PreconditionFailedException>();
         await foreign.Should().ThrowAsync<NotFoundException>();
-        (await _database.FindItemAsync(item.Id)).Should().NotBeNull();
+        (await _database.FindItemAsync(item.Id))!.IsDeleted.Should().BeFalse();
     }
 
     [Theory]

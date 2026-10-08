@@ -32,6 +32,10 @@ builder.Services.AddOptions<AccountDeletionOptions>()
     .Bind(builder.Configuration.GetSection(AccountDeletionOptions.SectionName))
     .ValidateDataAnnotations()
     .ValidateOnStart();
+builder.Services.AddOptions<TaskTrashOptions>()
+    .Bind(builder.Configuration.GetSection(TaskTrashOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddApiProblemDetails();
 builder.Services.AddApiSecurity(builder.Configuration);

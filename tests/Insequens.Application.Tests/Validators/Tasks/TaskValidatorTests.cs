@@ -40,6 +40,27 @@ public class TaskValidatorTests
         result.Errors.Should().ContainSingle().Which.PropertyName.Should().Be(property);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("a101-characters-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public void CreateTask_WithAnEmptyOrTooLongIdempotencyKey_ReturnsAnError(string key)
+    {
+        var result = new CreateTaskValidator(_clock).Validate(
+            new CreateTaskCommand(UserId, "Task", null, TaskPriority.None, null, key));
+
+        result.Errors.Should().ContainSingle().Which.PropertyName.Should().Be("IdempotencyKey");
+    }
+
+    [Fact]
+    public void CreateTask_WithAnIdempotencyKeyOf100Characters_ReturnsNoErrors()
+    {
+        var result = new CreateTaskValidator(_clock).Validate(
+            new CreateTaskCommand(UserId, "Task", null, TaskPriority.None, null, new string('k', 100)));
+
+        result.IsValid.Should().BeTrue();
+    }
+
     [Fact]
     public void CreateTask_WithADescriptionOver4000Characters_ReturnsAnError()
     {

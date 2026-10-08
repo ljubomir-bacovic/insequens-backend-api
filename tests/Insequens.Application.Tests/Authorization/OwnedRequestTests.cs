@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Insequens.Application.Authorization;
+using Insequens.Application.Commands.Tasks;
 using Insequens.Application.Commands.ToDoItem;
 using Insequens.Application.Queries.Tasks;
 using Insequens.Application.Queries.ToDoItem;
@@ -11,7 +12,8 @@ namespace Insequens.Application.Tests.Authorization;
 public class OwnedRequestTests
 {
     /// <summary>Requests that address an item by ID but authorize in their own query, filtered by owner.</summary>
-    private static readonly Type[] OwnerFilteredQueries = [typeof(GetToDoItemQuery), typeof(GetTaskQuery)];
+    private static readonly Type[] OwnerFilteredRequests =
+        [typeof(GetToDoItemQuery), typeof(GetTaskQuery), typeof(RestoreTaskCommand)];
 
     [Fact]
     public void RequestsAddressingAnItem_AreOwnedOrFilterByOwner()
@@ -21,7 +23,7 @@ public class OwnedRequestTests
             .Where(type => type.GetInterfaces().Any(IsMediatRRequest))
             .Where(type => type.GetProperty(nameof(UpdateToDoItemNameCommand.ItemId)) is not null)
             .Where(type => !typeof(IOwned<ToDoItemEntity>).IsAssignableFrom(type))
-            .Except(OwnerFilteredQueries);
+            .Except(OwnerFilteredRequests);
 
         unprotected.Should().BeEmpty("a request that addresses an item by ID must implement IOwned<ToDoItem>");
     }

@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Insequens.Infrastructure.Persistence.Interceptors;
 
 /// <summary>
-/// Stamps <see cref="AuditableEntity"/> audit fields on every save: UTC timestamps from <see cref="TimeProvider"/>
-/// and the acting user from <see cref="ICurrentUser"/>.
+/// Stamps <see cref="AuditableEntity"/> audit fields and the <see cref="ISoftDeletable"/> deletion fields on every
+/// save: UTC timestamps from <see cref="TimeProvider"/> and the acting user from <see cref="ICurrentUser"/>.
 /// </summary>
 public sealed class AuditableEntityInterceptor(TimeProvider timeProvider, ICurrentUser currentUser) : SaveChangesInterceptor
 {
@@ -49,6 +49,16 @@ public sealed class AuditableEntityInterceptor(TimeProvider timeProvider, ICurre
             {
                 entry.Property(entity => entity.UpdatedOn).CurrentValue = now;
                 entry.Property(entity => entity.UpdatedBy).CurrentValue = userId;
+            }
+        }
+
+        foreach (var entry in context.ChangeTracker.Entries<ISoftDeletable>())
+        {
+            if (entry.State == EntityState.Modified && entry.Property(entity => entity.IsDeleted).IsModified)
+            {
+                var isDeleted = entry.Entity.IsDeleted;
+                entry.Property(entity => entity.DeletedOn).CurrentValue = isDeleted ? now : null;
+                entry.Property(entity => entity.DeletedBy).CurrentValue = isDeleted ? userId : null;
             }
         }
     }

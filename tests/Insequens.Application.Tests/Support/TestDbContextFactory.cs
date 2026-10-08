@@ -107,16 +107,24 @@ public sealed class TestDbContextFactory : IDisposable
         await context.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>The stored row, in the trash or not.</summary>
     public async Task<ToDoItem?> FindItemAsync(Guid itemId)
     {
         await using var context = CreateContext();
-        return await context.ToDoItems.AsNoTracking().SingleOrDefaultAsync(item => item.Id == itemId);
+        return await context.ToDoItems.AsNoTracking().IgnoreQueryFilters().SingleOrDefaultAsync(item => item.Id == itemId);
     }
 
+    public async Task<List<IdempotencyRecord>> IdempotencyRecordsAsync(Guid userId)
+    {
+        await using var context = CreateContext();
+        return await context.IdempotencyRecords.AsNoTracking().Where(record => record.UserId == userId).ToListAsync();
+    }
+
+    /// <summary>Every stored task of the user, in the trash or not.</summary>
     public async Task<List<ToDoItem>> ItemsAsync(Guid userId)
     {
         await using var context = CreateContext();
-        return await context.ToDoItems.AsNoTracking().Where(item => item.UserId == userId).ToListAsync();
+        return await context.ToDoItems.AsNoTracking().IgnoreQueryFilters().Where(item => item.UserId == userId).ToListAsync();
     }
 
     /// <summary>Stores a refresh token the way login does: only its SHA-256 hash.</summary>

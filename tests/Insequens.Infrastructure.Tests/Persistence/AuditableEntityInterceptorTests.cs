@@ -88,6 +88,47 @@ public class AuditableEntityInterceptorTests
     }
 
     [Fact]
+    public async Task SaveChangesAsync_WhenDeletedAndRestored_StampsAndClearsTheDeletion()
+    {
+        var deleter = Guid.NewGuid();
+        await using var context = CreateContext();
+        var item = NewItem();
+        context.ToDoItems.Add(item);
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        _timeProvider.Advance(TimeSpan.FromHours(2));
+        _currentUser.UserId.Returns(deleter);
+        item.Delete();
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        item.DeletedOn.Should().Be(StartTime.AddHours(2).UtcDateTime);
+        item.DeletedBy.Should().Be(deleter);
+
+        item.Restore();
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        item.DeletedOn.Should().BeNull();
+        item.DeletedBy.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WhenAnotherFieldChanges_LeavesTheDeletionStamp()
+    {
+        await using var context = CreateContext();
+        var item = NewItem();
+        context.ToDoItems.Add(item);
+        await context.SaveChangesAsync(CancellationToken.None);
+        item.Delete();
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        _timeProvider.Advance(TimeSpan.FromHours(2));
+        item.Rename("Renamed");
+        await context.SaveChangesAsync(CancellationToken.None);
+
+        item.DeletedOn.Should().Be(StartTime.UtcDateTime);
+    }
+
+    [Fact]
     public void SaveChanges_WhenEntityAdded_SetsAuditFields()
     {
         var userId = Guid.NewGuid();

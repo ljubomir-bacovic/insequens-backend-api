@@ -23,7 +23,10 @@ public class ListTasksHandler(IApplicationDbContext dbContext, IMapper mapper)
             request.Search,
             request.SortBy,
             request.SortDirection);
-        var query = dbContext.ToDoItems.AsNoTracking().Filter(criteria);
+        var tasks = request.Deleted
+            ? dbContext.ToDoItems.IgnoreQueryFilters().Where(item => item.IsDeleted)
+            : dbContext.ToDoItems;
+        var query = tasks.AsNoTracking().Filter(criteria);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query

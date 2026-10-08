@@ -3,7 +3,7 @@ using Insequens.Domain.Types;
 
 namespace Insequens.Domain.Entities;
 
-public class ToDoItem : AuditableEntity, IOwnedEntity
+public class ToDoItem : AuditableEntity, IOwnedEntity, ISoftDeletable
 {
     public const int NameMaxLength = 200;
     public const int DescriptionMaxLength = 4000;
@@ -18,6 +18,9 @@ public class ToDoItem : AuditableEntity, IOwnedEntity
     public TaskPriority Priority { get; private set; }
     public DateOnly? DueDate { get; private set; }
     public bool IsCompleted { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedOn { get; private set; }
+    public Guid? DeletedBy { get; private set; }
 
     /// <summary>Changes on every save; the API exposes it as the ETag for optimistic concurrency.</summary>
     public byte[] RowVersion { get; private set; } = [];
@@ -70,4 +73,10 @@ public class ToDoItem : AuditableEntity, IOwnedEntity
     public void MarkCompleted() => IsCompleted = true;
 
     public void Reopen() => IsCompleted = false;
+
+    /// <summary>Moves the task to the trash. Deleting a deleted task changes nothing.</summary>
+    public void Delete() => IsDeleted = true;
+
+    /// <summary>Takes the task out of the trash. Restoring a task that is not deleted changes nothing.</summary>
+    public void Restore() => IsDeleted = false;
 }

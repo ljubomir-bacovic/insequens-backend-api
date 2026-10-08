@@ -26,6 +26,8 @@ public class ThrowingTestController : ControllerBase
         "email-confirmation" => new EmailConfirmationFailedException(),
         "account-update" => new AccountUpdateFailedException("The current password is incorrect."),
         "domain" => new ToDoItemDescriptionTooLongException(4000),
+        "idempotency-key-reused" => new IdempotencyKeyReusedException(),
+        "idempotent-request-in-progress" => new IdempotentRequestInProgressException(),
         "validation" => new ValidationException(
             "Do not leak this exception message.",
             [

@@ -13,6 +13,8 @@ public interface IApplicationDbContext
 
     DbSet<RefreshToken> RefreshTokens { get; }
 
+    DbSet<IdempotencyRecord> IdempotencyRecords { get; }
+
     /// <summary>The set for any entity, for generic code such as ownership policies.</summary>
     DbSet<TEntity> Set<TEntity>()
         where TEntity : class;

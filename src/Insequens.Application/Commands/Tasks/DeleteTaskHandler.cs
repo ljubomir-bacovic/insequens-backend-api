@@ -12,7 +12,7 @@ public class DeleteTaskHandler(IResourceContext<ToDoItemEntity> toDoItem, IAppli
     {
         var item = toDoItem.Resource;
 
-        dbContext.ToDoItems.Remove(item);
+        item.Delete();
         await dbContext.SaveChangesAsync(item, request.ExpectedVersion, cancellationToken);
     }
 }
