@@ -151,14 +151,15 @@ v2 is the task contract for new clients. Priorities are strings (`"none"`, `"low
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| GET | `/v2/tasks` | List tasks (paginated). Filters: `completed`, `priority`, `dueFrom`, `dueTo` (inclusive), `search` (name or description, up to 100 characters). `sortBy`: `dueDate` (default, tasks without one last), `priority` (high first), `createdOn` (newest first) or `name`; `sortDirection` `asc` or `desc` overrides the default. Paging is stable: no task appears on two pages |
-| POST | `/v2/tasks` | Create a task: `name`, optional `description`, `priority`, `dueDate` |
+| GET | `/v2/tasks` | List tasks (paginated); `deleted=true` lists the trash instead. Filters: `completed`, `priority`, `dueFrom`, `dueTo` (inclusive), `search` (name or description, up to 100 characters). `sortBy`: `dueDate` (default, tasks without one last), `priority` (high first), `createdOn` (newest first) or `name`; `sortDirection` `asc` or `desc` overrides the default. Paging is stable: no task appears on two pages |
+| POST | `/v2/tasks` | Create a task: `name`, optional `description`, `priority`, `dueDate`. An optional `Idempotency-Key` header (up to 100 characters) makes retries safe: the same key and body within 24 hours return the first response without creating another task; the same key with a different body is a 422 |
 | GET | `/v2/tasks/{id}` | Get a task, with its `ETag` |
 | PATCH | `/v2/tasks/{id}` | Change only the fields in the body. `"description": null` or `"dueDate": null` clears them; `{}` changes nothing |
 | PUT | `/v2/tasks/{id}/completion` | Set `{ "completed": true }` or `false`; sending it twice leaves the same state |
-| DELETE | `/v2/tasks/{id}` | Delete a task |
+| DELETE | `/v2/tasks/{id}` | Move a task to the trash. It is purged after 30 days (`TaskTrash:Retention`) |
+| POST | `/v2/tasks/{id}/restore` | Take a task out of the trash |
 
-PATCH, PUT and DELETE honour `If-Match` as in v1.
+PATCH, PUT, DELETE and restore honour `If-Match` as in v1. A v1 DELETE also moves the task to the trash.
 
 ### Account (auth required)
 

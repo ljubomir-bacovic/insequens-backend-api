@@ -48,7 +48,8 @@ public class DependencyInjectionTests
         behaviorRegistrations.Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
-            typeof(AuthorizationBehavior<,>));
+            typeof(AuthorizationBehavior<,>),
+            typeof(IdempotencyBehavior<,>));
     }
 
     [Fact]

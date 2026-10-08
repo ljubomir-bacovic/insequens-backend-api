@@ -7,7 +7,10 @@ using Insequens.Api.Tests.Support;
 
 namespace Insequens.Api.Tests.V2;
 
-/// <summary>The v2 task contract over HTTP: string priorities, list filters, the partial PATCH and the completion PUT.</summary>
+/// <summary>
+/// The v2 task contract over HTTP: string priorities, list filters, the partial PATCH, the completion PUT, the trash
+/// and idempotency keys.
+/// </summary>
 public sealed class TasksEndpointTests : IAsyncLifetime
 {
     private readonly InsequensApiFactory _factory = new();
@@ -194,6 +197,68 @@ public sealed class TasksEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Delete_MovesTheTaskToTheTrashAndRestoreBringsItBack()
+    {
+        var id = await CreateAsync("""{ "name": "Task" }""");
+        await CreateAsync("""{ "name": "Kept" }""");
+
+        (await _client.DeleteAsync($"/v2/Tasks/{id}")).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await _client.GetAsync($"/v2/Tasks/{id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await NamesAsync("/v2/Tasks")).Should().Equal("Kept");
+        (await NamesAsync("/v2/Tasks?deleted=true")).Should().Equal("Task");
+
+        (await _client.PostAsync($"/v2/Tasks/{id}/restore", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        (await GetAsync(id)).GetProperty("name").GetString().Should().Be("Task");
+        (await NamesAsync("/v2/Tasks?deleted=true")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Restore_AnUnknownTask_Returns404()
+    {
+        var response = await _client.PostAsync($"/v2/Tasks/{Guid.NewGuid()}/restore", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Create_TwiceWithTheSameIdempotencyKey_CreatesOneTaskAndReturnsIdenticalBodies()
+    {
+        const string body = """{ "name": "Offline task", "priority": "high", "dueDate": "2026-10-10" }""";
+
+        var first = await PostWithKeyAsync("key-1", body);
+        var second = await PostWithKeyAsync("key-1", body);
+
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        second.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await second.Content.ReadAsStringAsync()).Should().Be(await first.Content.ReadAsStringAsync());
+        second.Headers.Location.Should().Be(first.Headers.Location);
+        (await NamesAsync("/v2/Tasks")).Should().Equal("Offline task");
+    }
+
+    [Fact]
+    public async Task Create_WithAReusedIdempotencyKeyAndADifferentBody_Returns422()
+    {
+        await PostWithKeyAsync("key-1", """{ "name": "First" }""");
+
+        var response = await PostWithKeyAsync("key-1", """{ "name": "Second" }""");
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        problem.RootElement.GetProperty("type").GetString().Should().Be("urn:insequens:error:idempotency-key-reused");
+        (await NamesAsync("/v2/Tasks")).Should().Equal("First");
+    }
+
+    [Fact]
+    public async Task Create_WithATooLongIdempotencyKey_Returns400()
+    {
+        var response = await PostWithKeyAsync(new string('k', 101), """{ "name": "Task" }""");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task V1_ReadsTheSameTaskInItsOwnContract()
     {
         var id = await CreateAsync("""{ "name": "Task", "priority": "high" }""");
@@ -237,4 +302,12 @@ public sealed class TasksEndpointTests : IAsyncLifetime
     }
 
     private Task<HttpResponseMessage> PatchAsync(Guid id, string body) => _client.PatchAsync($"/v2/Tasks/{id}", Json(body));
+
+    private Task<HttpResponseMessage> PostWithKeyAsync(string key, string body)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/v2/Tasks") { Content = Json(body) };
+        request.Headers.Add("Idempotency-Key", key);
+
+        return _client.SendAsync(request);
+    }
 }

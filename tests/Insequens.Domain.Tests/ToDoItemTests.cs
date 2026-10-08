@@ -221,6 +221,30 @@ public class ToDoItemTests
     }
 
     [Fact]
+    public void Delete_MovesTheItemToTheTrashAndRestoreTakesItOut()
+    {
+        var item = NewItem();
+
+        item.Delete();
+        item.Delete();
+        item.IsDeleted.Should().BeTrue();
+
+        item.Restore();
+        item.Restore();
+        item.IsDeleted.Should().BeFalse();
+    }
+
+    [Fact]
+    public void NewItem_IsNotDeleted()
+    {
+        var item = NewItem();
+
+        item.IsDeleted.Should().BeFalse();
+        item.DeletedOn.Should().BeNull();
+        item.DeletedBy.Should().BeNull();
+    }
+
+    [Fact]
     public void NewItem_HasNoAuditValuesUntilSaved()
     {
         var item = NewItem();

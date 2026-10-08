@@ -19,6 +19,8 @@ public static class ProblemDetailsServiceCollectionExtensions
         services.AddExceptionHandler<ForbiddenExceptionHandler>();
         services.AddExceptionHandler<PreconditionFailedExceptionHandler>();
         services.AddExceptionHandler<ConcurrencyConflictExceptionHandler>();
+        services.AddExceptionHandler<IdempotencyKeyReusedExceptionHandler>();
+        services.AddExceptionHandler<IdempotentRequestInProgressExceptionHandler>();
         services.AddExceptionHandler<AuthenticationFailedExceptionHandler>();
         services.AddExceptionHandler<EmailConfirmationFailedExceptionHandler>();
         services.AddExceptionHandler<AccountUpdateFailedExceptionHandler>();

@@ -32,6 +32,7 @@ Each section is bound to an options record and validated when the host starts, s
 | `RateLimiting:Write:TokenLimit`, `TokensPerPeriod`, `ReplenishmentPeriod` | `RateLimiting__Write__TokenLimit`, … | No | `60`, `60`, `00:01:00` | Token bucket for POST, PATCH and DELETE, per user. |
 | `RateLimiting:Global:PermitLimit`, `RateLimiting:Global:Window` | `RateLimiting__Global__PermitLimit`, `RateLimiting__Global__Window` | No | `300`, `00:01:00` | Every request, per user, or per client IP when anonymous. |
 | `AccountDeletion:GracePeriod` | `AccountDeletion__GracePeriod` | No | `30.00:00:00` | 0 to 365 days. How long a deleted account stays recoverable before `PurgeDeletedAccountsCommand` deletes it with all its data. |
+| `TaskTrash:Retention` | `TaskTrash__Retention` | No | `30.00:00:00` | 1 to 365 days. How long a deleted task stays in the trash, restorable, before `PurgeDeletedTasksCommand` deletes it. |
 | `Email:SmtpServer` | `Email__SmtpServer` | Yes | `localhost` | |
 | `Email:Port` | `Email__Port` | Yes | `1025` | 1–65535. Base default `587`. |
 | `Email:UseTls` | `Email__UseTls` | No | `false` | Base default `true`. Port 465 connects with implicit TLS; any other port requires STARTTLS. `false` sends in plain text and is for local mail catchers only. Must be `true` when `Username` is set, so credentials never travel unencrypted. |

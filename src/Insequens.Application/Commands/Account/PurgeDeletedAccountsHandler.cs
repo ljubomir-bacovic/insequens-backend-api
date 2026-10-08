@@ -25,9 +25,11 @@ public class PurgeDeletedAccountsHandler(
         {
             // Removed explicitly rather than left to the database's cascade, so no provider keeps them.
             dbContext.ToDoItems.RemoveRange(
-                await dbContext.ToDoItems.Where(item => item.UserId == userId).ToListAsync(cancellationToken));
+                await dbContext.ToDoItems.IgnoreQueryFilters().Where(item => item.UserId == userId).ToListAsync(cancellationToken));
             dbContext.RefreshTokens.RemoveRange(
                 await dbContext.RefreshTokens.Where(token => token.UserId == userId).ToListAsync(cancellationToken));
+            dbContext.IdempotencyRecords.RemoveRange(
+                await dbContext.IdempotencyRecords.Where(record => record.UserId == userId).ToListAsync(cancellationToken));
             await dbContext.SaveChangesAsync(cancellationToken);
 
             await identityService.DeleteUserAsync(userId, cancellationToken);

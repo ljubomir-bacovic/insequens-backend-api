@@ -17,6 +17,8 @@ public static class ProblemTypes
     public const string Validation = Prefix + "validation";
     public const string PreconditionFailed = Prefix + "precondition-failed";
     public const string ConcurrencyConflict = Prefix + "concurrency-conflict";
+    public const string IdempotencyKeyReused = Prefix + "idempotency-key-reused";
+    public const string IdempotentRequestInProgress = Prefix + "idempotent-request-in-progress";
     public const string RateLimited = Prefix + "rate-limited";
     public const string Internal = Prefix + "internal";
 }

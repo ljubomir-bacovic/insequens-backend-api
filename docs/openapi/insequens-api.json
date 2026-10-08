@@ -1915,6 +1915,13 @@
           "updatedOn": {
             "type": "string",
             "format": "date-time"
+          },
+          "deletedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Insequens.Application.Commands.Tasks;
 using Insequens.Application.Queries.Tasks;
 using Insequens.Application.Tests.Support;
 using Insequens.Contracts.V2;
@@ -24,6 +25,23 @@ public sealed class ListTasksHandlerTests : IDisposable
 
         result.Items.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Name = "Mine", Priority = TaskPriority.High });
         result.TotalCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Send_HidesDeletedTasksUnlessAskedForTheTrash()
+    {
+        await _database.SeedItemAsync(_userId, "Live");
+        var deleted = await _database.SeedItemAsync(_userId, "Deleted");
+        var foreign = await _database.SeedItemAsync(Guid.NewGuid(), "Someone else's deleted");
+        await _database.SendAsync(new DeleteTaskCommand(deleted.Id, _userId));
+        await _database.SendAsync(new DeleteTaskCommand(foreign.Id, foreign.UserId));
+
+        var live = await ListAsync();
+        var trash = await ListAsync(new ListTasksQuery(_userId, Deleted: true));
+
+        live.Items.Select(item => item.Name).Should().Equal("Live");
+        trash.Items.Select(item => item.Name).Should().Equal("Deleted");
+        trash.TotalCount.Should().Be(1);
     }
 
     [Theory]

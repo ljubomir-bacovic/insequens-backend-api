@@ -18,6 +18,8 @@ public static class DependencyInjection
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(AuthorizationBehavior<,>));
+        // Innermost: a request that fails validation or authorization never claims its idempotency key.
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(IdempotencyBehavior<,>));
         // Policies run in registration order: a missing role is a 403 before any resource is loaded.
         services.AddTransient(typeof(IAuthorizationPolicy<>), typeof(RoleAuthorizationPolicy<>));
         services.AddTransient(typeof(IAuthorizationPolicy<>), typeof(OwnershipAuthorizationPolicy<>));

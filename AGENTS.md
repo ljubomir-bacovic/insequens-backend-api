@@ -29,7 +29,7 @@ tests/                         → xUnit test projects (Domain, Application on S
 
 Every operation is either a Command (changes state) or a Query (reads state). Never mixed.
 
-**Request flow:** Controller → `_mediator.Send()` → LoggingBehavior → ValidationBehavior → AuthorizationBehavior → Handler → `IApplicationDbContext` → DB
+**Request flow:** Controller → `_mediator.Send()` → LoggingBehavior → ValidationBehavior → AuthorizationBehavior → IdempotencyBehavior (`IIdempotentRequest` only) → Handler → `IApplicationDbContext` → DB
 
 ### Commands
 
@@ -57,6 +57,7 @@ Every operation is either a Command (changes state) or a Query (reads state). Ne
 - For `IOwned<TEntity>` commands, take the entity from `IResourceContext<TEntity>.Resource`: AuthorizationBehavior already loaded and tracked it. Do not load it again and never use `!` on a load.
 - Command handlers create entities with their factory (`ToDoItem.Create`) and change them only through entity methods. DO NOT use AutoMapper for writes.
 - Query handlers use `ProjectTo<TDto>()` for efficient SQL projection.
+- Tasks are soft-deleted (`ISoftDeletable`, global query filter): delete through `ToDoItem.Delete()`, never `Remove`, except in a purge. `IgnoreQueryFilters()` belongs only in the trash list, restore, the data export and the purges; anywhere else it exposes deleted tasks.
 
 ### Validators
 

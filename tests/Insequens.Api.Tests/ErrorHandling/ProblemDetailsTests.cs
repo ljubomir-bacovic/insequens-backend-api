@@ -18,6 +18,8 @@ public class ProblemDetailsTests
         { "email-confirmation", HttpStatusCode.BadRequest, "urn:insequens:error:email-confirmation-failed", "Email confirmation failed." },
         { "account-update", HttpStatusCode.BadRequest, "urn:insequens:error:account-update-failed", "Account update failed." },
         { "domain", HttpStatusCode.BadRequest, "urn:insequens:error:domain-rule-violated", "Domain rule violated." },
+        { "idempotency-key-reused", HttpStatusCode.UnprocessableEntity, "urn:insequens:error:idempotency-key-reused", "Idempotency-Key reused." },
+        { "idempotent-request-in-progress", HttpStatusCode.Conflict, "urn:insequens:error:idempotent-request-in-progress", "Request in progress." },
         { "validation", HttpStatusCode.BadRequest, "urn:insequens:error:validation", "Validation failed." },
         { "unhandled", HttpStatusCode.InternalServerError, "urn:insequens:error:internal", "Internal Server Error" },
     };

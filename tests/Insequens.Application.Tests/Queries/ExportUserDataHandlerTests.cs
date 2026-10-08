@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Insequens.Application.Abstractions.Identity;
+using Insequens.Application.Commands.Tasks;
 using Insequens.Application.Exceptions;
 using Insequens.Application.Queries.Account;
 using Insequens.Application.Tests.Commands.Account;
@@ -48,4 +49,18 @@ public sealed class ExportUserDataHandlerTests : IDisposable
     }
 
     private Task<UserDataExport> SendAsync(ExportUserDataQuery query) => _database.SendAsync(query, _services.Register);
+
+    [Fact]
+    public async Task Send_IncludesTasksInTheTrashWithWhenTheyWereDeleted()
+    {
+        _services.IdentityService.GetAccountAsync(_userId, Arg.Any<CancellationToken>())
+            .Returns(new AccountDetails(_userId, "user@example.com", true, []));
+        var item = await _database.SeedItemAsync(_userId, "Deleted");
+        _database.Clock.Advance(TimeSpan.FromHours(1));
+        await _database.SendAsync(new DeleteTaskCommand(item.Id, _userId));
+
+        var export = await SendAsync(new ExportUserDataQuery(_userId));
+
+        export.Tasks.Should().ContainSingle().Which.DeletedOn.Should().Be(TestDbContextFactory.StartTime.AddHours(1));
+    }
 }

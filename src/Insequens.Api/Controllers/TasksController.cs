@@ -17,7 +17,8 @@ namespace Insequens.Api.Controllers;
 
 /// <summary>
 /// The task endpoints at <c>/v2/Tasks</c>: string priorities with <c>none</c>, list filters and sorting, one
-/// partial-update PATCH and an idempotent completion PUT in place of v1's per-field PATCHes and toggle.
+/// partial-update PATCH and an idempotent completion PUT in place of v1's per-field PATCHes and toggle, and a
+/// trash: DELETE moves a task there, <c>?deleted=true</c> lists it and <c>POST {id}/restore</c> takes a task out.
 /// </summary>
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiVersion(ApiVersions.V2)]
@@ -25,6 +26,8 @@ namespace Insequens.Api.Controllers;
 [ApiController]
 public class TasksController(IMediator mediator) : TasksControllerBase(mediator)
 {
+    public const string IdempotencyKeyHeader = "Idempotency-Key";
+
     [HttpGet]
     [ProducesResponseType<PaginatedResult<TaskResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -34,6 +37,7 @@ public class TasksController(IMediator mediator) : TasksControllerBase(mediator)
         [FromQuery] DateOnly? dueFrom,
         [FromQuery] DateOnly? dueTo,
         [FromQuery] string? search,
+        [FromQuery] bool deleted,
         [FromQuery] TaskSortField sortBy = TaskSortField.DueDate,
         [FromQuery] SortDirection? sortDirection = null,
         [FromQuery] int page = 1,
@@ -46,16 +50,26 @@ public class TasksController(IMediator mediator) : TasksControllerBase(mediator)
         }
 
         var result = await Mediator.Send(
-            new ListTasksQuery(userId, completed, priority, dueFrom, dueTo, search, sortBy, sortDirection, page, pageSize),
+            new ListTasksQuery(userId, completed, priority, dueFrom, dueTo, search, sortBy, sortDirection, page, pageSize, deleted),
             cancellationToken);
         return Ok(result);
     }
 
+    /// <summary>
+    /// Creates a task. A client that may retry (an offline mobile app) sends an <c>Idempotency-Key</c>: a repeat with
+    /// the same key and body within 24 hours returns the first response without creating another task.
+    /// </summary>
+    /// <param name="idempotencyKey">Up to 100 characters, unique per task the client means to create.</param>
     [HttpPost]
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType<TaskResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateTaskRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CreateAsync(
+        [FromBody] CreateTaskRequest request,
+        [FromHeader(Name = IdempotencyKeyHeader)] string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
         {
@@ -63,7 +77,7 @@ public class TasksController(IMediator mediator) : TasksControllerBase(mediator)
         }
 
         var task = await Mediator.Send(
-            new CreateTaskCommand(userId, request.Name, request.Description, request.Priority, request.DueDate),
+            new CreateTaskCommand(userId, request.Name, request.Description, request.Priority, request.DueDate, idempotencyKey),
             cancellationToken);
         return CreatedAtAction(nameof(GetAsync), new { id = task.Id }, task);
     }
@@ -135,6 +149,30 @@ public class TasksController(IMediator mediator) : TasksControllerBase(mediator)
         return NoContent();
     }
 
+    /// <summary>Takes a task out of the trash. Restoring a task that is not deleted changes nothing.</summary>
+    [HttpPost("{id:guid}/restore")]
+    [EnableRateLimiting(RateLimitPolicies.Write)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status412PreconditionFailed)]
+    public async Task<IActionResult> RestoreAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        if (!EntityTags.TryParseIfMatch(Request, out var expectedVersion))
+        {
+            return UnmatchableIfMatch();
+        }
+
+        await Mediator.Send(new RestoreTaskCommand(id, userId, expectedVersion), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Moves a task to the trash, from where it can be restored until it is purged.</summary>
     [HttpDelete("{id:guid}")]
     [EnableRateLimiting(RateLimitPolicies.Write)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

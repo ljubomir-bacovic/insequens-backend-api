@@ -154,6 +154,7 @@ public class ProgramStartupTests
     [InlineData("Frontend:BaseUrl", "", "BaseUrl")]
     [InlineData("Frontend:BaseUrl", "not-a-url", "BaseUrl")]
     [InlineData("AccountDeletion:GracePeriod", "366.00:00:00", "GracePeriod")]
+    [InlineData("TaskTrash:Retention", "00:00:00", "Retention")]
     [InlineData("RateLimiting:Auth:PermitLimit", "0", "PermitLimit")]
     [InlineData("RateLimiting:Write:ReplenishmentPeriod", "00:00:00", "ReplenishmentPeriod")]
     [InlineData("ReverseProxy:KnownProxies:0", "not-an-ip", "KnownProxies")]
